@@ -12,5 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod play;
-pub mod player;
+use rocket::serde::Serialize;
+
+#[derive(Serialize, Default)]
+#[serde(crate = "rocket::serde")]
+pub struct Player {
+    pub id: u64,
+    pub name: String,
+    pub repo: String,
+    pub reference: String,
+    pub commit: String,
+}

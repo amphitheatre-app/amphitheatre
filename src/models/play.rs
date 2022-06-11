@@ -12,10 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::player::Player;
 use rocket::serde::Serialize;
 
 #[derive(Serialize, Default)]
 #[serde(crate = "rocket::serde")]
 pub struct Play {
+    pub id: u64,
+    pub title: String,
+    pub description: String,
+    pub state: String,
 
+    pub cast: Vec<Player>,
 }
