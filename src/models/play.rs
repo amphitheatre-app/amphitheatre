@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[macro_use] extern crate rocket;
+use rocket::serde::Serialize;
 
-mod handlers;
-mod models;
-mod routes;
+#[derive(Serialize, Default)]
+#[serde(crate = "rocket::serde")]
+pub struct Play {
 
-#[launch]
-fn rocket() -> _ {
-    routes::build()
 }

@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[macro_use] extern crate rocket;
+use rocket::Build;
+use rocket::Rocket;
 
-mod handlers;
-mod models;
-mod routes;
+use super::handlers::*;
 
-#[launch]
-fn rocket() -> _ {
-    routes::build()
+pub fn build() -> Rocket<Build> {
+    rocket::build().mount("/plays", routes![play::list, play::detail])
 }

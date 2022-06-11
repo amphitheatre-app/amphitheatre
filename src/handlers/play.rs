@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[macro_use] extern crate rocket;
+use rocket::serde::json::Json;
+use crate::models::play::Play;
 
-mod handlers;
-mod models;
-mod routes;
+#[get("/")]
+pub fn list() -> Json<Vec<Play>>{
+    Json(vec![Play::default()])
+}
 
-#[launch]
-fn rocket() -> _ {
-    routes::build()
+#[get("/<id>")]
+pub fn detail(id: u64) -> Json<Play> {
+    Json(Play::default())
 }
