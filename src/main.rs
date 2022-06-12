@@ -17,6 +17,7 @@
 mod handlers;
 mod models;
 mod routes;
+mod schema;
 
 #[launch]
 fn rocket() -> _ {
