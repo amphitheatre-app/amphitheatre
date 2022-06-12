@@ -18,8 +18,20 @@ use rocket::serde::Serialize;
 #[serde(crate = "rocket::serde")]
 pub struct Player {
     pub id: u64,
+
+    // An identifier for the project.
     pub name: String,
+
+    // Git repository the package should be cloned from.
+    // e.g. https://github.com/amphitheatre-app/amphitheatre.git.
     pub repo: String,
+
+    // Relative path from the repo root to the configuration file.
+    // eg. getting-started/amp.yaml.
+    pub path: String,
+
+    // Git ref the package should be cloned from. eg. master or main
     pub reference: String,
+
     pub commit: String,
 }
