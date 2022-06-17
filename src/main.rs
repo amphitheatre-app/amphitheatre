@@ -13,13 +13,18 @@
 // limitations under the License.
 
 #[macro_use] extern crate rocket;
+#[macro_use] extern crate rocket_sync_db_pools;
+#[macro_use] extern crate diesel;
 
+mod database;
 mod handlers;
 mod models;
+mod repositories;
 mod routes;
 mod schema;
+mod services;
 
 #[launch]
 fn rocket() -> _ {
-    routes::build()
+    routes::build().attach(database::Database::fairing())
 }

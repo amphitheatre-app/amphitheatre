@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rocket::serde::Serialize;
+use rocket::serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Default)]
+#[derive(Default, Clone, Serialize, Deserialize, Queryable, Insertable)]
 #[serde(crate = "rocket::serde")]
+#[table_name = "players"]
+
 pub struct Player {
     pub id: u64,
 
@@ -34,4 +36,15 @@ pub struct Player {
     pub reference: String,
 
     pub commit: String,
+}
+
+table! {
+    players(id) {
+        id -> Unsigned<BigInt>,
+        name -> Text,
+        repo -> Text,
+        path -> Text,
+        reference -> Text,
+        commit -> Text,
+    }
 }

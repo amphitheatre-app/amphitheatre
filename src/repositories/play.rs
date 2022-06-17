@@ -12,26 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{database::Database, models::play::Play, services::play::PlayService};
-use rocket::serde::json::Json;
+use diesel::QueryDsl;
 
-#[get("/")]
-pub async fn list(db: Database) -> Json<Vec<Play>> {
-    let plays = PlayService::list(&db).await;
-    match plays {
-        Ok(plays) => Json(plays),
-        Err(e) => {
-            error!("{e}");
-            Json(vec![])
-        }
+use crate::database::Database;
+use crate::diesel::ExpressionMethods;
+use crate::diesel::RunQueryDsl;
+use crate::models::play::{plays, Play};
+
+pub struct PlayRepository;
+
+impl PlayRepository {
+    pub async fn get(db: &Database, id: u64) -> Result<Play, diesel::result::Error>{
+        db.run(move |conn| 
+            plays::table.filter(plays::id.eq(id)).first(conn)
+        ).await
     }
-}
 
-#[get("/<id>")]
-pub async fn detail(db: Database, id: u64) -> Json<Play> {
-    let play = PlayService::get(&db, id).await;
-    match play {
-        Ok(play) => Json(play),
-        Err(_) => Json(Play::default()),
+    pub async fn list(db: &Database) -> Result<Vec<Play>, diesel::result::Error> {
+        db.run(|conn| plays::table.load::<Play>(conn)).await
     }
 }

@@ -12,26 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{database::Database, models::play::Play, services::play::PlayService};
-use rocket::serde::json::Json;
+use rocket_sync_db_pools::diesel;
 
-#[get("/")]
-pub async fn list(db: Database) -> Json<Vec<Play>> {
-    let plays = PlayService::list(&db).await;
-    match plays {
-        Ok(plays) => Json(plays),
-        Err(e) => {
-            error!("{e}");
-            Json(vec![])
-        }
-    }
-}
-
-#[get("/<id>")]
-pub async fn detail(db: Database, id: u64) -> Json<Play> {
-    let play = PlayService::get(&db, id).await;
-    match play {
-        Ok(play) => Json(play),
-        Err(_) => Json(Play::default()),
-    }
-}
+#[database("amphitheatre")]
+pub struct Database(diesel::MysqlConnection);
