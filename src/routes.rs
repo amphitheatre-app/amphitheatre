@@ -18,5 +18,15 @@ use rocket::Rocket;
 use super::handlers::*;
 
 pub fn build() -> Rocket<Build> {
-    rocket::build().mount("/plays", routes![play::list, play::detail])
+    rocket::build().mount(
+        "/plays",
+        routes![
+            play::list,
+            play::detail,
+            play::create,
+            play::logs,
+            play::inspect,
+            play::stats
+        ],
+    )
 }
