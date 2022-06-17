@@ -15,6 +15,7 @@
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate rocket_sync_db_pools;
 #[macro_use] extern crate diesel;
+#[macro_use] extern crate diesel_migrations;
 
 mod database;
 mod handlers;
@@ -26,5 +27,5 @@ mod services;
 
 #[launch]
 fn rocket() -> _ {
-    routes::build().attach(database::Database::fairing())
+    routes::build().attach(database::stage())
 }
