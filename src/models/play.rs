@@ -13,25 +13,28 @@
 // limitations under the License.
 
 //use super::player::Player;
-use rocket::serde::{Serialize, Deserialize};
+use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Default, Clone, Serialize, Deserialize, Queryable, Insertable)]
 #[serde(crate = "rocket::serde")]
-#[table_name="plays"]
+#[table_name = "plays"]
 pub struct Play {
     pub id: u64,
     pub title: String,
     pub description: String,
     pub state: String,
-
     // pub cast: Vec<Player>,
 }
 
-table! {
-    plays(id) {
-        id -> Unsigned<BigInt>,
-        title -> Text,
-        description -> Text,
-        state -> Text,
+use self::schema::plays;
+
+pub mod schema {
+    table! {
+        plays(id) {
+            id -> Unsigned<BigInt>,
+            title -> Text,
+            description -> Text,
+            state -> Text,
+        }
     }
 }

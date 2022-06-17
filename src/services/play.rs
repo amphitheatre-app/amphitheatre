@@ -12,16 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{database::Database, models::play::Play, repositories::play::PlayRepository};
+use diesel::QueryResult;
+
+use crate::database::Database;
+use crate::models::play::Play;
+use crate::repositories::play::PlayRepository;
 
 pub struct PlayService;
 
 impl PlayService {
-    pub async fn get(db: &Database, id: u64) -> Result<Play, diesel::result::Error> {
+    pub async fn get(db: &Database, id: u64) -> QueryResult<Play> {
         PlayRepository::get(&db, id).await
     }
 
-    pub async fn list(db: &Database) -> Result<Vec<Play>, diesel::result::Error> {
+    pub async fn list(db: &Database) -> QueryResult<Vec<Play>> {
         PlayRepository::list(&db).await
     }
 }

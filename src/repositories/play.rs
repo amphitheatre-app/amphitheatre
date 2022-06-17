@@ -12,23 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use diesel::QueryDsl;
+use diesel::{self, prelude::*, result::QueryResult};
 
 use crate::database::Database;
-use crate::diesel::ExpressionMethods;
-use crate::diesel::RunQueryDsl;
-use crate::models::play::{plays, Play};
+use crate::models::play::{schema::plays, Play};
 
 pub struct PlayRepository;
 
 impl PlayRepository {
-    pub async fn get(db: &Database, id: u64) -> Result<Play, diesel::result::Error>{
-        db.run(move |conn| 
-            plays::table.filter(plays::id.eq(id)).first(conn)
-        ).await
+    pub async fn get(db: &Database, id: u64) -> QueryResult<Play> {
+        db.run(move |conn| plays::table.filter(plays::id.eq(id)).first(conn))
+            .await
     }
 
-    pub async fn list(db: &Database) -> Result<Vec<Play>, diesel::result::Error> {
+    pub async fn list(db: &Database) -> QueryResult<Vec<Play>> {
         db.run(|conn| plays::table.load::<Play>(conn)).await
     }
 }

@@ -38,13 +38,17 @@ pub struct Player {
     pub commit: String,
 }
 
-table! {
-    players(id) {
-        id -> Unsigned<BigInt>,
-        name -> Text,
-        repo -> Text,
-        path -> Text,
-        reference -> Text,
-        commit -> Text,
+use self::schema::players;
+
+pub mod schema {
+    table! {
+        players(id) {
+            id -> Unsigned<BigInt>,
+            name -> Text,
+            repo -> Text,
+            path -> Text,
+            reference -> Text,
+            commit -> Text,
+        }
     }
 }
