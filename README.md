@@ -26,4 +26,4 @@ submitting pull requests to the project.
 
 Amphitheatre is a free and open source software, it is licensed under
 the [Apache License
-2.0](https://github.com/amphitheatre-app/desktop/blob/master/LICENSE)
+2.0](https://github.com/amphitheatre-app/amphitheatre/blob/master/LICENSE)
