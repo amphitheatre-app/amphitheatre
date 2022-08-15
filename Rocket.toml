@@ -1,2 +1,5 @@
 [default.databases]
 amphitheatre = { url = "mysql://root:12345678@localhost/amphitheatre" }
+
+[dev.databases]
+amphitheatre = { url = "mysql://root:123456@localhost/amphitheatre" }

@@ -6,7 +6,12 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+futures = "0.3.17"
 diesel = {version = "1.4.8", features = ["mysql"]}
 rocket = {version = "0.5.0-rc.2", features = ["json"]}
 rocket_sync_db_pools = {version = "0.1.0-rc.2", features = ["diesel_mysql_pool"]}
 diesel_migrations = "1.4.0"
+anyhow = "1.0.44"
+
+kube = { version = "0.74.0", features = ["runtime", "derive"] }
+k8s-openapi = { version = "0.15.0", features = ["v1_24"] }

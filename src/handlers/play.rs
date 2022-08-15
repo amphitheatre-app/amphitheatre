@@ -14,9 +14,16 @@
 
 use std::collections::HashMap;
 
-use rocket::response::stream::TextStream;
+use k8s_openapi::api::core::v1::Pod;
+use kube::{Api, Client};
+use kube::api::LogParams;
+use rocket::futures::StreamExt;
+use rocket::futures::TryStreamExt;
+use rocket::response::status::NoContent;
+use rocket::response::stream::{Event, EventStream};
 use rocket::serde::json::Json;
-use rocket::tokio::time::{interval, Duration};
+use rocket::State;
+use rocket::tokio::time::{Duration, interval};
 
 use crate::database::Database;
 use crate::models::play::Play;
@@ -28,7 +35,6 @@ pub async fn list(db: Database) -> Json<Vec<Play>> {
     match plays {
         Ok(plays) => Json(plays),
         Err(e) => {
-            error!("{e}");
             Json(vec![])
         }
     }
@@ -49,14 +55,23 @@ pub async fn create() -> Json<&'static str> {
 }
 
 #[get("/<id>/logs")]
-pub async fn logs(db: Database, id: u64) -> TextStream![&'static str] {
-    TextStream! {
-        let mut interval = interval(Duration::from_secs(1));
-        loop {
-            yield "hello";
-            interval.tick().await;
+pub async fn logs(id: u64, client: &State<Client>) -> EventStream![] {
+    let pods: Api<Pod> = Api::default_namespaced(client.inner().clone());
+    let mut logs = pods.log_stream(
+        "getting-started",
+        &LogParams {
+            follow: true,
+            tail_lines: Some(1),
+            ..LogParams::default()
+        })
+        .await.unwrap()
+        .boxed();
+
+    EventStream! {
+        while let Some(line) = logs.try_next().await.unwrap() {
+            yield Event::data(format!("{:?}", String::from_utf8_lossy(&line)));
         }
-    }
+   }
 }
 
 #[get("/<id>/inspect")]
@@ -79,14 +94,14 @@ pub async fn inspect(id: u64) -> Json<HashMap<&'static str, HashMap<&'static str
         ),
         ("mounts", HashMap::from([
             ("/VAR/LIB/CNI",
-                "/var/lib/docker/volumes/00f49631b07ccd74de44d3047d5f889395ac871e05b622890b6dd788d34a59f4/_data"),
+             "/var/lib/docker/volumes/00f49631b07ccd74de44d3047d5f889395ac871e05b622890b6dd788d34a59f4/_data"),
             ("/VAR/LIB/KUBELET",
-                "/var/lib/docker/volumes/bc1b16d39a0e204841695de857122412cfdefd0f672af185b1fa43e635397848/_data"),
+             "/var/lib/docker/volumes/bc1b16d39a0e204841695de857122412cfdefd0f672af185b1fa43e635397848/_data"),
             ("/VAR/LIB/RANCHER/K3S",
-                "/var/lib/docker/volumes/a78bcb9f7654701e0cfaef4447ef61ced4864e5b93dee7102ec639afb5cf2e1d/_data"),
+             "/var/lib/docker/volumes/a78bcb9f7654701e0cfaef4447ef61ced4864e5b93dee7102ec639afb5cf2e1d/_data"),
             ("/VAR/LOG",
-                "/var/lib/docker/volumes/f64c2f2cf81cfde89879f2a17924b31bd2f2e6a6a738f7df949bf6bd57102d25/_data"),
-            ]
+             "/var/lib/docker/volumes/f64c2f2cf81cfde89879f2a17924b31bd2f2e6a6a738f7df949bf6bd57102d25/_data"),
+        ]
         )),
         ("port", HashMap::from([("6443/tcp", "0.0.0.0:42397")])),
     ]))

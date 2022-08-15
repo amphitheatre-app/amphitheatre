@@ -12,10 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[macro_use] extern crate rocket;
-#[macro_use] extern crate rocket_sync_db_pools;
-#[macro_use] extern crate diesel;
-#[macro_use] extern crate diesel_migrations;
+#[macro_use]
+extern crate diesel;
+#[macro_use]
+extern crate diesel_migrations;
+#[macro_use]
+extern crate rocket;
+#[macro_use]
+extern crate rocket_sync_db_pools;
+
+use k8s_openapi::api::core::v1::Pod;
+use kube::{api::{Api, LogParams}, Client};
 
 mod database;
 mod handlers;
@@ -25,7 +32,14 @@ mod routes;
 mod schema;
 mod services;
 
-#[launch]
-fn rocket() -> _ {
-    routes::build().attach(database::stage())
+#[rocket::main]
+async fn main() -> Result<(), rocket::Error> {
+    let client = Client::try_default().await.unwrap();
+
+    let _= routes::build()
+        .attach(database::stage())
+        .manage(client)
+        .launch().await?;
+
+    Ok(())
 }
