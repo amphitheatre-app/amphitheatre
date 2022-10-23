@@ -18,7 +18,7 @@ issues](https://img.shields.io/github/issues/amphitheatre-app/amphitheatre)](htt
 
 If anything feels off, or if you feel that some functionality is missing, please
 check out the [contributing
-page](https://docs.amphitheatre.app/contributing/overview/). There you will find
+page](https://docs.amphitheatre.app/contributing/). There you will find
 instructions for sharing your feedback, building the tool locally, and
 submitting pull requests to the project.
 
