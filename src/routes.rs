@@ -18,15 +18,27 @@ use rocket::Rocket;
 use super::handlers::*;
 
 pub fn build() -> Rocket<Build> {
-    rocket::build().mount(
-        "/v1/playbooks",
-        routes![
-            playbook::list,
-            playbook::detail,
-            playbook::create,
-            playbook::events,
-            playbook::info,
-            playbook::stats
-        ],
-    )
+    rocket::build()
+        .mount("/v1/actors",
+            routes![
+                actor::detail,   // GET    /v1/actors/<id>
+                actor::logs,     // GET    /v1/actors/<id>/logs
+                actor::info,     // GET    /v1/actors/<id>/info
+                actor::stats,    // GET    /v1/actors/<id>/stats
+            ],
+        )
+        .mount("/v1/playbooks",
+            routes![
+                playbook::list,     // GET    /v1/playbooks
+                playbook::create,   // POST   /v1/playbooks
+                playbook::detail,   // GET    /v1/playbooks/<id>
+                playbook::update,   // PATCH  /v1/playbooks/<id>
+                playbook::delete,   // DELETE /v1/playbooks/<id>
+                playbook::events,   // GET    /v1/playbooks/<id>/events
+                playbook::start,    // POST   /v1/playbooks/<id>/actions/start
+                playbook::stop,     // POST   /v1/playbooks/<id>/actions/stop
+
+                actor::list,        // GET    /v1/playbooks/<pid>/actors
+            ],
+        )
 }
