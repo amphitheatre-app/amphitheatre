@@ -12,29 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//use super::player::Player;
-use rocket::serde::{Deserialize, Serialize};
+use diesel::{self, prelude::*, result::QueryResult};
 
-#[derive(Default, Clone, Serialize, Deserialize, Queryable, Insertable)]
-#[serde(crate = "rocket::serde")]
-#[table_name = "plays"]
-pub struct Play {
-    pub id: u64,
-    pub title: String,
-    pub description: String,
-    pub state: String,
-    // pub cast: Vec<Player>,
-}
+use crate::database::Database;
+use crate::models::playbook::{schema::playbooks, Playbook};
 
-use self::schema::plays;
+pub struct PlaybookRepository;
 
-pub mod schema {
-    table! {
-        plays(id) {
-            id -> Unsigned<BigInt>,
-            title -> Text,
-            description -> Text,
-            state -> Text,
-        }
+impl PlaybookRepository {
+    pub async fn get(db: &Database, id: u64) -> QueryResult<Playbook> {
+        db.run(move |conn|
+            playbooks::table.filter(playbooks::id.eq(id)).first(conn)
+        ).await
+    }
+
+    pub async fn list(db: &Database) -> QueryResult<Vec<Playbook>> {
+        db.run(|conn|
+            playbooks::table.load::<Playbook>(conn)
+        ).await
     }
 }

@@ -19,19 +19,17 @@ use kube::{Api, Client};
 use kube::api::LogParams;
 use rocket::futures::StreamExt;
 use rocket::futures::TryStreamExt;
-use rocket::response::status::NoContent;
 use rocket::response::stream::{Event, EventStream};
 use rocket::serde::json::Json;
 use rocket::State;
-use rocket::tokio::time::{Duration, interval};
 
 use crate::database::Database;
-use crate::models::play::Play;
-use crate::services::play::PlayService;
+use crate::models::playbook::Playbook;
+use crate::services::playbook::PlaybookService;
 
 #[get("/")]
-pub async fn list(db: Database) -> Json<Vec<Play>> {
-    let plays = PlayService::list(&db).await;
+pub async fn list(db: Database) -> Json<Vec<Playbook>> {
+    let plays = PlaybookService::list(&db).await;
     match plays {
         Ok(plays) => Json(plays),
         Err(e) => {
@@ -41,11 +39,11 @@ pub async fn list(db: Database) -> Json<Vec<Play>> {
 }
 
 #[get("/<id>")]
-pub async fn detail(db: Database, id: u64) -> Json<Play> {
-    let play = PlayService::get(&db, id).await;
+pub async fn detail(db: Database, id: u64) -> Json<Playbook> {
+    let play = PlaybookService::get(&db, id).await;
     match play {
         Ok(play) => Json(play),
-        Err(_) => Json(Play::default()),
+        Err(_) => Json(Playbook::default()),
     }
 }
 
@@ -54,8 +52,8 @@ pub async fn create() -> Json<&'static str> {
     Json("OK")
 }
 
-#[get("/<id>/logs")]
-pub async fn logs(id: u64, client: &State<Client>) -> EventStream![] {
+#[get("/<id>/events")]
+pub async fn events(id: u64, client: &State<Client>) -> EventStream![] {
     let pods: Api<Pod> = Api::default_namespaced(client.inner().clone());
     let mut logs = pods.log_stream(
         "getting-started",
@@ -74,8 +72,8 @@ pub async fn logs(id: u64, client: &State<Client>) -> EventStream![] {
    }
 }
 
-#[get("/<id>/inspect")]
-pub async fn inspect(id: u64) -> Json<HashMap<&'static str, HashMap<&'static str, &'static str>>> {
+#[get("/<id>/info")]
+pub async fn info(id: u64) -> Json<HashMap<&'static str, HashMap<&'static str, &'static str>>> {
     Json(HashMap::from([
         (
             "environments",

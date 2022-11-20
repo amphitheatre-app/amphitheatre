@@ -12,20 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use diesel::QueryResult;
+use rocket::serde::{Deserialize, Serialize};
 
-use crate::database::Database;
-use crate::models::play::Play;
-use crate::repositories::play::PlayRepository;
+#[derive(Default, Clone, Serialize, Deserialize, Queryable, Insertable)]
+#[serde(crate = "rocket::serde")]
+#[table_name = "playbooks"]
+pub struct Playbook {
+    pub id: u64,
+    pub title: String,
+    pub description: String,
+    pub state: String,
+}
 
-pub struct PlayService;
+use self::schema::playbooks;
 
-impl PlayService {
-    pub async fn get(db: &Database, id: u64) -> QueryResult<Play> {
-        PlayRepository::get(&db, id).await
-    }
-
-    pub async fn list(db: &Database) -> QueryResult<Vec<Play>> {
-        PlayRepository::list(&db).await
+pub mod schema {
+    table! {
+        playbooks(id) {
+            id -> Unsigned<BigInt>,
+            title -> Text,
+            description -> Text,
+            state -> Text,
+        }
     }
 }

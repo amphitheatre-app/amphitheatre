@@ -21,8 +21,7 @@ extern crate rocket;
 #[macro_use]
 extern crate rocket_sync_db_pools;
 
-use k8s_openapi::api::core::v1::Pod;
-use kube::{api::{Api, LogParams}, Client};
+use kube::Client;
 
 mod database;
 mod handlers;
