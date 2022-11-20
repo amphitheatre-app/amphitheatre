@@ -16,9 +16,9 @@ use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Default, Clone, Serialize, Deserialize, Queryable, Insertable)]
 #[serde(crate = "rocket::serde")]
-#[table_name = "players"]
+#[table_name = "actors"]
 
-pub struct Player {
+pub struct Actor {
     pub id: u64,
 
     // An identifier for the project.
@@ -38,11 +38,11 @@ pub struct Player {
     pub commit: String,
 }
 
-use self::schema::players;
+use self::schema::actors;
 
 pub mod schema {
     table! {
-        players(id) {
+        actors(id) {
             id -> Unsigned<BigInt>,
             name -> Text,
             repo -> Text,

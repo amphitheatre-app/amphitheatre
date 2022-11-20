@@ -13,4 +13,4 @@
 // limitations under the License.
 
 pub mod playbook;
-pub mod player;
+pub mod actor;
