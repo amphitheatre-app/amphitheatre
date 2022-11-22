@@ -21,14 +21,11 @@ pub struct PlaybookRepository;
 
 impl PlaybookRepository {
     pub async fn get(db: &Database, id: u64) -> QueryResult<Playbook> {
-        db.run(move |conn|
-            playbooks::table.filter(playbooks::id.eq(id)).first(conn)
-        ).await
+        db.run(move |conn| playbooks::table.filter(playbooks::id.eq(id)).first(conn))
+            .await
     }
 
     pub async fn list(db: &Database) -> QueryResult<Vec<Playbook>> {
-        db.run(|conn|
-            playbooks::table.load::<Playbook>(conn)
-        ).await
+        db.run(|conn| playbooks::table.load::<Playbook>(conn)).await
     }
 }

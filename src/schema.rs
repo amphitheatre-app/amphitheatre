@@ -13,7 +13,6 @@
 // the License.
 
 /// Inspired by Skaffold Schema
-
 use std::collections::HashMap;
 
 /// Holds the fields parsed from Amphitheatre configuration file (amp.yaml).

@@ -22,10 +22,10 @@ pub struct PlaybookService;
 
 impl PlaybookService {
     pub async fn get(db: &Database, id: u64) -> QueryResult<Playbook> {
-        PlaybookRepository::get(&db, id).await
+        PlaybookRepository::get(db, id).await
     }
 
     pub async fn list(db: &Database) -> QueryResult<Vec<Playbook>> {
-        PlaybookRepository::list(&db).await
+        PlaybookRepository::list(db).await
     }
 }

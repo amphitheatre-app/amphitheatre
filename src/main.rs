@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(unused_variables)]
+
 #[macro_use]
 extern crate diesel;
 #[macro_use]
@@ -35,10 +37,11 @@ mod services;
 async fn main() -> Result<(), rocket::Error> {
     let client = Client::try_default().await.unwrap();
 
-    let _= routes::build()
+    let _ = routes::build()
         .attach(database::stage())
         .manage(client)
-        .launch().await?;
+        .launch()
+        .await?;
 
     Ok(())
 }

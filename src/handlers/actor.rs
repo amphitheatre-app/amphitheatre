@@ -15,8 +15,8 @@
 use std::collections::HashMap;
 
 use k8s_openapi::api::core::v1::Pod;
-use kube::{Api, Client};
 use kube::api::LogParams;
+use kube::{Api, Client};
 use rocket::futures::StreamExt;
 use rocket::futures::TryStreamExt;
 use rocket::response::stream::{Event, EventStream};
@@ -48,21 +48,24 @@ pub async fn detail(db: Database, id: u64) -> Json<Actor> {
 #[get("/<id>/logs")]
 pub async fn logs(client: &State<Client>, id: u64) -> EventStream![] {
     let pods: Api<Pod> = Api::default_namespaced(client.inner().clone());
-    let mut logs = pods.log_stream(
-        "getting-started",
-        &LogParams {
-            follow: true,
-            tail_lines: Some(1),
-            ..LogParams::default()
-        })
-        .await.unwrap()
+    let mut logs = pods
+        .log_stream(
+            "getting-started",
+            &LogParams {
+                follow: true,
+                tail_lines: Some(1),
+                ..LogParams::default()
+            },
+        )
+        .await
+        .unwrap()
         .boxed();
 
     EventStream! {
-        while let Some(line) = logs.try_next().await.unwrap() {
-            yield Event::data(format!("{:?}", String::from_utf8_lossy(&line)));
-        }
-   }
+         while let Some(line) = logs.try_next().await.unwrap() {
+             yield Event::data(format!("{:?}", String::from_utf8_lossy(&line)));
+         }
+    }
 }
 
 /// Returns a actor's info, including enviroments, volumes...

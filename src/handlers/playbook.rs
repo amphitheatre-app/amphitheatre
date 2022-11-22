@@ -13,8 +13,8 @@
 // limitations under the License.
 
 use k8s_openapi::api::core::v1::Pod;
-use kube::{Api, Client};
 use kube::api::LogParams;
+use kube::{Api, Client};
 use rocket::futures::StreamExt;
 use rocket::futures::TryStreamExt;
 use rocket::response::stream::{Event, EventStream};
@@ -35,9 +35,7 @@ pub async fn list(db: Database) -> Json<Vec<Playbook>> {
     let result = PlaybookService::list(&db).await;
     match result {
         Ok(playbooks) => Json(playbooks),
-        Err(e) => {
-            Json(vec![])
-        }
+        Err(e) => Json(vec![]),
     }
 }
 
@@ -78,21 +76,24 @@ pub async fn delete(db: Database, id: u64) -> Json<&'static str> {
 #[get("/<id>/events")]
 pub async fn events(client: &State<Client>, id: u64) -> EventStream![] {
     let pods: Api<Pod> = Api::default_namespaced(client.inner().clone());
-    let mut logs = pods.log_stream(
-        "getting-started",
-        &LogParams {
-            follow: true,
-            tail_lines: Some(1),
-            ..LogParams::default()
-        })
-        .await.unwrap()
+    let mut logs = pods
+        .log_stream(
+            "getting-started",
+            &LogParams {
+                follow: true,
+                tail_lines: Some(1),
+                ..LogParams::default()
+            },
+        )
+        .await
+        .unwrap()
         .boxed();
 
     EventStream! {
-        while let Some(line) = logs.try_next().await.unwrap() {
-            yield Event::data(format!("{:?}", String::from_utf8_lossy(&line)));
-        }
-   }
+         while let Some(line) = logs.try_next().await.unwrap() {
+             yield Event::data(format!("{:?}", String::from_utf8_lossy(&line)));
+         }
+    }
 }
 
 /// Start a playbook.
