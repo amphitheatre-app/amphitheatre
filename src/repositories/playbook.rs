@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use diesel::{self, prelude::*, result::QueryResult};
+use diesel::prelude::*;
+use diesel::result::QueryResult;
+use diesel::{self};
 
 use crate::database::Database;
-use crate::models::playbook::{schema::playbooks, Playbook};
+use crate::models::playbook::schema::playbooks;
+use crate::models::playbook::Playbook;
 
 pub struct PlaybookRepository;
 
