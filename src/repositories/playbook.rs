@@ -25,6 +25,10 @@ impl PlaybookRepository {
     }
 
     pub async fn list(db: &Database) -> Result<Vec<Playbook>> {
-        todo!()
+        Ok(vec![
+            Playbook::default(),
+            Playbook::default(),
+            Playbook::default(),
+        ])
     }
 }

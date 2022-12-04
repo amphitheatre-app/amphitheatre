@@ -24,23 +24,24 @@ use tokio_stream::StreamExt as _;
 
 use crate::database::Database;
 use crate::models::playbook::Playbook;
+use crate::response::{empty, success, Result};
 use crate::services::playbook::PlaybookService;
 
 /// The Playbooks Service Handlers.
 /// See [API Documentation: playbook](https://docs.amphitheatre.app/api/playbook)
 
 /// Lists the playbooks in the current account.
-pub async fn list(Extension(db): Extension<Database>) -> impl IntoResponse {
+pub async fn list(Extension(db): Extension<Database>) -> Result<Vec<Playbook>> {
     let result = PlaybookService::list(&db).await;
     match result {
-        Ok(playbooks) => Json(playbooks),
-        Err(e) => Json(vec![]),
+        Ok(playbooks) => success(playbooks),
+        Err(e) => empty(vec![]),
     }
 }
 
 /// Create a playbook in the current account.
-pub async fn create() -> impl IntoResponse {
-    Json("OK")
+pub async fn create() -> Result<Playbook> {
+    success(Playbook::default())
 }
 
 /// Returns a playbook detail.
@@ -66,7 +67,7 @@ pub async fn delete(Path(id): Path<u64>, Extension(db): Extension<Database>) -> 
 pub async fn events(
     Path(id): Path<u64>,
     TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
-) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
     println!("`{}` connected", user_agent.as_str());
 
     // A `Stream` that repeats an event every second
