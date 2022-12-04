@@ -14,34 +14,20 @@
 
 #![allow(unused_variables)]
 
-#[macro_use]
-extern crate diesel;
-#[macro_use]
-extern crate diesel_migrations;
-#[macro_use]
-extern crate rocket;
-#[macro_use]
-extern crate rocket_sync_db_pools;
+use amphitheatre::database::Database;
+use amphitheatre::routes;
+use axum::Extension;
 
-use kube::Client;
+#[tokio::main]
+async fn main() {
+    let database = Database::new();
 
-mod database;
-mod handlers;
-mod models;
-mod repositories;
-mod routes;
-mod schema;
-mod services;
+    // build our application with a single route
+    let app = routes::build().layer(Extension(database));
 
-#[rocket::main]
-async fn main() -> Result<(), rocket::Error> {
-    let client = Client::try_default().await.unwrap();
-
-    let _ = routes::build()
-        .attach(database::stage())
-        .manage(client)
-        .launch()
-        .await?;
-
-    Ok(())
+    // run it with hyper on localhost:3000
+    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }

@@ -12,27 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rocket::serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Default, Clone, Serialize, Deserialize, Queryable, Insertable)]
-#[serde(crate = "rocket::serde")]
-#[table_name = "playbooks"]
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Playbook {
     pub id: u64,
     pub title: String,
     pub description: String,
     pub state: String,
-}
-
-use self::schema::playbooks;
-
-pub mod schema {
-    table! {
-        playbooks(id) {
-            id -> Unsigned<BigInt>,
-            title -> Text,
-            description -> Text,
-            state -> Text,
-        }
-    }
 }

@@ -12,33 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rocket::{Build, Rocket};
+use axum::routing::{delete, get, patch, post};
+use axum::Router;
 
-use super::handlers::*;
+use crate::handlers::*;
 
-pub fn build() -> Rocket<Build> {
-    rocket::build()
-        .mount(
-            "/v1/actors",
-            routes![
-                actor::detail, // GET    /v1/actors/<id>
-                actor::logs,   // GET    /v1/actors/<id>/logs
-                actor::info,   // GET    /v1/actors/<id>/info
-                actor::stats,  // GET    /v1/actors/<id>/stats
-            ],
-        )
-        .mount(
-            "/v1/playbooks",
-            routes![
-                playbook::list,   // GET    /v1/playbooks
-                playbook::create, // POST   /v1/playbooks
-                playbook::detail, // GET    /v1/playbooks/<id>
-                playbook::update, // PATCH  /v1/playbooks/<id>
-                playbook::delete, // DELETE /v1/playbooks/<id>
-                playbook::events, // GET    /v1/playbooks/<id>/events
-                playbook::start,  // POST   /v1/playbooks/<id>/actions/start
-                playbook::stop,   // POST   /v1/playbooks/<id>/actions/stop
-                actor::list,      // GET    /v1/playbooks/<pid>/actors
-            ],
-        )
+pub fn build() -> Router {
+    Router::new()
+        // actors
+        .route("/v1/actors/:id", get(actor::detail))
+        .route("/v1/actors/:id/logs", get(actor::logs))
+        .route("/v1/actors/:id/info", get(actor::info))
+        .route("/v1/actors/:id/stats", get(actor::stats))
+        //
+        // playbooks
+        .route("/v1/playbooks", get(playbook::list))
+        .route("/v1/playbooks", post(playbook::create))
+        .route("/v1/playbooks/:id", get(playbook::detail))
+        .route("/v1/playbooks/:id", patch(playbook::update))
+        .route("/v1/playbooks/:id", delete(playbook::delete))
+        //
+        .route("/v1/playbooks/:id/actions/start", post(playbook::start))
+        .route("/v1/playbooks/:id/actions/stop", post(playbook::stop))
+        .route("/v1/playbooks/:id/events", get(playbook::events))
+        .route("/v1/playbooks/:id/actors", get(actor::list))
 }

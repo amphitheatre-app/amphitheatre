@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use k8s_openapi::api::core::v1::Pod;
-use kube::api::LogParams;
-use kube::{Api, Client};
-use rocket::futures::{StreamExt, TryStreamExt};
-use rocket::response::stream::{Event, EventStream};
-use rocket::serde::json::Json;
-use rocket::State;
+use std::convert::Infallible;
+use std::time::Duration;
+
+use axum::extract::Path;
+use axum::response::sse::Event;
+use axum::response::{IntoResponse, Sse};
+use axum::{Extension, Json, TypedHeader};
+use futures::{stream, Stream};
+use tokio_stream::StreamExt as _;
 
 use crate::database::Database;
 use crate::models::playbook::Playbook;
@@ -28,9 +30,7 @@ use crate::services::playbook::PlaybookService;
 /// See [API Documentation: playbook](https://docs.amphitheatre.app/api/playbook)
 
 /// Lists the playbooks in the current account.
-/// GET /v1/playbooks
-#[get("/")]
-pub async fn list(db: Database) -> Json<Vec<Playbook>> {
+pub async fn list(Extension(db): Extension<Database>) -> impl IntoResponse {
     let result = PlaybookService::list(&db).await;
     match result {
         Ok(playbooks) => Json(playbooks),
@@ -39,16 +39,12 @@ pub async fn list(db: Database) -> Json<Vec<Playbook>> {
 }
 
 /// Create a playbook in the current account.
-/// POST /v1/playbooks
-#[post("/")]
-pub async fn create() -> Json<&'static str> {
+pub async fn create() -> impl IntoResponse {
     Json("OK")
 }
 
 /// Returns a playbook detail.
-/// GET /v1/playbooks/<id>
-#[get("/<id>")]
-pub async fn detail(db: Database, id: u64) -> Json<Playbook> {
+pub async fn detail(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     let result = PlaybookService::get(&db, id).await;
     match result {
         Ok(playbook) => Json(playbook),
@@ -57,54 +53,40 @@ pub async fn detail(db: Database, id: u64) -> Json<Playbook> {
 }
 
 /// Update a playbook.
-/// PATCH /v1/playbooks/<id>
-#[patch("/<id>")]
-pub async fn update(db: Database, id: u64) -> Json<&'static str> {
+pub async fn update(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     Json("OK")
 }
 
 /// Delete a playbook
-/// DELETE /v1/playbooks/<id>
-#[delete("/<id>")]
-pub async fn delete(db: Database, id: u64) -> Json<&'static str> {
+pub async fn delete(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     Json("OK")
 }
 
 /// Output the event streams of playbook
-/// GET /v1/playbooks/<id>/events
-#[get("/<id>/events")]
-pub async fn events(client: &State<Client>, id: u64) -> EventStream![] {
-    let pods: Api<Pod> = Api::default_namespaced(client.inner().clone());
-    let mut logs = pods
-        .log_stream(
-            "getting-started",
-            &LogParams {
-                follow: true,
-                tail_lines: Some(1),
-                ..LogParams::default()
-            },
-        )
-        .await
-        .unwrap()
-        .boxed();
+pub async fn events(
+    Path(id): Path<u64>,
+    TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    println!("`{}` connected", user_agent.as_str());
 
-    EventStream! {
-         while let Some(line) = logs.try_next().await.unwrap() {
-             yield Event::data(format!("{:?}", String::from_utf8_lossy(&line)));
-         }
-    }
+    // A `Stream` that repeats an event every second
+    let stream = stream::repeat_with(|| Event::default().data("hi!"))
+        .map(Ok)
+        .throttle(Duration::from_secs(1));
+
+    Sse::new(stream).keep_alive(
+        axum::response::sse::KeepAlive::new()
+            .interval(Duration::from_secs(1))
+            .text("keep-alive-text"),
+    )
 }
 
 /// Start a playbook.
-/// POST /v1/playbooks/<id>/actions/start
-#[post("/<id>/actions/start")]
-pub async fn start(db: Database, id: u64) -> Json<&'static str> {
+pub async fn start(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     Json("OK")
 }
 
 /// Stop a playbook.
-/// POST /v1/playbooks/<id>/actions/stop
-#[post("/<id>/actions/stop")]
-pub async fn stop(db: Database, id: u64) -> Json<&'static str> {
+pub async fn stop(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     Json("OK")
 }

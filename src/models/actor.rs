@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rocket::serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Default, Clone, Serialize, Deserialize, Queryable, Insertable)]
-#[serde(crate = "rocket::serde")]
-#[table_name = "actors"]
-
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Actor {
     pub id: u64,
 
@@ -36,19 +33,4 @@ pub struct Actor {
     pub reference: String,
 
     pub commit: String,
-}
-
-use self::schema::actors;
-
-pub mod schema {
-    table! {
-        actors(id) {
-            id -> Unsigned<BigInt>,
-            name -> Text,
-            repo -> Text,
-            path -> Text,
-            reference -> Text,
-            commit -> Text,
-        }
-    }
 }

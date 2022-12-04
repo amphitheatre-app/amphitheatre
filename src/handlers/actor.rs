@@ -13,64 +13,51 @@
 // limitations under the License.
 
 use std::collections::HashMap;
+use std::convert::Infallible;
+use std::time::Duration;
 
-use k8s_openapi::api::core::v1::Pod;
-use kube::api::LogParams;
-use kube::{Api, Client};
-use rocket::futures::{StreamExt, TryStreamExt};
-use rocket::response::stream::{Event, EventStream};
-use rocket::serde::json::Json;
-use rocket::State;
+use axum::extract::{Extension, Path, TypedHeader};
+use axum::response::sse::Event;
+use axum::response::{IntoResponse, Json, Sse};
+use futures::{stream, Stream};
+use tokio_stream::StreamExt as _;
 
 use crate::database::Database;
-use crate::models::actor::Actor;
 
 /// The Actors Service Handlers.
 /// See [API Documentation: playbook](https://docs.amphitheatre.app/api/actor)
 
 /// Lists the actors of playbook.
-/// GET /v1/playbooks/<pid>/actors
-#[get("/<pid>/actors")]
-pub async fn list(db: Database, pid: u64) -> Json<Vec<Actor>> {
+pub async fn list(Path(pid): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     todo!()
 }
 
 /// Returns a actor detail.
-/// GET /v1/actors/<id>
-#[get("/<id>")]
-pub async fn detail(db: Database, id: u64) -> Json<Actor> {
+pub async fn detail(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     todo!()
 }
 
 /// Output the log streams of actor
-/// GET /v1/actors/<id>/logs
-#[get("/<id>/logs")]
-pub async fn logs(client: &State<Client>, id: u64) -> EventStream![] {
-    let pods: Api<Pod> = Api::default_namespaced(client.inner().clone());
-    let mut logs = pods
-        .log_stream(
-            "getting-started",
-            &LogParams {
-                follow: true,
-                tail_lines: Some(1),
-                ..LogParams::default()
-            },
-        )
-        .await
-        .unwrap()
-        .boxed();
+pub async fn logs(
+    Path(id): Path<u64>,
+    TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    println!("`{}` connected", user_agent.as_str());
 
-    EventStream! {
-         while let Some(line) = logs.try_next().await.unwrap() {
-             yield Event::data(format!("{:?}", String::from_utf8_lossy(&line)));
-         }
-    }
+    // A `Stream` that repeats an event every second
+    let stream = stream::repeat_with(|| Event::default().data("hi!"))
+        .map(Ok)
+        .throttle(Duration::from_secs(1));
+
+    Sse::new(stream).keep_alive(
+        axum::response::sse::KeepAlive::new()
+            .interval(Duration::from_secs(1))
+            .text("keep-alive-text"),
+    )
 }
 
 /// Returns a actor's info, including enviroments, volumes...
-/// GET /v1/actors/<id>/info
-#[get("/<id>/info")]
-pub async fn info(id: u64) -> Json<HashMap<&'static str, HashMap<&'static str, &'static str>>> {
+pub async fn info(Path(id): Path<u64>) -> impl IntoResponse {
     Json(HashMap::from([
         (
             "environments",
@@ -103,9 +90,7 @@ pub async fn info(id: u64) -> Json<HashMap<&'static str, HashMap<&'static str, &
 }
 
 /// Returns a actor's stats.
-/// GET /v1/actors/<id>/stats
-#[get("/<id>/stats")]
-pub async fn stats(id: u64) -> Json<HashMap<&'static str, &'static str>> {
+pub async fn stats(Path(id): Path<u64>) -> impl IntoResponse {
     Json(HashMap::from([
         ("CPU USAGE", "1.98%"),
         ("MEMORY USAGE", "65.8MB"),
