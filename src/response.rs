@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use axum::response::IntoResponse;
+use axum::{response::IntoResponse, http::StatusCode};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -71,7 +71,11 @@ impl<T: serde::Serialize> IntoResponse for Response<T> {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
-        todo!()
+        match self {
+            Self::NotFound => {
+                (StatusCode::NOT_FOUND, "Not Found").into_response()
+            }
+        }
     }
 }
 
