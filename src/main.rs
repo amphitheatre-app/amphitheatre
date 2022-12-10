@@ -16,11 +16,13 @@
 
 use std::net::SocketAddr;
 
+use amphitheatre::config::Config;
 use amphitheatre::database::Database;
 use amphitheatre::routes;
 use axum::error_handling::HandleErrorLayer;
 use axum::http::StatusCode;
 use axum::{BoxError, Extension};
+use clap::Parser;
 use tower::ServiceBuilder;
 use tower_governor::governor::GovernorConfigBuilder;
 use tower_governor::GovernorLayer;
@@ -28,6 +30,10 @@ use tower_governor::GovernorLayer;
 #[tokio::main]
 async fn main() {
     let database = Database::new();
+
+    // Parse our configuration from the environment.
+    // This will exit with a help message if something is wrong.
+    let config = Config::parse();
 
     let governor_conf = GovernorConfigBuilder::default()
         .per_second(1024)

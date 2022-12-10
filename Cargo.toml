@@ -6,7 +6,8 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-axum = { version = "0.5.17", features = ["headers"] }
+axum = { version = "0.5", features = ["headers"] }
+clap = { version = "4.0.29", features = ["derive", "env"] }
 futures = "0.3"
 headers = "0.3"
 pin-project = "1.0.12"

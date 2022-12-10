@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// Defines the arguments required to start the server application using [`clap`].
+///
+/// [`clap`]: https://github.com/clap-rs/clap/
+pub mod config;
 pub mod database;
 pub mod handlers;
 pub mod models;
