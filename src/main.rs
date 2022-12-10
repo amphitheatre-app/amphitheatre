@@ -29,11 +29,15 @@ use tower_governor::GovernorLayer;
 
 #[tokio::main]
 async fn main() {
-    let database = Database::new();
+    // This returns an error if the `.env` file doesn't exist, but that's not what we want
+    // since we're not going to use a `.env` file if we deploy this application.
+    dotenv::dotenv().ok();
 
     // Parse our configuration from the environment.
     // This will exit with a help message if something is wrong.
     let config = Config::parse();
+
+    let database = Database::new();
 
     let governor_conf = GovernorConfigBuilder::default()
         .per_second(1024)

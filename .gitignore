@@ -11,3 +11,6 @@ Cargo.lock
 
 .vscode/
 .idea/
+
+# Used for environment variables
+.env

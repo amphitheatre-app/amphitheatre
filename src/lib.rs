@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(unused_variables)]
+
 /// Defines the arguments required to start the server application using [`clap`].
 ///
 /// [`clap`]: https://github.com/clap-rs/clap/
