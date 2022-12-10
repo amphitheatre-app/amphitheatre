@@ -14,26 +14,42 @@
 
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
-use crate::handlers::*;
+use crate::{handlers, models};
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(handlers::playbook::create),
+    components(schemas(models::playbook::Playbook))
+)]
+struct ApiDoc;
 
 pub fn build() -> Router {
     Router::new()
+        .merge(SwaggerUi::new("/swagger-ui/*tail").url("/openapi.json", ApiDoc::openapi()))
         // actors
-        .route("/v1/actors/:id", get(actor::detail))
-        .route("/v1/actors/:id/logs", get(actor::logs))
-        .route("/v1/actors/:id/info", get(actor::info))
-        .route("/v1/actors/:id/stats", get(actor::stats))
+        .route("/v1/actors/:id", get(handlers::actor::detail))
+        .route("/v1/actors/:id/logs", get(handlers::actor::logs))
+        .route("/v1/actors/:id/info", get(handlers::actor::info))
+        .route("/v1/actors/:id/stats", get(handlers::actor::stats))
         //
         // playbooks
-        .route("/v1/playbooks", get(playbook::list))
-        .route("/v1/playbooks", post(playbook::create))
-        .route("/v1/playbooks/:id", get(playbook::detail))
-        .route("/v1/playbooks/:id", patch(playbook::update))
-        .route("/v1/playbooks/:id", delete(playbook::delete))
+        .route("/v1/playbooks", get(handlers::playbook::list))
+        .route("/v1/playbooks", post(handlers::playbook::create))
+        .route("/v1/playbooks/:id", get(handlers::playbook::detail))
+        .route("/v1/playbooks/:id", patch(handlers::playbook::update))
+        .route("/v1/playbooks/:id", delete(handlers::playbook::delete))
         //
-        .route("/v1/playbooks/:id/actions/start", post(playbook::start))
-        .route("/v1/playbooks/:id/actions/stop", post(playbook::stop))
-        .route("/v1/playbooks/:id/events", get(playbook::events))
-        .route("/v1/playbooks/:id/actors", get(actor::list))
+        .route(
+            "/v1/playbooks/:id/actions/start",
+            post(handlers::playbook::start),
+        )
+        .route(
+            "/v1/playbooks/:id/actions/stop",
+            post(handlers::playbook::stop),
+        )
+        .route("/v1/playbooks/:id/events", get(handlers::playbook::events))
+        .route("/v1/playbooks/:id/actors", get(handlers::actor::list))
 }

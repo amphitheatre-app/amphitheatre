@@ -40,6 +40,7 @@ pub async fn list(Extension(db): Extension<Database>) -> Result<Vec<Playbook>> {
 }
 
 /// Create a playbook in the current account.
+#[utoipa::path(post, path = "/v1/playbooks", responses((status = 200, description="Created successfully", body = Playbook)))]
 pub async fn create() -> Result<Playbook> {
     success(Playbook::default())
 }
