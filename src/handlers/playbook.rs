@@ -27,10 +27,16 @@ use crate::models::playbook::Playbook;
 use crate::response::{empty, success, Result};
 use crate::services::playbook::PlaybookService;
 
-/// The Playbooks Service Handlers.
-/// See [API Documentation: playbook](https://docs.amphitheatre.app/api/playbook)
+// The Playbooks Service Handlers.
+// See [API Documentation: playbook](https://docs.amphitheatre.app/api/playbook)
 
 /// Lists the playbooks in the current account.
+#[utoipa::path(
+    get, path = "/v1/playbooks",
+    responses(
+        (status = 200, description="List all playbooks successfully", body = [Playbook])
+    )
+)]
 pub async fn list(Extension(db): Extension<Database>) -> Result<Vec<Playbook>> {
     let result = PlaybookService::list(&db).await;
     match result {
@@ -40,12 +46,24 @@ pub async fn list(Extension(db): Extension<Database>) -> Result<Vec<Playbook>> {
 }
 
 /// Create a playbook in the current account.
-#[utoipa::path(post, path = "/v1/playbooks", responses((status = 200, description="Created successfully", body = Playbook)))]
+#[utoipa::path(
+    post, path = "/v1/playbooks",
+    responses(
+        (status = 201, description="Playbook created successfully", body = Playbook)
+    )
+)]
 pub async fn create() -> Result<Playbook> {
     success(Playbook::default())
 }
 
 /// Returns a playbook detail.
+#[utoipa::path(
+    get, path = "/v1/playbooks/{id}",
+    responses(
+        (status = 200, description="Playbook found successfully", body = Playbook),
+        (status = 404, description = "Playbook not found")
+    )
+)]
 pub async fn detail(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     let result = PlaybookService::get(&db, id).await;
     match result {
@@ -55,16 +73,37 @@ pub async fn detail(Path(id): Path<u64>, Extension(db): Extension<Database>) -> 
 }
 
 /// Update a playbook.
+#[utoipa::path(
+    patch, path = "/v1/playbooks/{id}",
+    responses(
+        (status = 200, description="Playbook updated successfully", body = Playbook),
+        (status = 404, description = "Playbook not found")
+    )
+)]
 pub async fn update(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     Json("OK")
 }
 
 /// Delete a playbook
+#[utoipa::path(
+    delete, path = "/v1/playbooks/{id}",
+    responses(
+        (status = 200, description="Playbook deleted successfully", body = Playbook),
+        (status = 404, description = "Playbook not found")
+    )
+)]
 pub async fn delete(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     Json("OK")
 }
 
 /// Output the event streams of playbook
+#[utoipa::path(
+    get, path = "/v1/playbooks/{id}/events",
+    responses(
+        (status = 200, description="Playbook's events found successfully"),
+        (status = 404, description = "Playbook not found")
+    )
+)]
 pub async fn events(
     Path(id): Path<u64>,
     TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
@@ -84,11 +123,25 @@ pub async fn events(
 }
 
 /// Start a playbook.
+#[utoipa::path(
+    post, path = "/v1/playbooks/{id}/actions/start",
+    responses(
+        (status = 200, description="Playbook started successfully"),
+        (status = 404, description = "Playbook not found")
+    )
+)]
 pub async fn start(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     Json("OK")
 }
 
 /// Stop a playbook.
+#[utoipa::path(
+    post, path = "/v1/playbooks/{id}/actions/stop",
+    responses(
+        (status = 200, description="Playbook stopped successfully"),
+        (status = 404, description = "Playbook not found")
+    )
+)]
 pub async fn stop(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     Json("OK")
 }

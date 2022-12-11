@@ -21,7 +21,16 @@ use crate::{handlers, models};
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(handlers::playbook::create),
+    paths(
+        handlers::playbook::list,
+        handlers::playbook::create,
+        handlers::playbook::detail,
+        handlers::playbook::update,
+        handlers::playbook::delete,
+        handlers::playbook::start,
+        handlers::playbook::stop,
+        handlers::playbook::events
+    ),
     components(schemas(models::playbook::Playbook))
 )]
 struct ApiDoc;
