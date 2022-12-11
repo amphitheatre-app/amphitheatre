@@ -22,7 +22,7 @@ use axum::{Extension, Json, TypedHeader};
 use futures::{stream, Stream};
 use tokio_stream::StreamExt as _;
 
-use crate::database::Database;
+use crate::app::Context;
 use crate::models::playbook::Playbook;
 use crate::response::{empty, success, Result};
 use crate::services::playbook::PlaybookService;
@@ -37,8 +37,8 @@ use crate::services::playbook::PlaybookService;
         (status = 200, description="List all playbooks successfully", body = [Playbook])
     )
 )]
-pub async fn list(Extension(db): Extension<Database>) -> Result<Vec<Playbook>> {
-    let result = PlaybookService::list(&db).await;
+pub async fn list(ctx: Extension<Context>) -> Result<Vec<Playbook>> {
+    let result = PlaybookService::list(&ctx.db).await;
     match result {
         Ok(playbooks) => success(playbooks),
         Err(e) => empty(vec![]),
@@ -64,8 +64,8 @@ pub async fn create() -> Result<Playbook> {
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn detail(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
-    let result = PlaybookService::get(&db, id).await;
+pub async fn detail(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
+    let result = PlaybookService::get(&ctx.db, id).await;
     match result {
         Ok(playbook) => Json(playbook),
         Err(_) => Json(Playbook::default()),
@@ -80,7 +80,7 @@ pub async fn detail(Path(id): Path<u64>, Extension(db): Extension<Database>) -> 
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn update(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
+pub async fn update(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
     Json("OK")
 }
 
@@ -92,7 +92,7 @@ pub async fn update(Path(id): Path<u64>, Extension(db): Extension<Database>) -> 
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn delete(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
+pub async fn delete(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
     Json("OK")
 }
 
@@ -130,7 +130,7 @@ pub async fn events(
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn start(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
+pub async fn start(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
     Json("OK")
 }
 
@@ -142,6 +142,6 @@ pub async fn start(Path(id): Path<u64>, Extension(db): Extension<Database>) -> i
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn stop(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
+pub async fn stop(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
     Json("OK")
 }

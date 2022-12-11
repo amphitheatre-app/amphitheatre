@@ -22,7 +22,7 @@ use axum::response::{IntoResponse, Json, Sse};
 use futures::{stream, Stream};
 use tokio_stream::StreamExt as _;
 
-use crate::database::Database;
+use crate::app::Context;
 
 // The Actors Service Handlers.
 // See [API Documentation: playbook](https://docs.amphitheatre.app/api/actor)
@@ -35,7 +35,7 @@ use crate::database::Database;
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn list(Path(pid): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
+pub async fn list(Path(pid): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
     todo!()
 }
 
@@ -47,7 +47,7 @@ pub async fn list(Path(pid): Path<u64>, Extension(db): Extension<Database>) -> i
         (status = 404, description = "Actor not found")
     )
 )]
-pub async fn detail(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
+pub async fn detail(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
     todo!()
 }
 
