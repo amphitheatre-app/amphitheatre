@@ -24,20 +24,41 @@ use tokio_stream::StreamExt as _;
 
 use crate::database::Database;
 
-/// The Actors Service Handlers.
-/// See [API Documentation: playbook](https://docs.amphitheatre.app/api/actor)
+// The Actors Service Handlers.
+// See [API Documentation: playbook](https://docs.amphitheatre.app/api/actor)
 
 /// Lists the actors of playbook.
+#[utoipa::path(
+    get, path = "/v1/playbooks/{id}/actors",
+    responses(
+        (status = 200, description="List all actors of playbook successfully", body = [Actor]),
+        (status = 404, description = "Playbook not found")
+    )
+)]
 pub async fn list(Path(pid): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     todo!()
 }
 
 /// Returns a actor detail.
+#[utoipa::path(
+    get, path = "/v1/actors/{id}",
+    responses(
+        (status = 200, description="Actor found successfully", body = Actor),
+        (status = 404, description = "Actor not found")
+    )
+)]
 pub async fn detail(Path(id): Path<u64>, Extension(db): Extension<Database>) -> impl IntoResponse {
     todo!()
 }
 
 /// Output the log streams of actor
+#[utoipa::path(
+    get, path = "/v1/actors/{id}/logs",
+    responses(
+        (status = 200, description="Actor's logs found successfully"),
+        (status = 404, description = "Actor not found")
+    )
+)]
 pub async fn logs(
     Path(id): Path<u64>,
     TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
@@ -56,7 +77,14 @@ pub async fn logs(
     )
 }
 
-/// Returns a actor's info, including enviroments, volumes...
+/// Returns a actor's info, including environments, volumes...
+#[utoipa::path(
+    get, path = "/v1/actors/{id}/info",
+    responses(
+        (status = 200, description="Actor's info found successfully"),
+        (status = 404, description = "Actor not found")
+    )
+)]
 pub async fn info(Path(id): Path<u64>) -> impl IntoResponse {
     Json(HashMap::from([
         (
@@ -90,6 +118,13 @@ pub async fn info(Path(id): Path<u64>) -> impl IntoResponse {
 }
 
 /// Returns a actor's stats.
+#[utoipa::path(
+    get, path = "/v1/actors/{id}/stats",
+    responses(
+        (status = 200, description="Actor's stats found successfully"),
+        (status = 404, description = "Actor not found")
+    )
+)]
 pub async fn stats(Path(id): Path<u64>) -> impl IntoResponse {
     Json(HashMap::from([
         ("CPU USAGE", "1.98%"),

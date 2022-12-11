@@ -13,8 +13,9 @@
 // limitations under the License.
 
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Actor {
     pub id: u64,
 

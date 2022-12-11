@@ -22,6 +22,11 @@ use crate::{handlers, models};
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        handlers::actor::detail,
+        handlers::actor::logs,
+        handlers::actor::info,
+        handlers::actor::stats,
+        //
         handlers::playbook::list,
         handlers::playbook::create,
         handlers::playbook::detail,
@@ -29,9 +34,15 @@ use crate::{handlers, models};
         handlers::playbook::delete,
         handlers::playbook::start,
         handlers::playbook::stop,
-        handlers::playbook::events
+        handlers::playbook::events,
+        handlers::actor::list,
     ),
-    components(schemas(models::playbook::Playbook))
+    components(
+        schemas(
+            models::actor::Actor,
+            models::playbook::Playbook,
+        )
+    )
 )]
 struct ApiDoc;
 
