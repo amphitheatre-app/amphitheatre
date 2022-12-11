@@ -18,7 +18,7 @@ use std::net::SocketAddr;
 
 use amphitheatre::config::Config;
 use amphitheatre::database::Database;
-use amphitheatre::routes;
+use amphitheatre::{routes, swagger};
 use axum::error_handling::HandleErrorLayer;
 use axum::http::StatusCode;
 use axum::{BoxError, Extension};
@@ -45,19 +45,22 @@ async fn main() {
         .use_headers()
         .finish()
         .unwrap();
-    // build our application with a single route
-    let app = routes::build().layer(Extension(database)).layer(
-        ServiceBuilder::new()
-            .layer(HandleErrorLayer::new(|err: BoxError| async move {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Unhandled error: {}", err),
-                )
-            }))
-            .layer(GovernorLayer {
-                config: &governor_conf,
-            }),
-    );
+
+    let app = routes::build()
+        .merge(swagger::build())
+        .layer(Extension(database))
+        .layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(|err: BoxError| async move {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Unhandled error: {}", err),
+                    )
+                }))
+                .layer(GovernorLayer {
+                    config: &governor_conf,
+                }),
+        );
 
     // run it with hyper on localhost:3000
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())

@@ -14,41 +14,11 @@
 
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
-use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{handlers, models};
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(
-        handlers::actor::detail,
-        handlers::actor::logs,
-        handlers::actor::info,
-        handlers::actor::stats,
-        //
-        handlers::playbook::list,
-        handlers::playbook::create,
-        handlers::playbook::detail,
-        handlers::playbook::update,
-        handlers::playbook::delete,
-        handlers::playbook::start,
-        handlers::playbook::stop,
-        handlers::playbook::events,
-        handlers::actor::list,
-    ),
-    components(
-        schemas(
-            models::actor::Actor,
-            models::playbook::Playbook,
-        )
-    )
-)]
-struct ApiDoc;
+use crate::handlers;
 
 pub fn build() -> Router {
     Router::new()
-        .merge(SwaggerUi::new("/swagger-ui/*tail").url("/openapi.json", ApiDoc::openapi()))
         // actors
         .route("/v1/actors/:id", get(handlers::actor::detail))
         .route("/v1/actors/:id/logs", get(handlers::actor::logs))
