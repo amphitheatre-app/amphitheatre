@@ -16,9 +16,9 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::error_handling::HandleErrorLayer;
-use axum::http::StatusCode;
 use axum::{BoxError, Extension};
 use tower::ServiceBuilder;
+use tower_governor::errors::display_error;
 use tower_governor::governor::GovernorConfigBuilder;
 use tower_governor::GovernorLayer;
 
@@ -41,23 +41,22 @@ pub struct Context {
 }
 
 pub async fn run(config: Config, database: Database) {
-    let governor_conf = GovernorConfigBuilder::default()
-        .per_second(1024)
-        .burst_size(1024)
-        .use_headers()
-        .finish()
-        .unwrap();
+    let governor_conf = Box::new(
+        GovernorConfigBuilder::default()
+            .per_second(1024)
+            .burst_size(1024)
+            .use_headers()
+            .finish()
+            .unwrap(),
+    );
 
     let app = routes::build().merge(swagger::build()).layer(
         ServiceBuilder::new()
-            .layer(HandleErrorLayer::new(|err: BoxError| async move {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Unhandled error: {}", err),
-                )
+            .layer(HandleErrorLayer::new(|e: BoxError| async move {
+                display_error(e)
             }))
             .layer(GovernorLayer {
-                config: &governor_conf,
+                config: Box::leak(governor_conf),
             })
             .layer(Extension(Context {
                 config: Arc::new(config),
