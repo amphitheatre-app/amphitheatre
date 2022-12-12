@@ -15,7 +15,7 @@
 use std::convert::Infallible;
 use std::time::Duration;
 
-use axum::extract::Path;
+use axum::extract::{Path, State};
 use axum::response::sse::Event;
 use axum::response::{IntoResponse, Sse};
 use axum::{Extension, Json, TypedHeader};
@@ -37,7 +37,7 @@ use crate::services::playbook::PlaybookService;
         (status = 200, description="List all playbooks successfully", body = [Playbook])
     )
 )]
-pub async fn list(ctx: Extension<Context>) -> Result<Vec<Playbook>> {
+pub async fn list(ctx: State<Context>) -> Result<Vec<Playbook>> {
     let result = PlaybookService::list(&ctx.db).await;
     match result {
         Ok(playbooks) => success(playbooks),

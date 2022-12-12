@@ -14,13 +14,15 @@
 
 #![allow(unused_variables)]
 
-use amphitheatre::app;
+use std::sync::Arc;
+
+use amphitheatre::app::{self, Context};
 use amphitheatre::config::Config;
 use amphitheatre::database::Database;
 use clap::Parser;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     // This returns an error if the `.env` file doesn't exist, but that's not what we want
     // since we're not going to use a `.env` file if we deploy this application.
     dotenv::dotenv().ok();
@@ -29,7 +31,13 @@ async fn main() {
     // This will exit with a help message if something is wrong.
     let config = Config::parse();
 
-    let database = Database::new();
+    let ctx = Context {
+        config: Arc::new(config),
+        db: Database::new(),
+    };
 
-    app::run(config, database).await;
+    // Finally, we spin up our API.
+    app::run(ctx).await;
+
+    Ok(())
 }

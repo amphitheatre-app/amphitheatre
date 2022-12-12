@@ -16,7 +16,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::error_handling::HandleErrorLayer;
-use axum::{BoxError, Extension};
+use axum::BoxError;
 use tower::ServiceBuilder;
 use tower_governor::errors::display_error;
 use tower_governor::governor::GovernorConfigBuilder;
@@ -40,7 +40,7 @@ pub struct Context {
     pub db: Database,
 }
 
-pub async fn run(config: Config, database: Database) {
+pub async fn run(ctx: Context) {
     let governor_conf = Box::new(
         GovernorConfigBuilder::default()
             .per_second(1024)
@@ -50,19 +50,18 @@ pub async fn run(config: Config, database: Database) {
             .unwrap(),
     );
 
-    let app = routes::build().merge(swagger::build()).layer(
-        ServiceBuilder::new()
-            .layer(HandleErrorLayer::new(|e: BoxError| async move {
-                display_error(e)
-            }))
-            .layer(GovernorLayer {
-                config: Box::leak(governor_conf),
-            })
-            .layer(Extension(Context {
-                config: Arc::new(config),
-                db: database,
-            })),
-    );
+    let app = routes::build()
+        .merge(swagger::build())
+        .layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(|e: BoxError| async move {
+                    display_error(e)
+                }))
+                .layer(GovernorLayer {
+                    config: Box::leak(governor_conf),
+                }),
+        )
+        .with_state(ctx);
 
     // run it with hyper on localhost:3000
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())

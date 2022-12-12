@@ -15,9 +15,10 @@
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
 
+use crate::app::Context;
 use crate::handlers;
 
-pub fn build() -> Router {
+pub fn build() -> Router<Context> {
     Router::new()
         // actors
         .route("/v1/actors/:id", get(handlers::actor::detail))
