@@ -22,3 +22,4 @@
 // }
 
 pub type Database = sea_orm::DatabaseConnection;
+pub type Result<T, E = sea_orm::DbErr> = std::result::Result<T, E>;

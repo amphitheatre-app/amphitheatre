@@ -24,8 +24,8 @@ use futures::{stream, Stream};
 use tokio_stream::StreamExt as _;
 
 use crate::app::Context;
-use crate::models::playbook::Playbook;
-use crate::response::{empty, success, Result};
+use crate::models::playbook::Model as Playbook;
+use crate::response::{empty, success, ApiError, Result};
 use crate::services::playbook::PlaybookService;
 
 // The Playbooks Service Handlers.
@@ -54,12 +54,15 @@ pub async fn list(ctx: State<Arc<Context>>) -> Result<Vec<Playbook>> {
     )
 )]
 pub async fn create() -> Result<Playbook> {
-    success(Playbook::default())
+    todo!()
 }
 
 /// Returns a playbook detail.
 #[utoipa::path(
     get, path = "/v1/playbooks/{id}",
+    params(
+        ("id", description = "The id of playbook"),
+    ),
     responses(
         (status = 200, description="Playbook found successfully", body = Playbook),
         (status = 404, description = "Playbook not found")
@@ -67,9 +70,15 @@ pub async fn create() -> Result<Playbook> {
 )]
 pub async fn detail(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
     let result = PlaybookService::get(&ctx.db, id).await;
-    match result {
-        Ok(playbook) => Json(playbook),
-        Err(_) => Json(Playbook::default()),
+
+    if let Err(e) = result {
+        log::error!("{}", e);
+        return Err(ApiError::InternalServerError);
+    }
+
+    match result.unwrap() {
+        Some(playbook) => success(playbook),
+        None => Err(ApiError::NotFound),
     }
 }
 

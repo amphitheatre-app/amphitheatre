@@ -12,29 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Clone, Serialize, Deserialize, ToSchema)]
-pub struct Playbook {
+#[derive(Clone, Serialize, Deserialize, ToSchema, DeriveEntityModel, Debug)]
+#[sea_orm(table_name = "playbooks")]
+pub struct Model {
+    #[sea_orm(primary_key)]
     pub id: u64,
     pub title: String,
     pub description: String,
     pub state: String,
 
-    pub created_at: String,
-    pub updated_at: String,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
 }
 
-impl Default for Playbook {
-    fn default() -> Self {
-        Self {
-            id: 123,
-            title: "consectetur occaecat consectetur exercitation fugiat".into(),
-            description: "laboris esse quis adipisicing sunt eu enim ipsum".into(),
-            state: "RUNNING".into(),
-            created_at: "2022-12-05T040000Z".into(),
-            updated_at: "2022-12-05T040000Z".into(),
-        }
-    }
-}
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+// impl Default for Playbook {
+//     fn default() -> Self {
+//         Self {
+//             id: 123,
+//             title: "consectetur occaecat consectetur exercitation fugiat".into(),
+//             description: "laboris esse quis adipisicing sunt eu enim ipsum".into(),
+//             state: "RUNNING".into(),
+//             created_at: "2022-12-05T040000Z".into(),
+//             updated_at: "2022-12-05T040000Z".into(),
+//         }
+//     }
+// }

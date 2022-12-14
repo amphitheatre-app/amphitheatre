@@ -12,16 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use anyhow::Result;
-
-use crate::database::Database;
-use crate::models::playbook::Playbook;
+use crate::database::{Database, Result};
+use crate::models::playbook::Model as Playbook;
 use crate::repositories::playbook::PlaybookRepository;
 
 pub struct PlaybookService;
 
 impl PlaybookService {
-    pub async fn get(db: &Database, id: u64) -> Result<Playbook> {
+    pub async fn get(db: &Database, id: u64) -> Result<Option<Playbook>> {
         PlaybookRepository::get(db, id).await
     }
 

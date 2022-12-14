@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use axum::{response::IntoResponse, http::StatusCode};
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -53,6 +54,7 @@ pub struct Pagination {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ApiError {
     NotFound,
+    InternalServerError,
 }
 
 impl<T: serde::Serialize> IntoResponse for Response<T> {
@@ -72,8 +74,9 @@ impl<T: serde::Serialize> IntoResponse for Response<T> {
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         match self {
-            Self::NotFound => {
-                (StatusCode::NOT_FOUND, "Not Found").into_response()
+            Self::NotFound => (StatusCode::NOT_FOUND, "Not Found").into_response(),
+            Self::InternalServerError => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
             }
         }
     }

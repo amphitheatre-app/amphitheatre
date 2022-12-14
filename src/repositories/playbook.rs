@@ -12,23 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use anyhow::Result;
+//use sea_orm::*;
 
-use crate::database::Database;
-use crate::models::playbook::Playbook;
+use sea_orm::EntityTrait;
+
+use crate::database::{Database, Result};
+use crate::models::playbook::{Entity, Model as Playbook};
 
 pub struct PlaybookRepository;
 
 impl PlaybookRepository {
-    pub async fn get(db: &Database, id: u64) -> Result<Playbook> {
-        todo!()
+    pub async fn get(db: &Database, id: u64) -> Result<Option<Playbook>> {
+        Entity::find_by_id(id).one(db).await
     }
 
     pub async fn list(db: &Database) -> Result<Vec<Playbook>> {
-        Ok(vec![
-            Playbook::default(),
-            Playbook::default(),
-            Playbook::default(),
-        ])
+        Entity::find().all(db).await
     }
 }

@@ -24,6 +24,8 @@ use sea_orm::{ConnectOptions, Database};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
+
     // This returns an error if the `.env` file doesn't exist, but that's not what we want
     // since we're not going to use a `.env` file if we deploy this application.
     dotenv::dotenv().ok();
