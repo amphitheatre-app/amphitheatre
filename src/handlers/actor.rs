@@ -14,9 +14,10 @@
 
 use std::collections::HashMap;
 use std::convert::Infallible;
+use std::sync::Arc;
 use std::time::Duration;
 
-use axum::extract::{Extension, Path, TypedHeader};
+use axum::extract::{Path, State, TypedHeader};
 use axum::response::sse::Event;
 use axum::response::{IntoResponse, Json, Sse};
 use futures::{stream, Stream};
@@ -35,7 +36,7 @@ use crate::app::Context;
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn list(Path(pid): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
+pub async fn list(Path(pid): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
     todo!()
 }
 
@@ -47,7 +48,7 @@ pub async fn list(Path(pid): Path<u64>, ctx: Extension<Context>) -> impl IntoRes
         (status = 404, description = "Actor not found")
     )
 )]
-pub async fn detail(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
+pub async fn detail(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
     todo!()
 }
 

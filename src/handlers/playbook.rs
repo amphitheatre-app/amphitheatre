@@ -13,12 +13,13 @@
 // limitations under the License.
 
 use std::convert::Infallible;
+use std::sync::Arc;
 use std::time::Duration;
 
 use axum::extract::{Path, State};
 use axum::response::sse::Event;
 use axum::response::{IntoResponse, Sse};
-use axum::{Extension, Json, TypedHeader};
+use axum::{Json, TypedHeader};
 use futures::{stream, Stream};
 use tokio_stream::StreamExt as _;
 
@@ -37,7 +38,7 @@ use crate::services::playbook::PlaybookService;
         (status = 200, description="List all playbooks successfully", body = [Playbook])
     )
 )]
-pub async fn list(ctx: State<Context>) -> Result<Vec<Playbook>> {
+pub async fn list(ctx: State<Arc<Context>>) -> Result<Vec<Playbook>> {
     let result = PlaybookService::list(&ctx.db).await;
     match result {
         Ok(playbooks) => success(playbooks),
@@ -64,7 +65,7 @@ pub async fn create() -> Result<Playbook> {
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn detail(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
+pub async fn detail(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
     let result = PlaybookService::get(&ctx.db, id).await;
     match result {
         Ok(playbook) => Json(playbook),
@@ -80,7 +81,7 @@ pub async fn detail(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoRe
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn update(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
+pub async fn update(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
     Json("OK")
 }
 
@@ -92,7 +93,7 @@ pub async fn update(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoRe
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn delete(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
+pub async fn delete(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
     Json("OK")
 }
 
@@ -130,7 +131,7 @@ pub async fn events(
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn start(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
+pub async fn start(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
     Json("OK")
 }
 
@@ -142,6 +143,6 @@ pub async fn start(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoRes
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn stop(Path(id): Path<u64>, ctx: Extension<Context>) -> impl IntoResponse {
+pub async fn stop(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
     Json("OK")
 }

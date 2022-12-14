@@ -15,11 +15,12 @@
 #![allow(unused_variables)]
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use amphitheatre::app::{self, Context};
 use amphitheatre::config::Config;
-use amphitheatre::database::Database;
 use clap::Parser;
+use sea_orm::{ConnectOptions, Database};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -31,10 +32,19 @@ async fn main() -> anyhow::Result<()> {
     // This will exit with a help message if something is wrong.
     let config = Config::parse();
 
-    let ctx = Context {
-        config: Arc::new(config),
-        db: Database::new(),
-    };
+    let mut opt = ConnectOptions::new(config.database_url.to_owned());
+    opt.max_connections(100)
+        .min_connections(5)
+        .connect_timeout(Duration::from_secs(8))
+        .acquire_timeout(Duration::from_secs(8))
+        .idle_timeout(Duration::from_secs(8))
+        .max_lifetime(Duration::from_secs(8))
+        .sqlx_logging(true)
+        .sqlx_logging_level(log::LevelFilter::Info);
+
+    let db = Database::connect(opt).await?;
+
+    let ctx = Arc::new(Context { config, db });
 
     // Finally, we spin up our API.
     app::run(ctx).await;

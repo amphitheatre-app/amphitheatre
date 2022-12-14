@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::Arc;
+
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
 
 use crate::app::Context;
 use crate::handlers;
 
-pub fn build() -> Router<Context> {
+pub fn build() -> Router<Arc<Context>> {
     Router::new()
         // actors
         .route("/v1/actors/:id", get(handlers::actor::detail))

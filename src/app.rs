@@ -34,13 +34,12 @@ use crate::{routes, swagger};
 /// It may not be a bad idea if you need your API to be more modular (turn routes
 /// on and off, and disable any unused extension objects) but it's really up to a
 /// judgement call.
-#[derive(Clone)]
 pub struct Context {
-    pub config: Arc<Config>,
+    pub config: Config,
     pub db: Database,
 }
 
-pub async fn run(ctx: Context) {
+pub async fn run(ctx: Arc<Context>) {
     let governor_conf = Box::new(
         GovernorConfigBuilder::default()
             .per_second(1024)

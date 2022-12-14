@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[derive(Clone, Default)]
-pub struct Database();
+// #[derive(Clone, Default)]
+// pub struct Database();
 
-impl Database {
-    pub fn new() -> Self {
-        Self()
-    }
-}
+// impl Database {
+//     pub fn new() -> Self {
+//         Self()
+//     }
+// }
+
+pub type Database = sea_orm::DatabaseConnection;
