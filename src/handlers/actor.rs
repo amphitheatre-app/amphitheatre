@@ -26,11 +26,14 @@ use tokio_stream::StreamExt as _;
 use crate::app::Context;
 
 // The Actors Service Handlers.
-// See [API Documentation: playbook](https://docs.amphitheatre.app/api/actor)
+// See [API Documentation: actor](https://docs.amphitheatre.app/api/actor)
 
 /// Lists the actors of playbook.
 #[utoipa::path(
-    get, path = "/v1/playbooks/{id}/actors",
+    get, path = "/v1/playbooks/{pid}/actors",
+    params(
+        ("pid", description = "The id of playbook"),
+    ),
     responses(
         (status = 200, description="List all actors of playbook successfully", body = [Actor]),
         (status = 404, description = "Playbook not found")
@@ -43,6 +46,9 @@ pub async fn list(Path(pid): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoRe
 /// Returns a actor detail.
 #[utoipa::path(
     get, path = "/v1/actors/{id}",
+    params(
+        ("id", description = "The id of actor"),
+    ),
     responses(
         (status = 200, description="Actor found successfully", body = Actor),
         (status = 404, description = "Actor not found")
@@ -55,6 +61,9 @@ pub async fn detail(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoR
 /// Output the log streams of actor
 #[utoipa::path(
     get, path = "/v1/actors/{id}/logs",
+    params(
+        ("id", description = "The id of actor"),
+    ),
     responses(
         (status = 200, description="Actor's logs found successfully"),
         (status = 404, description = "Actor not found")
@@ -81,6 +90,9 @@ pub async fn logs(
 /// Returns a actor's info, including environments, volumes...
 #[utoipa::path(
     get, path = "/v1/actors/{id}/info",
+    params(
+        ("id", description = "The id of actor"),
+    ),
     responses(
         (status = 200, description="Actor's info found successfully"),
         (status = 404, description = "Actor not found")
@@ -121,6 +133,9 @@ pub async fn info(Path(id): Path<u64>) -> impl IntoResponse {
 /// Returns a actor's stats.
 #[utoipa::path(
     get, path = "/v1/actors/{id}/stats",
+    params(
+        ("id", description = "The id of actor"),
+    ),
     responses(
         (status = 200, description="Actor's stats found successfully"),
         (status = 404, description = "Actor not found")
