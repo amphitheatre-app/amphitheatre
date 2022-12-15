@@ -14,10 +14,10 @@
 
 //use sea_orm::*;
 
-use sea_orm::EntityTrait;
+use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
 use crate::database::{Database, Result};
-use crate::models::playbook::{Entity, Playbook};
+use crate::models::playbook::{ActiveModel, Entity, Playbook};
 
 pub struct PlaybookRepository;
 
@@ -28,5 +28,15 @@ impl PlaybookRepository {
 
     pub async fn list(db: &Database) -> Result<Vec<Playbook>> {
         Entity::find().all(db).await
+    }
+
+    pub async fn change_state(db: &Database, id: u64, state: &str) -> Result<()> {
+        let playbook = Entity::find_by_id(id).one(db).await?;
+        let mut playbook: ActiveModel = playbook.unwrap().into();
+
+        playbook.state = Set(state.to_owned());
+        playbook.update(db).await?;
+
+        Ok(())
     }
 }

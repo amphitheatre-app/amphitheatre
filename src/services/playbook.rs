@@ -32,4 +32,16 @@ impl PlaybookService {
             .await
             .map_err(|_| ApiError::DatabaseError)
     }
+
+    pub async fn start(db: &Database, id: u64) -> Result<()> {
+        PlaybookRepository::change_state(db, id, "RUNNING")
+            .await
+            .map_err(|_| ApiError::DatabaseError)
+    }
+
+    pub async fn stop(db: &Database, id: u64) -> Result<()> {
+        PlaybookRepository::change_state(db, id, "STOPPED")
+            .await
+            .map_err(|_| ApiError::DatabaseError)
+    }
 }

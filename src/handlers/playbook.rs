@@ -17,6 +17,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::extract::{Path, State};
+use axum::http::StatusCode;
 use axum::response::sse::Event;
 use axum::response::{IntoResponse, Sse};
 use axum::{Json, TypedHeader};
@@ -25,7 +26,7 @@ use tokio_stream::StreamExt as _;
 
 use crate::app::Context;
 use crate::models::playbook::Model as Playbook;
-use crate::response::{success, ApiError, Result};
+use crate::response::{status, success, ApiError, Result};
 use crate::services::playbook::PlaybookService;
 
 // The Playbooks Service Handlers.
@@ -79,6 +80,9 @@ pub async fn detail(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoR
 /// Update a playbook.
 #[utoipa::path(
     patch, path = "/v1/playbooks/{id}",
+    params(
+        ("id", description = "The id of playbook"),
+    ),
     responses(
         (status = 200, description = "Playbook updated successfully", body = Playbook),
         (status = 404, description = "Playbook not found")
@@ -91,6 +95,9 @@ pub async fn update(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoR
 /// Delete a playbook
 #[utoipa::path(
     delete, path = "/v1/playbooks/{id}",
+    params(
+        ("id", description = "The id of playbook"),
+    ),
     responses(
         (status = 200, description = "Playbook deleted successfully", body = Playbook),
         (status = 404, description = "Playbook not found")
@@ -103,6 +110,9 @@ pub async fn delete(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoR
 /// Output the event streams of playbook
 #[utoipa::path(
     get, path = "/v1/playbooks/{id}/events",
+    params(
+        ("id", description = "The id of playbook"),
+    ),
     responses(
         (status = 200, description="Playbook's events found successfully"),
         (status = 404, description = "Playbook not found")
@@ -129,23 +139,45 @@ pub async fn events(
 /// Start a playbook.
 #[utoipa::path(
     post, path = "/v1/playbooks/{id}/actions/start",
+    params(
+        ("id", description = "The id of playbook"),
+    ),
     responses(
-        (status = 200, description = "Playbook started successfully"),
-        (status = 404, description = "Playbook not found")
+        (status = 204, description = "Playbook started successfully"),
+        (status = 404, description = "Playbook not found"),
+        (status = 500, description = "Internal Server Error"),
     )
 )]
-pub async fn start(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
-    Json("OK")
+pub async fn start(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> Result<()> {
+    let playbook = PlaybookService::get(&ctx.db, id).await?;
+
+    if playbook.is_none() {
+        return Err(ApiError::NotFound);
+    }
+
+    PlaybookService::start(&ctx.db, id).await?;
+    status(StatusCode::NO_CONTENT)
 }
 
 /// Stop a playbook.
 #[utoipa::path(
     post, path = "/v1/playbooks/{id}/actions/stop",
+    params(
+        ("id", description = "The id of playbook"),
+    ),
     responses(
-        (status = 200, description = "Playbook stopped successfully"),
-        (status = 404, description = "Playbook not found")
+        (status = 204, description = "Playbook stopped successfully"),
+        (status = 404, description = "Playbook not found"),
+        (status = 500, description = "Internal Server Error"),
     )
 )]
-pub async fn stop(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
-    Json("OK")
+pub async fn stop(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> Result<()> {
+    let playbook = PlaybookService::get(&ctx.db, id).await?;
+
+    if playbook.is_none() {
+        return Err(ApiError::NotFound);
+    }
+
+    PlaybookService::stop(&ctx.db, id).await?;
+    status(StatusCode::NO_CONTENT)
 }

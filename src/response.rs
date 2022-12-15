@@ -17,7 +17,6 @@ use axum::response::IntoResponse;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use utoipa::ToSchema;
 
 pub type Result<T, E = ApiError> = axum::response::Result<Response<T>, E>;
 
@@ -34,6 +33,7 @@ pub enum Response<T> {
         /// Any API endpoint that returns a list of items requires pagination.
         pagination: Pagination,
     },
+    StatusResponse(u16),
 }
 
 /// Any API endpoint that returns a list of items requires pagination.
@@ -61,15 +61,17 @@ pub enum ApiError {
 
 impl<T: serde::Serialize> IntoResponse for Response<T> {
     fn into_response(self) -> axum::response::Response {
-        let body = match self {
-            Response::EmptyResponse => json!({ "data": "" }),
-            Response::SingleResponse { data } => json!({ "data": data }),
-            Response::PagedResponse { data, pagination } => {
-                json!({ "data": data, "pagination": pagination })
-            }
+        let (status, body) = match self {
+            Response::EmptyResponse => (StatusCode::OK, json!({ "data": "" })),
+            Response::SingleResponse { data } => (StatusCode::OK, json!({ "data": data })),
+            Response::PagedResponse { data, pagination } => (
+                StatusCode::OK,
+                json!({ "data": data, "pagination": pagination }),
+            ),
+            Response::StatusResponse(status) => (StatusCode::from_u16(status).unwrap(), json!(())),
         };
 
-        Json(body).into_response()
+        (status, Json(body)).into_response()
     }
 }
 
@@ -87,7 +89,7 @@ impl IntoResponse for ApiError {
 }
 
 /// Return the successful response without data.
-pub fn empty<T>(_: T) -> Result<T> {
+pub fn empty<T>() -> Result<T> {
     Ok(Response::EmptyResponse)
 }
 
@@ -99,4 +101,9 @@ pub fn success<T>(data: T) -> Result<T> {
 /// Returns the successful paged response.
 pub fn paginate<T>(data: T, pagination: Pagination) -> Result<T> {
     Ok(Response::PagedResponse { data, pagination })
+}
+
+/// Return only status code and empty response.
+pub fn status<T>(status: StatusCode) -> Result<T> {
+    Ok(Response::StatusResponse(status.into()))
 }
