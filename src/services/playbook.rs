@@ -44,4 +44,10 @@ impl PlaybookService {
             .await
             .map_err(|_| ApiError::DatabaseError)
     }
+
+    pub async fn delete(db: &Database, id: u64) -> Result<()> {
+        PlaybookRepository::delete(db, id)
+            .await
+            .map_err(|_| ApiError::DatabaseError)
+    }
 }

@@ -39,4 +39,13 @@ impl PlaybookRepository {
 
         Ok(())
     }
+
+    pub async fn delete(db: &Database, id: u64) -> Result<()> {
+        let playbook = Entity::find_by_id(id).one(db).await?;
+        let playbook: ActiveModel = playbook.unwrap().into();
+
+        Entity::delete(playbook).exec(db).await?;
+
+        Ok(())
+    }
 }

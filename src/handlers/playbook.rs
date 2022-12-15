@@ -99,12 +99,19 @@ pub async fn update(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoR
         ("id", description = "The id of playbook"),
     ),
     responses(
-        (status = 200, description = "Playbook deleted successfully", body = Playbook),
+        (status = 204, description = "Playbook deleted successfully"),
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn delete(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
-    Json("OK")
+pub async fn delete(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> Result<()> {
+    let playbook = PlaybookService::get(&ctx.db, id).await?;
+
+    if playbook.is_none() {
+        return Err(ApiError::NotFound);
+    }
+
+    PlaybookService::delete(&ctx.db, id).await?;
+    status(StatusCode::NO_CONTENT)
 }
 
 /// Output the event streams of playbook
