@@ -25,7 +25,10 @@ pub struct Model {
     pub description: String,
     pub state: String,
 
+    #[schema(value_type = String)]
     pub created_at: DateTime,
+
+    #[schema(value_type = String)]
     pub updated_at: DateTime,
 }
 
@@ -34,15 +37,4 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-// impl Default for Playbook {
-//     fn default() -> Self {
-//         Self {
-//             id: 123,
-//             title: "consectetur occaecat consectetur exercitation fugiat".into(),
-//             description: "laboris esse quis adipisicing sunt eu enim ipsum".into(),
-//             state: "RUNNING".into(),
-//             created_at: "2022-12-05T040000Z".into(),
-//             updated_at: "2022-12-05T040000Z".into(),
-//         }
-//     }
-// }
+pub type Playbook = Model;

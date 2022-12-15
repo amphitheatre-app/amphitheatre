@@ -17,7 +17,7 @@
 use sea_orm::EntityTrait;
 
 use crate::database::{Database, Result};
-use crate::models::playbook::{Entity, Model as Playbook};
+use crate::models::playbook::{Entity, Playbook};
 
 pub struct PlaybookRepository;
 

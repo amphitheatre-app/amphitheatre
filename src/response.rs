@@ -17,6 +17,7 @@ use axum::response::IntoResponse;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use utoipa::ToSchema;
 
 pub type Result<T, E = ApiError> = axum::response::Result<Response<T>, E>;
 
@@ -53,8 +54,9 @@ pub struct Pagination {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ApiError {
-    NotFound,
+    DatabaseError,
     InternalServerError,
+    NotFound,
 }
 
 impl<T: serde::Serialize> IntoResponse for Response<T> {
@@ -74,10 +76,11 @@ impl<T: serde::Serialize> IntoResponse for Response<T> {
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, message) = match self {
-            Self::NotFound => (StatusCode::NOT_FOUND, "Not Found"),
+            Self::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, "Database Error"),
             Self::InternalServerError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error")
             }
+            Self::NotFound => (StatusCode::NOT_FOUND, "Not Found"),
         };
         (status, Json(json!({ "message": message }))).into_response()
     }

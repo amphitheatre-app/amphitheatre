@@ -38,7 +38,7 @@ use crate::{handlers, models};
     components(
         schemas(
             models::actor::Actor,
-            models::playbook::Model as Playbook,
+            models::playbook::Playbook,
         )
     )
 )]

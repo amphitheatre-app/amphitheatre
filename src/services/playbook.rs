@@ -12,18 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::database::{Database, Result};
-use crate::models::playbook::Model as Playbook;
+use crate::database::Database;
+use crate::models::playbook::Playbook;
 use crate::repositories::playbook::PlaybookRepository;
+use crate::response::ApiError;
+use crate::services::Result;
 
 pub struct PlaybookService;
 
 impl PlaybookService {
     pub async fn get(db: &Database, id: u64) -> Result<Option<Playbook>> {
-        PlaybookRepository::get(db, id).await
+        PlaybookRepository::get(db, id)
+            .await
+            .map_err(|_| ApiError::DatabaseError)
     }
 
     pub async fn list(db: &Database) -> Result<Vec<Playbook>> {
-        PlaybookRepository::list(db).await
+        PlaybookRepository::list(db)
+            .await
+            .map_err(|_| ApiError::DatabaseError)
     }
 }

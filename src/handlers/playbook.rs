@@ -25,7 +25,7 @@ use tokio_stream::StreamExt as _;
 
 use crate::app::Context;
 use crate::models::playbook::Model as Playbook;
-use crate::response::{empty, success, ApiError, Result};
+use crate::response::{success, ApiError, Result};
 use crate::services::playbook::PlaybookService;
 
 // The Playbooks Service Handlers.
@@ -35,22 +35,20 @@ use crate::services::playbook::PlaybookService;
 #[utoipa::path(
     get, path = "/v1/playbooks",
     responses(
-        (status = 200, description="List all playbooks successfully", body = [Playbook])
+        (status = 200, description = "List all playbooks successfully", body = [Playbook]),
+        (status = 500, description = "Internal Server Error"),
     )
 )]
 pub async fn list(ctx: State<Arc<Context>>) -> Result<Vec<Playbook>> {
-    let result = PlaybookService::list(&ctx.db).await;
-    match result {
-        Ok(playbooks) => success(playbooks),
-        Err(e) => empty(vec![]),
-    }
+    let playbooks = PlaybookService::list(&ctx.db).await?;
+    success(playbooks)
 }
 
 /// Create a playbook in the current account.
 #[utoipa::path(
     post, path = "/v1/playbooks",
     responses(
-        (status = 201, description="Playbook created successfully", body = Playbook)
+        (status = 201, description = "Playbook created successfully", body = Playbook)
     )
 )]
 pub async fn create() -> Result<Playbook> {
@@ -64,19 +62,15 @@ pub async fn create() -> Result<Playbook> {
         ("id", description = "The id of playbook"),
     ),
     responses(
-        (status = 200, description="Playbook found successfully", body = Playbook),
-        (status = 404, description = "Playbook not found")
+        (status = 200, description = "Playbook found successfully", body = Playbook),
+        (status = 404, description = "Playbook not found"),
+        (status = 500, description = "Internal Server Error"),
     )
 )]
 pub async fn detail(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
-    let result = PlaybookService::get(&ctx.db, id).await;
+    let playbook = PlaybookService::get(&ctx.db, id).await?;
 
-    if let Err(e) = result {
-        log::error!("{}", e);
-        return Err(ApiError::InternalServerError);
-    }
-
-    match result.unwrap() {
+    match playbook {
         Some(playbook) => success(playbook),
         None => Err(ApiError::NotFound),
     }
@@ -86,7 +80,7 @@ pub async fn detail(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoR
 #[utoipa::path(
     patch, path = "/v1/playbooks/{id}",
     responses(
-        (status = 200, description="Playbook updated successfully", body = Playbook),
+        (status = 200, description = "Playbook updated successfully", body = Playbook),
         (status = 404, description = "Playbook not found")
     )
 )]
@@ -98,7 +92,7 @@ pub async fn update(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoR
 #[utoipa::path(
     delete, path = "/v1/playbooks/{id}",
     responses(
-        (status = 200, description="Playbook deleted successfully", body = Playbook),
+        (status = 200, description = "Playbook deleted successfully", body = Playbook),
         (status = 404, description = "Playbook not found")
     )
 )]
@@ -136,7 +130,7 @@ pub async fn events(
 #[utoipa::path(
     post, path = "/v1/playbooks/{id}/actions/start",
     responses(
-        (status = 200, description="Playbook started successfully"),
+        (status = 200, description = "Playbook started successfully"),
         (status = 404, description = "Playbook not found")
     )
 )]
@@ -148,7 +142,7 @@ pub async fn start(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoRe
 #[utoipa::path(
     post, path = "/v1/playbooks/{id}/actions/stop",
     responses(
-        (status = 200, description="Playbook stopped successfully"),
+        (status = 200, description = "Playbook stopped successfully"),
         (status = 404, description = "Playbook not found")
     )
 )]
