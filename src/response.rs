@@ -73,12 +73,17 @@ impl<T: serde::Serialize> IntoResponse for Response<T> {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
-        match self {
-            Self::NotFound => (StatusCode::NOT_FOUND, "Not Found").into_response(),
-            Self::InternalServerError => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
-            }
-        }
+        let response = match self {
+            Self::NotFound => (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "message": "Not Found"})),
+            ),
+            Self::InternalServerError => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Internal Server Error"})),
+            ),
+        };
+        response.into_response()
     }
 }
 
