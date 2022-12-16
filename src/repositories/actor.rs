@@ -12,5 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod actor;
-pub mod playbook;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+
+use crate::database::{Database, Result};
+use crate::models::actor::{Actor, Column, Entity};
+
+pub struct ActorRepository;
+
+impl ActorRepository {
+    pub async fn get(db: &Database, id: u64) -> Result<Option<Actor>> {
+        Entity::find_by_id(id).one(db).await
+    }
+
+    pub async fn list(db: &Database, pid: u64) -> Result<Vec<Actor>> {
+        Entity::find()
+            .filter(Column::PlaybookId.eq(pid))
+            .all(db)
+            .await
+    }
+}

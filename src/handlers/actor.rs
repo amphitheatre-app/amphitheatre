@@ -19,11 +19,14 @@ use std::time::Duration;
 
 use axum::extract::{Path, State, TypedHeader};
 use axum::response::sse::Event;
-use axum::response::{IntoResponse, Json, Sse};
+use axum::response::{IntoResponse, Sse};
 use futures::{stream, Stream};
 use tokio_stream::StreamExt as _;
 
 use crate::app::Context;
+use crate::response::{data, ApiError};
+use crate::services::actor::ActorService;
+use crate::services::playbook::PlaybookService;
 
 // The Actors Service Handlers.
 // See [API Documentation: actor](https://docs.amphitheatre.app/api/actor)
@@ -39,8 +42,19 @@ use crate::app::Context;
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn list(Path(pid): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
-    todo!()
+pub async fn list(
+    Path(pid): Path<u64>,
+    ctx: State<Arc<Context>>,
+) -> Result<impl IntoResponse, ApiError> {
+    let playbook = PlaybookService::get(&ctx, pid).await?;
+
+    if playbook.is_none() {
+        return Err(ApiError::NotFound);
+    }
+
+    let actors = ActorService::list(&ctx, pid).await?;
+
+    Ok(data(actors))
 }
 
 /// Returns a actor detail.
@@ -54,8 +68,16 @@ pub async fn list(Path(pid): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoRe
         (status = 404, description = "Actor not found")
     )
 )]
-pub async fn detail(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
-    todo!()
+pub async fn detail(
+    Path(id): Path<u64>,
+    ctx: State<Arc<Context>>,
+) -> Result<impl IntoResponse, ApiError> {
+    let actor = ActorService::get(&ctx, id).await?;
+
+    match actor {
+        Some(actor) => Ok(data(actor)),
+        None => Err(ApiError::NotFound),
+    }
 }
 
 /// Output the log streams of actor
@@ -98,8 +120,8 @@ pub async fn logs(
         (status = 404, description = "Actor not found")
     )
 )]
-pub async fn info(Path(id): Path<u64>) -> impl IntoResponse {
-    Json(HashMap::from([
+pub async fn info(Path(id): Path<u64>) -> Result<impl IntoResponse, ApiError> {
+    Ok(data(HashMap::from([
         (
             "environments",
             HashMap::from([
@@ -127,7 +149,7 @@ pub async fn info(Path(id): Path<u64>) -> impl IntoResponse {
         ]
         )),
         ("port", HashMap::from([("6443/tcp", "0.0.0.0:42397")])),
-    ]))
+    ])))
 }
 
 /// Returns a actor's stats.
@@ -141,11 +163,11 @@ pub async fn info(Path(id): Path<u64>) -> impl IntoResponse {
         (status = 404, description = "Actor not found")
     )
 )]
-pub async fn stats(Path(id): Path<u64>) -> impl IntoResponse {
-    Json(HashMap::from([
+pub async fn stats(Path(id): Path<u64>) -> Result<impl IntoResponse, ApiError> {
+    Ok(data(HashMap::from([
         ("CPU USAGE", "1.98%"),
         ("MEMORY USAGE", "65.8MB"),
         ("DISK READ/WRITE", "5.3MB / 43.7 MB"),
         ("NETWORK I/O", "5.7 kB / 3 kB"),
-    ]))
+    ])))
 }

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::response::ApiError;
-
+pub mod actor;
 pub mod playbook;
 
+use crate::response::ApiError;
 pub type Result<T, E = ApiError> = std::result::Result<T, E>;
