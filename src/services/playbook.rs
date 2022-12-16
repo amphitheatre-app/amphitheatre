@@ -64,4 +64,15 @@ impl PlaybookService {
             .await
             .map_err(|_| ApiError::DatabaseError)
     }
+
+    pub async fn update(
+        ctx: &State<Arc<Context>>,
+        id: u64,
+        title: Option<String>,
+        description: Option<String>,
+    ) -> Result<Playbook> {
+        PlaybookRepository::update(&ctx.db, id, title, description)
+            .await
+            .map_err(|_| ApiError::DatabaseError)
+    }
 }

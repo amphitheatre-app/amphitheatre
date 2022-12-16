@@ -58,7 +58,7 @@ pub struct CreatePlaybookRequest {
     post, path = "/v1/playbooks",
     request_body(
         content = inline(CreatePlaybookRequest),
-        description = "create playbook request",
+        description = "Create playbook request",
         content_type = "application/json"
     ),
     responses(
@@ -97,19 +97,35 @@ pub async fn detail(
     }
 }
 
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct UpdatePlaybookRequest {
+    title: Option<String>,
+    description: Option<String>,
+}
+
 /// Update a playbook.
 #[utoipa::path(
     patch, path = "/v1/playbooks/{id}",
     params(
         ("id", description = "The id of playbook"),
     ),
+    request_body(
+        content = inline(UpdatePlaybookRequest),
+        description = "Update playbook request",
+        content_type = "application/json"
+    ),
     responses(
         (status = 200, description = "Playbook updated successfully", body = Playbook),
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn update(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
-    Json("OK")
+pub async fn update(
+    Path(id): Path<u64>,
+    ctx: State<Arc<Context>>,
+    Json(payload): Json<UpdatePlaybookRequest>,
+) -> Result<impl IntoResponse, ApiError> {
+    let playbook = PlaybookService::update(&ctx, id, payload.title, payload.description).await?;
+    Ok(data(playbook))
 }
 
 /// Delete a playbook

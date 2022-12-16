@@ -57,4 +57,24 @@ impl PlaybookRepository {
         };
         playbook.insert(db).await
     }
+
+    pub async fn update(
+        db: &Database,
+        id: u64,
+        title: Option<String>,
+        description: Option<String>,
+    ) -> Result<Playbook> {
+        let playbook = Entity::find_by_id(id).one(db).await?;
+        let mut playbook: ActiveModel = playbook.unwrap().into();
+
+        if title.is_some() {
+            playbook.title = Set(title.unwrap());
+        }
+
+        if description.is_some() {
+            playbook.description = Set(description.unwrap());
+        }
+
+        playbook.update(db).await
+    }
 }
