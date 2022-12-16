@@ -17,7 +17,6 @@ use std::sync::Arc;
 use axum::extract::State;
 
 use crate::app::Context;
-use crate::database::Database;
 use crate::models::playbook::Playbook;
 use crate::repositories::playbook::PlaybookRepository;
 use crate::response::ApiError;
@@ -26,38 +25,38 @@ use crate::services::Result;
 pub struct PlaybookService;
 
 impl PlaybookService {
-    pub async fn get(db: &Database, id: u64) -> Result<Option<Playbook>> {
-        PlaybookRepository::get(db, id)
+    pub async fn get(ctx: &State<Arc<Context>>, id: u64) -> Result<Option<Playbook>> {
+        PlaybookRepository::get(&ctx.db, id)
             .await
             .map_err(|_| ApiError::DatabaseError)
     }
 
-    pub async fn list(db: &Database) -> Result<Vec<Playbook>> {
-        PlaybookRepository::list(db)
+    pub async fn list(ctx: &State<Arc<Context>>) -> Result<Vec<Playbook>> {
+        PlaybookRepository::list(&ctx.db)
             .await
             .map_err(|_| ApiError::DatabaseError)
     }
 
-    pub async fn start(db: &Database, id: u64) -> Result<()> {
-        PlaybookRepository::change_state(db, id, "RUNNING")
+    pub async fn start(ctx: &State<Arc<Context>>, id: u64) -> Result<()> {
+        PlaybookRepository::change_state(&ctx.db, id, "RUNNING")
             .await
             .map_err(|_| ApiError::DatabaseError)
     }
 
-    pub async fn stop(db: &Database, id: u64) -> Result<()> {
-        PlaybookRepository::change_state(db, id, "STOPPED")
+    pub async fn stop(ctx: &State<Arc<Context>>, id: u64) -> Result<()> {
+        PlaybookRepository::change_state(&ctx.db, id, "STOPPED")
             .await
             .map_err(|_| ApiError::DatabaseError)
     }
 
-    pub async fn delete(db: &Database, id: u64) -> Result<()> {
-        PlaybookRepository::delete(db, id)
+    pub async fn delete(ctx: &State<Arc<Context>>, id: u64) -> Result<()> {
+        PlaybookRepository::delete(&ctx.db, id)
             .await
             .map_err(|_| ApiError::DatabaseError)
     }
 
     pub async fn create(
-        ctx: State<Arc<Context>>,
+        ctx: &State<Arc<Context>>,
         title: String,
         description: String,
     ) -> Result<Playbook> {

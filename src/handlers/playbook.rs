@@ -42,7 +42,7 @@ use crate::services::playbook::PlaybookService;
     )
 )]
 pub async fn list(ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let playbooks = PlaybookService::list(&ctx.db).await?;
+    let playbooks = PlaybookService::list(&ctx).await?;
 
     Ok(data(playbooks))
 }
@@ -69,7 +69,7 @@ pub async fn create(
     ctx: State<Arc<Context>>,
     Json(payload): Json<CreatePlaybookRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::create(ctx, payload.title, payload.description).await?;
+    let playbook = PlaybookService::create(&ctx, payload.title, payload.description).await?;
     Ok((StatusCode::CREATED, data(playbook)))
 }
 
@@ -89,7 +89,7 @@ pub async fn detail(
     Path(id): Path<u64>,
     ctx: State<Arc<Context>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::get(&ctx.db, id).await?;
+    let playbook = PlaybookService::get(&ctx, id).await?;
 
     match playbook {
         Some(playbook) => Ok(data(playbook)),
@@ -127,13 +127,13 @@ pub async fn delete(
     Path(id): Path<u64>,
     ctx: State<Arc<Context>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::get(&ctx.db, id).await?;
+    let playbook = PlaybookService::get(&ctx, id).await?;
 
     if playbook.is_none() {
         return Err(ApiError::NotFound);
     }
 
-    PlaybookService::delete(&ctx.db, id).await?;
+    PlaybookService::delete(&ctx, id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -182,13 +182,13 @@ pub async fn start(
     Path(id): Path<u64>,
     ctx: State<Arc<Context>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::get(&ctx.db, id).await?;
+    let playbook = PlaybookService::get(&ctx, id).await?;
 
     if playbook.is_none() {
         return Err(ApiError::NotFound);
     }
 
-    PlaybookService::start(&ctx.db, id).await?;
+    PlaybookService::start(&ctx, id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -208,12 +208,12 @@ pub async fn stop(
     Path(id): Path<u64>,
     ctx: State<Arc<Context>>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::get(&ctx.db, id).await?;
+    let playbook = PlaybookService::get(&ctx, id).await?;
 
     if playbook.is_none() {
         return Err(ApiError::NotFound);
     }
 
-    PlaybookService::stop(&ctx.db, id).await?;
+    PlaybookService::stop(&ctx, id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
