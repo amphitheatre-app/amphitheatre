@@ -12,26 +12,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Default, Clone, Serialize, Deserialize, ToSchema)]
-pub struct Actor {
+#[derive(Clone, Serialize, Deserialize, ToSchema, DeriveEntityModel, Debug)]
+#[sea_orm(table_name = "actors")]
+pub struct Model {
+    /// The id of the actor.
+    #[sea_orm(primary_key)]
     pub id: u64,
-
-    // An identifier for the project.
+    /// Which playbook belongs to.
+    pub playbook_id: u64,
+    /// The title of the actor.
     pub name: String,
-
-    // Git repository the package should be cloned from.
-    // e.g. https://github.com/amphitheatre-app/amphitheatre.git.
+    /// The description of the actor.
+    pub description: String,
+    /// Git repository the package should be cloned from.
+    /// e.g. https://github.com/amphitheatre-app/amphitheatre.git.
     pub repo: String,
-
-    // Relative path from the repo root to the configuration file.
-    // eg. getting-started/amp.yaml.
+    /// Relative path from the repo root to the configuration file.
+    /// eg. getting-started/amp.yaml.
     pub path: String,
-
-    // Git ref the package should be cloned from. eg. master or main
+    /// Git ref the package should be cloned from. eg. master or main
     pub reference: String,
-
+    /// The selected commit of the actor.
     pub commit: String,
+
+    #[schema(value_type = String)]
+    pub created_at: DateTime,
+
+    #[schema(value_type = String)]
+    pub updated_at: DateTime,
 }
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+pub type Actor = Model;

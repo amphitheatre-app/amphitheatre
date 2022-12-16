@@ -19,10 +19,14 @@ use utoipa::ToSchema;
 #[derive(Clone, Serialize, Deserialize, ToSchema, DeriveEntityModel, Debug)]
 #[sea_orm(table_name = "playbooks")]
 pub struct Model {
+    /// The id of the playbook
     #[sea_orm(primary_key)]
     pub id: u64,
+    /// The title of the playbook
     pub title: String,
+    /// The description of the playbook
     pub description: String,
+    /// The state of the playbook
     pub state: String,
 
     #[schema(value_type = String)]
