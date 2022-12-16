@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::Arc;
+
+use axum::extract::State;
+
+use crate::app::Context;
 use crate::database::Database;
 use crate::models::playbook::Playbook;
 use crate::repositories::playbook::PlaybookRepository;
@@ -47,6 +52,16 @@ impl PlaybookService {
 
     pub async fn delete(db: &Database, id: u64) -> Result<()> {
         PlaybookRepository::delete(db, id)
+            .await
+            .map_err(|_| ApiError::DatabaseError)
+    }
+
+    pub async fn create(
+        ctx: State<Arc<Context>>,
+        title: String,
+        description: String,
+    ) -> Result<Playbook> {
+        PlaybookRepository::create(&ctx.db, title, description)
             .await
             .map_err(|_| ApiError::DatabaseError)
     }

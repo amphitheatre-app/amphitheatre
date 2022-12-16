@@ -22,11 +22,12 @@ use axum::response::sse::Event;
 use axum::response::{IntoResponse, Sse};
 use axum::{Json, TypedHeader};
 use futures::{stream, Stream};
+use serde::{Deserialize, Serialize};
 use tokio_stream::StreamExt as _;
+use utoipa::ToSchema;
 
 use crate::app::Context;
-use crate::models::playbook::Model as Playbook;
-use crate::response::{status, success, ApiError, Result};
+use crate::response::{data, ApiError};
 use crate::services::playbook::PlaybookService;
 
 // The Playbooks Service Handlers.
@@ -40,20 +41,36 @@ use crate::services::playbook::PlaybookService;
         (status = 500, description = "Internal Server Error"),
     )
 )]
-pub async fn list(ctx: State<Arc<Context>>) -> Result<Vec<Playbook>> {
+pub async fn list(ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
     let playbooks = PlaybookService::list(&ctx.db).await?;
-    success(playbooks)
+
+    Ok(data(playbooks))
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct CreatePlaybookRequest {
+    title: String,
+    description: String,
 }
 
 /// Create a playbook in the current account.
 #[utoipa::path(
     post, path = "/v1/playbooks",
+    request_body(
+        content = inline(CreatePlaybookRequest),
+        description = "create playbook request",
+        content_type = "application/json"
+    ),
     responses(
         (status = 201, description = "Playbook created successfully", body = Playbook)
     )
 )]
-pub async fn create() -> Result<Playbook> {
-    todo!()
+pub async fn create(
+    ctx: State<Arc<Context>>,
+    Json(payload): Json<CreatePlaybookRequest>,
+) -> Result<impl IntoResponse, ApiError> {
+    let playbook = PlaybookService::create(ctx, payload.title, payload.description).await?;
+    Ok((StatusCode::CREATED, data(playbook)))
 }
 
 /// Returns a playbook detail.
@@ -68,11 +85,14 @@ pub async fn create() -> Result<Playbook> {
         (status = 500, description = "Internal Server Error"),
     )
 )]
-pub async fn detail(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoResponse {
+pub async fn detail(
+    Path(id): Path<u64>,
+    ctx: State<Arc<Context>>,
+) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx.db, id).await?;
 
     match playbook {
-        Some(playbook) => success(playbook),
+        Some(playbook) => Ok(data(playbook)),
         None => Err(ApiError::NotFound),
     }
 }
@@ -103,7 +123,10 @@ pub async fn update(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> impl IntoR
         (status = 404, description = "Playbook not found")
     )
 )]
-pub async fn delete(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> Result<()> {
+pub async fn delete(
+    Path(id): Path<u64>,
+    ctx: State<Arc<Context>>,
+) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx.db, id).await?;
 
     if playbook.is_none() {
@@ -111,7 +134,7 @@ pub async fn delete(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> Result<()>
     }
 
     PlaybookService::delete(&ctx.db, id).await?;
-    status(StatusCode::NO_CONTENT)
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// Output the event streams of playbook
@@ -155,7 +178,10 @@ pub async fn events(
         (status = 500, description = "Internal Server Error"),
     )
 )]
-pub async fn start(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> Result<()> {
+pub async fn start(
+    Path(id): Path<u64>,
+    ctx: State<Arc<Context>>,
+) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx.db, id).await?;
 
     if playbook.is_none() {
@@ -163,7 +189,7 @@ pub async fn start(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> Result<()> 
     }
 
     PlaybookService::start(&ctx.db, id).await?;
-    status(StatusCode::NO_CONTENT)
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// Stop a playbook.
@@ -178,7 +204,10 @@ pub async fn start(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> Result<()> 
         (status = 500, description = "Internal Server Error"),
     )
 )]
-pub async fn stop(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> Result<()> {
+pub async fn stop(
+    Path(id): Path<u64>,
+    ctx: State<Arc<Context>>,
+) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx.db, id).await?;
 
     if playbook.is_none() {
@@ -186,5 +215,5 @@ pub async fn stop(Path(id): Path<u64>, ctx: State<Arc<Context>>) -> Result<()> {
     }
 
     PlaybookService::stop(&ctx.db, id).await?;
-    status(StatusCode::NO_CONTENT)
+    Ok(StatusCode::NO_CONTENT)
 }

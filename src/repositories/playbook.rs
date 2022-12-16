@@ -48,4 +48,13 @@ impl PlaybookRepository {
 
         Ok(())
     }
+
+    pub async fn create(db: &Database, title: String, description: String) -> Result<Playbook> {
+        let playbook = ActiveModel {
+            title: Set(title),
+            description: Set(description),
+            ..Default::default()
+        };
+        playbook.insert(db).await
+    }
 }

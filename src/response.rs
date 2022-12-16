@@ -18,22 +18,13 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-pub type Result<T, E = ApiError> = axum::response::Result<Response<T>, E>;
-
 /// Represents the response from an API call
 #[derive(Serialize, Deserialize, Debug)]
-pub enum Response<T> {
-    EmptyResponse,
-    SingleResponse {
-        data: T,
-    },
-    PagedResponse {
-        /// The object or a Vec<T> objects (the type `T` will depend on the endpoint).
-        data: T,
-        /// Any API endpoint that returns a list of items requires pagination.
-        pagination: Pagination,
-    },
-    StatusResponse(u16),
+pub struct Response<T> {
+    /// The object or a Vec<T> objects (the type `T` will depend on the endpoint).
+    data: Option<T>,
+    /// Any API endpoint that returns a list of items requires pagination.
+    pagination: Option<Pagination>,
 }
 
 /// Any API endpoint that returns a list of items requires pagination.
@@ -52,27 +43,33 @@ pub struct Pagination {
     pub total_pages: u64,
 }
 
+impl<T: Serialize> IntoResponse for Response<T> {
+    fn into_response(self) -> axum::response::Response {
+        Json(self).into_response()
+    }
+}
+
+/// Returns the successful response with data.
+pub fn data<T>(data: T) -> Response<T> {
+    Response {
+        data: Some(data),
+        pagination: None,
+    }
+}
+
+/// Returns the successful paged response.
+pub fn paginate<T>(data: T, pagination: Pagination) -> Response<T> {
+    Response {
+        data: Some(data),
+        pagination: Some(pagination),
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ApiError {
     DatabaseError,
     InternalServerError,
     NotFound,
-}
-
-impl<T: serde::Serialize> IntoResponse for Response<T> {
-    fn into_response(self) -> axum::response::Response {
-        let (status, body) = match self {
-            Response::EmptyResponse => (StatusCode::OK, json!({ "data": "" })),
-            Response::SingleResponse { data } => (StatusCode::OK, json!({ "data": data })),
-            Response::PagedResponse { data, pagination } => (
-                StatusCode::OK,
-                json!({ "data": data, "pagination": pagination }),
-            ),
-            Response::StatusResponse(status) => (StatusCode::from_u16(status).unwrap(), json!(())),
-        };
-
-        (status, Json(body)).into_response()
-    }
 }
 
 impl IntoResponse for ApiError {
@@ -86,24 +83,4 @@ impl IntoResponse for ApiError {
         };
         (status, Json(json!({ "message": message }))).into_response()
     }
-}
-
-/// Return the successful response without data.
-pub fn empty<T>() -> Result<T> {
-    Ok(Response::EmptyResponse)
-}
-
-/// Returns the successful response with single data.
-pub fn success<T>(data: T) -> Result<T> {
-    Ok(Response::SingleResponse { data })
-}
-
-/// Returns the successful paged response.
-pub fn paginate<T>(data: T, pagination: Pagination) -> Result<T> {
-    Ok(Response::PagedResponse { data, pagination })
-}
-
-/// Return only status code and empty response.
-pub fn status<T>(status: StatusCode) -> Result<T> {
-    Ok(Response::StatusResponse(status.into()))
 }
