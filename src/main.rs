@@ -20,6 +20,7 @@ use std::time::Duration;
 use amphitheatre::app::{self, Context};
 use amphitheatre::config::Config;
 use clap::Parser;
+use kube::Client;
 use sea_orm::{ConnectOptions, Database};
 
 #[tokio::main]
@@ -43,10 +44,12 @@ async fn main() -> anyhow::Result<()> {
         .max_lifetime(Duration::from_secs(8))
         .sqlx_logging(true)
         .sqlx_logging_level(log::LevelFilter::Info);
-
     let db = Database::connect(opt).await?;
 
-    let ctx = Arc::new(Context { config, db });
+    // Create and initialize a k8s client using the inferred configuration.
+    let k8s = Client::try_default().await?;
+
+    let ctx = Arc::new(Context { config, db, k8s });
 
     // Finally, we spin up our API.
     app::run(ctx).await;

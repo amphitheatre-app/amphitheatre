@@ -16,6 +16,8 @@ clap = { version = "4.0.29", features = ["derive", "env"] }
 dotenv = "0.15.0"
 futures = "0.3"
 headers = "0.3"
+kube = { version = "0.77.0", features = ["runtime", "derive"] }
+k8s-openapi = { version = "0.16.0", features = ["v1_25"] }
 log = "0.4.17"
 pin-project = "1.0.12"
 sea-orm = { version = "0.10.5", features=["runtime-tokio-rustls", "sqlx-mysql"] }

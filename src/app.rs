@@ -17,6 +17,7 @@ use std::sync::Arc;
 
 use axum::error_handling::HandleErrorLayer;
 use axum::BoxError;
+use kube::Client;
 use tower::ServiceBuilder;
 use tower_governor::errors::display_error;
 use tower_governor::governor::GovernorConfigBuilder;
@@ -37,6 +38,7 @@ use crate::{routes, swagger};
 pub struct Context {
     pub config: Config,
     pub db: Database,
+    pub k8s: Client,
 }
 
 pub async fn run(ctx: Arc<Context>) {

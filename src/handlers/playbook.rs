@@ -18,10 +18,14 @@ use std::time::Duration;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::response::sse::Event;
+use axum::response::sse::{Event, KeepAlive};
 use axum::response::{IntoResponse, Sse};
-use axum::{Json, TypedHeader};
-use futures::{stream, Stream};
+use axum::Json;
+use futures::Stream;
+use k8s_openapi::api::core::v1::Event as KEvent;
+use kube::api::ListParams;
+use kube::runtime::{watcher, WatchStreamExt};
+use kube::Api;
 use serde::{Deserialize, Serialize};
 use tokio_stream::StreamExt as _;
 use utoipa::ToSchema;
@@ -166,20 +170,21 @@ pub async fn delete(
 )]
 pub async fn events(
     Path(id): Path<u64>,
-    TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
+    ctx: State<Arc<Context>>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
-    println!("`{}` connected", user_agent.as_str());
+    let api: Api<KEvent> = Api::namespaced(ctx.k8s.clone(), "default");
+    let params = ListParams::default();
 
-    // A `Stream` that repeats an event every second
-    let stream = stream::repeat_with(|| Event::default().data("hi!"))
+    let stream = watcher(api, params)
+        .applied_objects()
+        .map(|result| match result {
+            Ok(event) => Event::default().json_data(event).unwrap(),
+            Err(err) => Event::default().event("error").data(err.to_string()),
+        })
         .map(Ok)
         .throttle(Duration::from_secs(1));
 
-    Sse::new(stream).keep_alive(
-        axum::response::sse::KeepAlive::new()
-            .interval(Duration::from_secs(1))
-            .text("keep-alive-text"),
-    )
+    Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
 /// Start a playbook.
