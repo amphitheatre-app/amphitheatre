@@ -42,8 +42,7 @@ async fn main() -> anyhow::Result<()> {
         .acquire_timeout(Duration::from_secs(8))
         .idle_timeout(Duration::from_secs(8))
         .max_lifetime(Duration::from_secs(8))
-        .sqlx_logging(true)
-        .sqlx_logging_level(log::LevelFilter::Info);
+        .sqlx_logging(false);
     let db = Database::connect(opt).await?;
 
     // Create and initialize a k8s client using the inferred configuration.
