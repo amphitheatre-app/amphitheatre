@@ -24,6 +24,7 @@ pub struct Response<T> {
     /// The object or a Vec<T> objects (the type `T` will depend on the endpoint).
     data: Option<T>,
     /// Any API endpoint that returns a list of items requires pagination.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pagination: Option<Pagination>,
 }
 
