@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use uuid::Uuid;
 
 use crate::database::{Database, Result};
 use crate::models::actor::{Actor, Column, Entity};
@@ -24,7 +25,7 @@ impl ActorRepository {
         Entity::find_by_id(id).one(db).await
     }
 
-    pub async fn list(db: &Database, pid: u64) -> Result<Vec<Actor>> {
+    pub async fn list(db: &Database, pid: Uuid) -> Result<Vec<Actor>> {
         Entity::find()
             .filter(Column::PlaybookId.eq(pid))
             .all(db)

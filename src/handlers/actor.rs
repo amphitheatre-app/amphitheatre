@@ -25,6 +25,7 @@ use k8s_openapi::api::core::v1::Pod;
 use kube::api::LogParams;
 use kube::Api;
 use tokio_stream::StreamExt as _;
+use uuid::Uuid;
 
 use crate::app::Context;
 use crate::response::{data, ApiError};
@@ -46,7 +47,7 @@ use crate::services::playbook::PlaybookService;
     )
 )]
 pub async fn list(
-    Path(pid): Path<u64>,
+    Path(pid): Path<Uuid>,
     ctx: State<Arc<Context>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx, pid).await?;

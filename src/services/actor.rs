@@ -15,6 +15,7 @@
 use std::sync::Arc;
 
 use axum::extract::State;
+use uuid::Uuid;
 
 use crate::app::Context;
 use crate::models::actor::Actor;
@@ -31,7 +32,7 @@ impl ActorService {
             .map_err(|_| ApiError::DatabaseError)
     }
 
-    pub async fn list(ctx: &State<Arc<Context>>, pid: u64) -> Result<Vec<Actor>> {
+    pub async fn list(ctx: &State<Arc<Context>>, pid: Uuid) -> Result<Vec<Actor>> {
         ActorRepository::list(&ctx.db, pid)
             .await
             .map_err(|_| ApiError::DatabaseError)

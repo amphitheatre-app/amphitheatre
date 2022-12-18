@@ -20,8 +20,8 @@ use utoipa::ToSchema;
 #[sea_orm(table_name = "playbooks")]
 pub struct Model {
     /// The id of the playbook
-    #[sea_orm(primary_key)]
-    pub id: u64,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
     /// The title of the playbook
     pub title: String,
     /// The description of the playbook

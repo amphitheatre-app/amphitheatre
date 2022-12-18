@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+use uuid::Uuid;
 
 use crate::database::{Database, Result};
 use crate::models::playbook::{ActiveModel, Entity, Playbook};
@@ -20,7 +21,7 @@ use crate::models::playbook::{ActiveModel, Entity, Playbook};
 pub struct PlaybookRepository;
 
 impl PlaybookRepository {
-    pub async fn get(db: &Database, id: u64) -> Result<Option<Playbook>> {
+    pub async fn get(db: &Database, id: Uuid) -> Result<Option<Playbook>> {
         Entity::find_by_id(id).one(db).await
     }
 
@@ -28,7 +29,7 @@ impl PlaybookRepository {
         Entity::find().all(db).await
     }
 
-    pub async fn change_state(db: &Database, id: u64, state: &str) -> Result<()> {
+    pub async fn change_state(db: &Database, id: Uuid, state: &str) -> Result<()> {
         let playbook = Entity::find_by_id(id).one(db).await?;
         let mut playbook: ActiveModel = playbook.unwrap().into();
 
@@ -38,7 +39,7 @@ impl PlaybookRepository {
         Ok(())
     }
 
-    pub async fn delete(db: &Database, id: u64) -> Result<()> {
+    pub async fn delete(db: &Database, id: Uuid) -> Result<()> {
         let playbook = Entity::find_by_id(id).one(db).await?;
         let playbook: ActiveModel = playbook.unwrap().into();
 
@@ -49,6 +50,7 @@ impl PlaybookRepository {
 
     pub async fn create(db: &Database, title: String, description: String) -> Result<Playbook> {
         let playbook = ActiveModel {
+            id: Set(uuid::Uuid::new_v4()),
             title: Set(title),
             description: Set(description),
             ..Default::default()
@@ -58,7 +60,7 @@ impl PlaybookRepository {
 
     pub async fn update(
         db: &Database,
-        id: u64,
+        id: Uuid,
         title: Option<String>,
         description: Option<String>,
     ) -> Result<Playbook> {

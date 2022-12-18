@@ -29,6 +29,7 @@ use kube::Api;
 use serde::{Deserialize, Serialize};
 use tokio_stream::StreamExt as _;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::app::Context;
 use crate::response::{data, ApiError};
@@ -90,7 +91,7 @@ pub async fn create(
     )
 )]
 pub async fn detail(
-    Path(id): Path<u64>,
+    Path(id): Path<Uuid>,
     ctx: State<Arc<Context>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx, id).await?;
@@ -124,7 +125,7 @@ pub struct UpdatePlaybookRequest {
     )
 )]
 pub async fn update(
-    Path(id): Path<u64>,
+    Path(id): Path<Uuid>,
     ctx: State<Arc<Context>>,
     Json(payload): Json<UpdatePlaybookRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -144,7 +145,7 @@ pub async fn update(
     )
 )]
 pub async fn delete(
-    Path(id): Path<u64>,
+    Path(id): Path<Uuid>,
     ctx: State<Arc<Context>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx, id).await?;
@@ -169,7 +170,7 @@ pub async fn delete(
     )
 )]
 pub async fn events(
-    Path(id): Path<u64>,
+    Path(id): Path<Uuid>,
     ctx: State<Arc<Context>>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
     let api: Api<KEvent> = Api::namespaced(ctx.k8s.clone(), "default");
@@ -200,7 +201,7 @@ pub async fn events(
     )
 )]
 pub async fn start(
-    Path(id): Path<u64>,
+    Path(id): Path<Uuid>,
     ctx: State<Arc<Context>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx, id).await?;
@@ -226,7 +227,7 @@ pub async fn start(
     )
 )]
 pub async fn stop(
-    Path(id): Path<u64>,
+    Path(id): Path<Uuid>,
     ctx: State<Arc<Context>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx, id).await?;
