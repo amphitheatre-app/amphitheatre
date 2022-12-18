@@ -21,7 +21,7 @@ use crate::models::actor::{Actor, Column, Entity};
 pub struct ActorRepository;
 
 impl ActorRepository {
-    pub async fn get(db: &Database, id: u64) -> Result<Option<Actor>> {
+    pub async fn get(db: &Database, id: Uuid) -> Result<Option<Actor>> {
         Entity::find_by_id(id).one(db).await
     }
 

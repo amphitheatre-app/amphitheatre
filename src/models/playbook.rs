@@ -21,6 +21,7 @@ use utoipa::ToSchema;
 pub struct Model {
     /// The id of the playbook
     #[sea_orm(primary_key, auto_increment = false)]
+    #[schema(value_type = String, format="uuid")]
     pub id: Uuid,
     /// The title of the playbook
     pub title: String,
@@ -29,10 +30,10 @@ pub struct Model {
     /// The state of the playbook
     pub state: String,
 
-    #[schema(value_type = String)]
+    #[schema(value_type = String, format=DateTime)]
     pub created_at: DateTime,
 
-    #[schema(value_type = String)]
+    #[schema(value_type = String, format=DateTime)]
     pub updated_at: DateTime,
 }
 

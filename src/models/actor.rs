@@ -20,10 +20,12 @@ use utoipa::ToSchema;
 #[sea_orm(table_name = "actors")]
 pub struct Model {
     /// The id of the actor.
-    #[sea_orm(primary_key)]
-    pub id: u64,
+    #[sea_orm(primary_key, auto_increment = false)]
+    #[schema(value_type = String, format="uuid")]
+    pub id: Uuid,
     /// Which playbook belongs to.
-    pub playbook_id: u64,
+    #[schema(value_type = String, format="uuid")]
+    pub playbook_id: Uuid,
     /// The title of the actor.
     pub name: String,
     /// The description of the actor.
@@ -39,10 +41,10 @@ pub struct Model {
     /// The selected commit of the actor.
     pub commit: String,
 
-    #[schema(value_type = String)]
+    #[schema(value_type = String, format=DateTime)]
     pub created_at: DateTime,
 
-    #[schema(value_type = String)]
+    #[schema(value_type = String, format=DateTime)]
     pub updated_at: DateTime,
 }
 

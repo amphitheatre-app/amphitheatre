@@ -44,7 +44,8 @@ use crate::services::playbook::PlaybookService;
     responses(
         (status = 200, description="List all actors of playbook successfully", body = [Actor]),
         (status = 404, description = "Playbook not found")
-    )
+    ),
+    tag = "Actors"
 )]
 pub async fn list(
     Path(pid): Path<Uuid>,
@@ -70,10 +71,11 @@ pub async fn list(
     responses(
         (status = 200, description="Actor found successfully", body = Actor),
         (status = 404, description = "Actor not found")
-    )
+    ),
+    tag = "Actors"
 )]
 pub async fn detail(
-    Path(id): Path<u64>,
+    Path(id): Path<Uuid>,
     ctx: State<Arc<Context>>,
 ) -> Result<impl IntoResponse, ApiError> {
     let actor = ActorService::get(&ctx, id).await?;
@@ -93,10 +95,11 @@ pub async fn detail(
     responses(
         (status = 200, description="Actor's logs found successfully"),
         (status = 404, description = "Actor not found")
-    )
+    ),
+    tag = "Actors"
 )]
 pub async fn logs(
-    Path(id): Path<u64>,
+    Path(id): Path<Uuid>,
     ctx: State<Arc<Context>>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
     let api: Api<Pod> = Api::namespaced(ctx.k8s.clone(), "default");
@@ -125,9 +128,10 @@ pub async fn logs(
     responses(
         (status = 200, description="Actor's info found successfully"),
         (status = 404, description = "Actor not found")
-    )
+    ),
+    tag = "Actors"
 )]
-pub async fn info(Path(id): Path<u64>) -> Result<impl IntoResponse, ApiError> {
+pub async fn info(Path(id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> {
     Ok(data(HashMap::from([
         (
             "environments",
@@ -168,9 +172,10 @@ pub async fn info(Path(id): Path<u64>) -> Result<impl IntoResponse, ApiError> {
     responses(
         (status = 200, description="Actor's stats found successfully"),
         (status = 404, description = "Actor not found")
-    )
+    ),
+    tag = "Actors"
 )]
-pub async fn stats(Path(id): Path<u64>) -> Result<impl IntoResponse, ApiError> {
+pub async fn stats(Path(id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> {
     Ok(data(HashMap::from([
         ("CPU USAGE", "1.98%"),
         ("MEMORY USAGE", "65.8MB"),

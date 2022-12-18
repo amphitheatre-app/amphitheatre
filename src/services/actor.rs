@@ -26,7 +26,7 @@ use crate::services::Result;
 pub struct ActorService;
 
 impl ActorService {
-    pub async fn get(ctx: &State<Arc<Context>>, id: u64) -> Result<Option<Actor>> {
+    pub async fn get(ctx: &State<Arc<Context>>, id: Uuid) -> Result<Option<Actor>> {
         ActorRepository::get(&ctx.db, id)
             .await
             .map_err(|_| ApiError::DatabaseError)

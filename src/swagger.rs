@@ -40,7 +40,11 @@ use crate::{handlers, models};
             models::actor::Actor,
             models::playbook::Playbook,
         )
-    )
+    ),
+    tags(
+        (name = "Actors", description = "The Actors Service Handlers"),
+        (name = "Playbooks", description = "The Playbooks Service Handlers"),
+    ),
 )]
 struct ApiDoc;
 

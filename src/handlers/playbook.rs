@@ -44,7 +44,8 @@ use crate::services::playbook::PlaybookService;
     responses(
         (status = 200, description = "List all playbooks successfully", body = [Playbook]),
         (status = 500, description = "Internal Server Error"),
-    )
+    ),
+    tag = "Playbooks"
 )]
 pub async fn list(ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
     let playbooks = PlaybookService::list(&ctx).await?;
@@ -68,7 +69,8 @@ pub struct CreatePlaybookRequest {
     ),
     responses(
         (status = 201, description = "Playbook created successfully", body = Playbook)
-    )
+    ),
+    tag = "Playbooks"
 )]
 pub async fn create(
     ctx: State<Arc<Context>>,
@@ -88,7 +90,8 @@ pub async fn create(
         (status = 200, description = "Playbook found successfully", body = Playbook),
         (status = 404, description = "Playbook not found"),
         (status = 500, description = "Internal Server Error"),
-    )
+    ),
+    tag = "Playbooks"
 )]
 pub async fn detail(
     Path(id): Path<Uuid>,
@@ -122,7 +125,8 @@ pub struct UpdatePlaybookRequest {
     responses(
         (status = 200, description = "Playbook updated successfully", body = Playbook),
         (status = 404, description = "Playbook not found")
-    )
+    ),
+    tag = "Playbooks"
 )]
 pub async fn update(
     Path(id): Path<Uuid>,
@@ -142,7 +146,8 @@ pub async fn update(
     responses(
         (status = 204, description = "Playbook deleted successfully"),
         (status = 404, description = "Playbook not found")
-    )
+    ),
+    tag = "Playbooks"
 )]
 pub async fn delete(
     Path(id): Path<Uuid>,
@@ -167,7 +172,8 @@ pub async fn delete(
     responses(
         (status = 200, description="Playbook's events found successfully"),
         (status = 404, description = "Playbook not found")
-    )
+    ),
+    tag = "Playbooks"
 )]
 pub async fn events(
     Path(id): Path<Uuid>,
@@ -198,7 +204,8 @@ pub async fn events(
         (status = 204, description = "Playbook started successfully"),
         (status = 404, description = "Playbook not found"),
         (status = 500, description = "Internal Server Error"),
-    )
+    ),
+    tag = "Playbooks"
 )]
 pub async fn start(
     Path(id): Path<Uuid>,
@@ -224,7 +231,8 @@ pub async fn start(
         (status = 204, description = "Playbook stopped successfully"),
         (status = 404, description = "Playbook not found"),
         (status = 500, description = "Internal Server Error"),
-    )
+    ),
+    tag = "Playbooks",
 )]
 pub async fn stop(
     Path(id): Path<Uuid>,
