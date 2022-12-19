@@ -17,6 +17,7 @@ use axum::response::IntoResponse;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use utoipa::ToSchema;
 
 /// Represents the response from an API call
 #[derive(Serialize, Deserialize, Debug)]
@@ -69,6 +70,7 @@ pub fn paginate<T>(data: T, pagination: Pagination) -> Response<T> {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ApiError {
     DatabaseError,
+    KubernetesError,
     InternalServerError,
     NotFound,
 }
@@ -77,6 +79,7 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, message) = match self {
             Self::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, "Database Error"),
+            Self::KubernetesError => (StatusCode::INTERNAL_SERVER_ERROR, "Kubernetes Error"),
             Self::InternalServerError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error")
             }

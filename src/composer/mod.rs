@@ -12,20 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(unused_variables)]
-
-pub mod app;
-pub mod composer;
-/// Defines the arguments required to start the server application using [`clap`].
-///
-/// [`clap`]: https://github.com/clap-rs/clap/
-pub mod config;
-pub mod database;
-pub mod handlers;
-pub mod models;
-pub mod repositories;
-pub mod response;
-pub mod routes;
-pub mod schema;
-pub mod services;
-pub mod swagger;
+pub mod resource;
+pub mod types;

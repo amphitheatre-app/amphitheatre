@@ -18,10 +18,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use amphitheatre::app::{self, Context};
+use amphitheatre::composer::resource;
 use amphitheatre::config::Config;
 use clap::Parser;
 use kube::Client;
 use sea_orm::{ConnectOptions, Database};
+use tracing::error;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -47,8 +49,16 @@ async fn main() -> anyhow::Result<()> {
 
     // Create and initialize a k8s client using the inferred configuration.
     let k8s = Client::try_default().await?;
-
     let ctx = Arc::new(Context { config, db, k8s });
+
+    // Initialize CustomResourceDefinition.
+    if let Err(err) = resource::uninstall(ctx.k8s.clone()).await {
+        error!("{:?}", err);
+    }
+
+    if let Err(err) = resource::install(ctx.k8s.clone()).await {
+        panic!("{:?}", err);
+    }
 
     // Finally, we spin up our API.
     app::run(ctx).await;

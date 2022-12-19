@@ -68,7 +68,7 @@ pub struct CreatePlaybookRequest {
         content_type = "application/json"
     ),
     responses(
-        (status = 201, description = "Playbook created successfully", body = Playbook)
+        (status = 201, description = "Playbook created successfully", body = Uuid)
     ),
     tag = "Playbooks"
 )]
@@ -76,8 +76,8 @@ pub async fn create(
     ctx: State<Arc<Context>>,
     Json(payload): Json<CreatePlaybookRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::create(&ctx, payload.title, payload.description).await?;
-    Ok((StatusCode::CREATED, data(playbook)))
+    let uuid = PlaybookService::create(&ctx, payload.title, payload.description).await?;
+    Ok((StatusCode::CREATED, data(uuid)))
 }
 
 /// Returns a playbook detail.

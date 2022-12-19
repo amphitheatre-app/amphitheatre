@@ -62,13 +62,14 @@ impl PlaybookService {
         ctx: &State<Arc<Context>>,
         title: String,
         description: String,
-    ) -> Result<Playbook> {
-        PlaybookRepository::create(&ctx.db, title, description)
-            .await
-            .map_err(|err| {
-                error!("{:?}", err);
-                ApiError::DatabaseError
-            })
+    ) -> Result<Uuid> {
+        Ok(Uuid::new_v4())
+        // PlaybookRepository::create(&ctx.db, title, description)
+        //     .await
+        //     .map_err(|err| {
+        //         error!("{:?}", err);
+        //         ApiError::DatabaseError
+        //     })
     }
 
     pub async fn update(
