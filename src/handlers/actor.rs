@@ -39,7 +39,7 @@ use crate::services::playbook::PlaybookService;
 #[utoipa::path(
     get, path = "/v1/playbooks/{pid}/actors",
     params(
-        ("pid", description = "The id of playbook"),
+        ("pid" = Uuid, description = "The id of playbook"),
     ),
     responses(
         (status = 200, description="List all actors of playbook successfully", body = [Actor]),
@@ -66,7 +66,7 @@ pub async fn list(
 #[utoipa::path(
     get, path = "/v1/actors/{id}",
     params(
-        ("id", description = "The id of actor"),
+        ("id" = Uuid, description = "The id of actor"),
     ),
     responses(
         (status = 200, description="Actor found successfully", body = Actor),
@@ -90,7 +90,7 @@ pub async fn detail(
 #[utoipa::path(
     get, path = "/v1/actors/{id}/logs",
     params(
-        ("id", description = "The id of actor"),
+        ("id" = Uuid, description = "The id of actor"),
     ),
     responses(
         (status = 200, description="Actor's logs found successfully"),
@@ -123,7 +123,7 @@ pub async fn logs(
 #[utoipa::path(
     get, path = "/v1/actors/{id}/info",
     params(
-        ("id", description = "The id of actor"),
+        ("id" = Uuid, description = "The id of actor"),
     ),
     responses(
         (status = 200, description="Actor's info found successfully"),
@@ -167,7 +167,7 @@ pub async fn info(Path(id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> {
 #[utoipa::path(
     get, path = "/v1/actors/{id}/stats",
     params(
-        ("id", description = "The id of actor"),
+        ("id" = Uuid, description = "The id of actor"),
     ),
     responses(
         (status = 200, description="Actor's stats found successfully"),

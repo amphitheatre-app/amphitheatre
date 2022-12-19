@@ -84,7 +84,7 @@ pub async fn create(
 #[utoipa::path(
     get, path = "/v1/playbooks/{id}",
     params(
-        ("id", description = "The id of playbook"),
+        ("id" = Uuid, description = "The id of playbook"),
     ),
     responses(
         (status = 200, description = "Playbook found successfully", body = Playbook),
@@ -115,7 +115,7 @@ pub struct UpdatePlaybookRequest {
 #[utoipa::path(
     patch, path = "/v1/playbooks/{id}",
     params(
-        ("id", description = "The id of playbook"),
+        ("id" = Uuid, description = "The id of playbook"),
     ),
     request_body(
         content = inline(UpdatePlaybookRequest),
@@ -141,7 +141,7 @@ pub async fn update(
 #[utoipa::path(
     delete, path = "/v1/playbooks/{id}",
     params(
-        ("id", description = "The id of playbook"),
+        ("id" = Uuid, description = "The id of playbook"),
     ),
     responses(
         (status = 204, description = "Playbook deleted successfully"),
@@ -167,7 +167,7 @@ pub async fn delete(
 #[utoipa::path(
     get, path = "/v1/playbooks/{id}/events",
     params(
-        ("id", description = "The id of playbook"),
+        ("id" = Uuid, description = "The id of playbook"),
     ),
     responses(
         (status = 200, description="Playbook's events found successfully"),
@@ -198,7 +198,7 @@ pub async fn events(
 #[utoipa::path(
     post, path = "/v1/playbooks/{id}/actions/start",
     params(
-        ("id", description = "The id of playbook"),
+        ("id" = Uuid, description = "The id of playbook"),
     ),
     responses(
         (status = 204, description = "Playbook started successfully"),
@@ -225,7 +225,7 @@ pub async fn start(
 #[utoipa::path(
     post, path = "/v1/playbooks/{id}/actions/stop",
     params(
-        ("id", description = "The id of playbook"),
+        ("id" = Uuid, description = "The id of playbook"),
     ),
     responses(
         (status = 204, description = "Playbook stopped successfully"),
