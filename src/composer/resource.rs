@@ -22,7 +22,7 @@ use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use tokio::time::sleep;
 use tracing::debug;
 
-use super::types::Playbook;
+use super::types::{Playbook, PlaybookSpec};
 
 pub async fn install(client: Client) -> Result<(), Box<dyn std::error::Error>> {
     let api: Api<CustomResourceDefinition> = Api::all(client);
@@ -63,4 +63,26 @@ pub async fn uninstall(client: Client) -> Result<(), Box<dyn std::error::Error>>
     sleep(Duration::from_secs(2)).await;
 
     Ok(())
+}
+
+pub async fn create(
+    client: Client,
+    namespace: String,
+    name: String,
+    title: String,
+    description: String,
+) -> Result<Playbook, kube::Error> {
+    let api: Api<Playbook> = Api::namespaced(client, namespace.as_str());
+    let params = PostParams::default();
+
+    let playbook = Playbook::new(
+        name.as_str(),
+        PlaybookSpec {
+            title,
+            description,
+            actors: vec![],
+        },
+    );
+
+    api.create(&params, &playbook).await
 }

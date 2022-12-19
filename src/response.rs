@@ -17,7 +17,6 @@ use axum::response::IntoResponse;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use utoipa::ToSchema;
 
 /// Represents the response from an API call
 #[derive(Serialize, Deserialize, Debug)]

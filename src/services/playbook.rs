@@ -15,10 +15,12 @@
 use std::sync::Arc;
 
 use axum::extract::State;
-use log::error;
+use serde_json::to_string_pretty;
+use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::app::Context;
+use crate::composer::resource;
 use crate::models::playbook::Playbook;
 use crate::repositories::playbook::PlaybookRepository;
 use crate::response::ApiError;
@@ -63,7 +65,26 @@ impl PlaybookService {
         title: String,
         description: String,
     ) -> Result<Uuid> {
-        Ok(Uuid::new_v4())
+        let uuid = Uuid::new_v4();
+        let playbook = resource::create(
+            ctx.k8s.clone(),
+            "default".into(),
+            uuid.to_string(),
+            title,
+            description,
+        )
+        .await
+        .map_err(|err| {
+            error!("{:?}", err);
+            ApiError::KubernetesError
+        })?;
+
+        info!(
+            "Creating the playbook: {}",
+            to_string_pretty(&playbook).unwrap()
+        );
+
+        Ok(uuid)
         // PlaybookRepository::create(&ctx.db, title, description)
         //     .await
         //     .map_err(|err| {

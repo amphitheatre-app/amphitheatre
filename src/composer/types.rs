@@ -27,9 +27,9 @@ use serde::{Deserialize, Serialize};
 )]
 #[kube(status = "PlaybookStatus")]
 pub struct PlaybookSpec {
-    name: String,
-    description: String,
-    actors: Vec<Actor>,
+    pub title: String,
+    pub description: String,
+    pub actors: Vec<Actor>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -45,12 +45,12 @@ pub enum PlaybookStatus {
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct Actor {
-    name: String,
-    version: String,
-    image: String,
-    source: String,
-    checksum: String,
-    environment: HashMap<String, String>,
-    labels: HashMap<String, String>,
-    partners: Vec<String>,
+    pub name: String,
+    pub version: String,
+    pub image: String,
+    pub source: String,
+    pub checksum: String,
+    pub environment: HashMap<String, String>,
+    pub labels: HashMap<String, String>,
+    pub partners: Vec<String>,
 }
