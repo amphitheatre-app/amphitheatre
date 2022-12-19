@@ -180,7 +180,7 @@ pub async fn events(
     ctx: State<Arc<Context>>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
     let api: Api<KEvent> = Api::namespaced(ctx.k8s.clone(), "default");
-    let params = ListParams::default();
+    let params = ListParams::default().fields(&format!("metadata.name={id}"));
 
     let stream = watcher(api, params)
         .applied_objects()
