@@ -16,7 +16,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::error_handling::HandleErrorLayer;
-use axum::BoxError;
+use axum::{BoxError, Server};
 use kube::Client;
 use tower::ServiceBuilder;
 use tower_governor::errors::display_error;
@@ -41,7 +41,7 @@ pub struct Context {
     pub k8s: Client,
 }
 
-pub async fn run(ctx: Arc<Context>) {
+pub async fn run(ctx: Arc<Context>) -> anyhow::Result<()> {
     let governor_conf = Box::new(
         GovernorConfigBuilder::default()
             .per_second(1024)
@@ -65,8 +65,9 @@ pub async fn run(ctx: Arc<Context>) {
         .with_state(ctx);
 
     // run it with hyper on localhost:3000
-    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
-        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .unwrap();
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let service = app.into_make_service_with_connect_info::<SocketAddr>();
+    Server::bind(&addr).serve(service).await.unwrap();
+
+    Ok(())
 }

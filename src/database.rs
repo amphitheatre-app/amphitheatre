@@ -12,5 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::time::Duration;
+
+use sea_orm::ConnectOptions;
+
 pub type Database = sea_orm::DatabaseConnection;
 pub type Result<T, E = sea_orm::DbErr> = std::result::Result<T, E>;
+
+pub async fn new(dsn: String) -> Result<Database> {
+    let mut opt = ConnectOptions::new(dsn);
+    opt.max_connections(100)
+        .min_connections(5)
+        .connect_timeout(Duration::from_secs(8))
+        .acquire_timeout(Duration::from_secs(8))
+        .idle_timeout(Duration::from_secs(8))
+        .max_lifetime(Duration::from_secs(8))
+        .sqlx_logging(false);
+    return sea_orm::Database::connect(opt).await;
+}

@@ -15,15 +15,12 @@
 #![allow(unused_variables)]
 
 use std::sync::Arc;
-use std::time::Duration;
 
 use amphitheatre::app::{self, Context};
-use amphitheatre::composer::resource;
 use amphitheatre::config::Config;
+use amphitheatre::{composer, database};
 use clap::Parser;
 use kube::Client;
-use sea_orm::{ConnectOptions, Database};
-use tracing::error;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -37,31 +34,15 @@ async fn main() -> anyhow::Result<()> {
     // This will exit with a help message if something is wrong.
     let config = Config::parse();
 
-    let mut opt = ConnectOptions::new(config.database_url.to_owned());
-    opt.max_connections(100)
-        .min_connections(5)
-        .connect_timeout(Duration::from_secs(8))
-        .acquire_timeout(Duration::from_secs(8))
-        .idle_timeout(Duration::from_secs(8))
-        .max_lifetime(Duration::from_secs(8))
-        .sqlx_logging(false);
-    let db = Database::connect(opt).await?;
+    let dsn = config.database_url.clone();
+    let ctx = Arc::new(Context {
+        config,
+        db: database::new(dsn).await?,
+        k8s: Client::try_default().await?,
+    });
 
-    // Create and initialize a k8s client using the inferred configuration.
-    let k8s = Client::try_default().await?;
-    let ctx = Arc::new(Context { config, db, k8s });
-
-    // Initialize CustomResourceDefinition.
-    if let Err(err) = resource::uninstall(ctx.k8s.clone()).await {
-        error!("{:?}", err);
-    }
-
-    if let Err(err) = resource::install(ctx.k8s.clone()).await {
-        panic!("{:?}", err);
-    }
+    composer::init(ctx.clone()).await;
 
     // Finally, we spin up our API.
-    app::run(ctx).await;
-
-    Ok(())
+    app::run(ctx).await
 }

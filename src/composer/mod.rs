@@ -12,5 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::Arc;
+
+use tracing::error;
+
+use crate::app::Context;
+
 pub mod resource;
 pub mod types;
+
+pub async fn init(ctx: Arc<Context>) {
+    // Initialize CustomResourceDefinition.
+    if let Err(err) = resource::uninstall(ctx.k8s.clone()).await {
+        error!("{:?}", err);
+    }
+
+    if let Err(err) = resource::install(ctx.k8s.clone()).await {
+        error!("{:?}", err);
+        std::process::exit(1);
+    }
+}
