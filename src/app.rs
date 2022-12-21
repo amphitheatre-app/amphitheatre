@@ -22,6 +22,7 @@ use tower::ServiceBuilder;
 use tower_governor::errors::display_error;
 use tower_governor::governor::GovernorConfigBuilder;
 use tower_governor::GovernorLayer;
+use tracing::error;
 
 use crate::config::Config;
 use crate::database::Database;
@@ -67,7 +68,13 @@ pub async fn run(ctx: Arc<Context>) -> anyhow::Result<()> {
     // run it with hyper on localhost:3000
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     let service = app.into_make_service_with_connect_info::<SocketAddr>();
-    Server::bind(&addr).serve(service).await.unwrap();
+    let server = Server::bind(&addr).serve(service);
+
+    // Run this server for ... forever!
+    if let Err(err) = server.await {
+        error!("Server error: {}", err);
+        std::process::exit(1)
+    }
 
     Ok(())
 }
