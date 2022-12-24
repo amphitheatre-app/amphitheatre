@@ -44,5 +44,7 @@ async fn main() -> anyhow::Result<()> {
     composer::init(ctx.clone()).await;
 
     // Finally, we spin up our API.
-    app::run(ctx).await
+    app::run(ctx).await;
+
+    Ok(())
 }

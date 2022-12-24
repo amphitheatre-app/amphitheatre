@@ -42,7 +42,7 @@ pub struct Context {
     pub k8s: Client,
 }
 
-pub async fn run(ctx: Arc<Context>) -> anyhow::Result<()> {
+pub async fn run(ctx: Arc<Context>) {
     let governor_conf = Box::new(
         GovernorConfigBuilder::default()
             .per_second(1024)
@@ -75,6 +75,4 @@ pub async fn run(ctx: Arc<Context>) -> anyhow::Result<()> {
         error!("Server error: {}", err);
         std::process::exit(1)
     }
-
-    Ok(())
 }
