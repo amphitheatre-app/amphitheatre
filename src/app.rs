@@ -24,7 +24,7 @@ use tower_governor::governor::GovernorConfigBuilder;
 use tower_governor::GovernorLayer;
 
 use crate::config::Config;
-use crate::database::Database;
+use crate::database::{self, Database};
 use crate::{routes, swagger};
 
 /// The core type through which handler functions can access common API state.
@@ -39,6 +39,17 @@ pub struct Context {
     pub config: Config,
     pub db: Database,
     pub k8s: Client,
+}
+
+impl Context {
+    pub async fn new(config: Config) -> anyhow::Result<Context> {
+        let dsn = config.database_url.clone();
+        Ok(Context {
+            config,
+            db: database::new(dsn).await?,
+            k8s: Client::try_default().await?,
+        })
+    }
 }
 
 pub async fn run(ctx: Arc<Context>) {

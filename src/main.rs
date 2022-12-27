@@ -17,10 +17,9 @@
 use std::sync::Arc;
 
 use amphitheatre::app::{self, Context};
+use amphitheatre::composer;
 use amphitheatre::config::Config;
-use amphitheatre::{composer, database};
 use clap::Parser;
-use kube::Client;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -34,16 +33,12 @@ async fn main() -> anyhow::Result<()> {
     // This will exit with a help message if something is wrong.
     let config = Config::parse();
 
-    let dsn = config.database_url.clone();
-    let ctx = Arc::new(Context {
-        config,
-        db: database::new(dsn).await?,
-        k8s: Client::try_default().await?,
-    });
+    // Initialize the shared context.
+    let ctx = Arc::new(Context::new(config).await?);
 
     tokio::select! {
         _ = composer::init(ctx.clone()) => tracing::warn!("composer exited"),
-        _ = app::run(ctx.clone()) => tracing::info!("axum exited"),
+        _ = app::run(ctx.clone()) => tracing::info!("server exited"),
     }
 
     Ok(())
