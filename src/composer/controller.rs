@@ -29,9 +29,9 @@ pub struct Ctx {
 }
 
 impl Ctx {
-    fn recorder(&self, client: Client, playbook: &Playbook) -> Recorder {
+    fn recorder(&self, playbook: &Playbook) -> Recorder {
         Recorder::new(
-            client,
+            self.client.clone(),
             "amphitheatre-composer".into(),
             playbook.object_ref(&()),
         )
@@ -69,13 +69,13 @@ impl Playbook {
 
     pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
         // todo add some deletion event logging, db clean up, etc.?
-        let recorder = ctx.recorder(ctx.client.clone(), self);
+        let recorder = ctx.recorder(self);
         // Doesn't have dependencies in this example case, so we just publish an event
         recorder
             .publish(Event {
                 type_: EventType::Normal,
                 reason: "DeletePlaybook".into(),
-                note: Some(format!("Delete `{}`", self.name_any())),
+                note: Some(format!("Delete playbook `{}`", self.name_any())),
                 action: "Reconciling".into(),
                 secondary: None,
             })
