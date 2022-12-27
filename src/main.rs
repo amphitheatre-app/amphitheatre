@@ -41,10 +41,10 @@ async fn main() -> anyhow::Result<()> {
         k8s: Client::try_default().await?,
     });
 
-    composer::init(ctx.clone()).await;
-
-    // Finally, we spin up our API.
-    app::run(ctx).await;
+    tokio::select! {
+        _ = composer::init(ctx.clone()) => tracing::warn!("composer exited"),
+        _ = app::run(ctx.clone()) => tracing::info!("axum exited"),
+    }
 
     Ok(())
 }

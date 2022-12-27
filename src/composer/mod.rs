@@ -14,21 +14,42 @@
 
 use std::sync::Arc;
 
-use tracing::error;
+use futures::StreamExt;
+use kube::api::ListParams;
+use kube::runtime::Controller;
+use kube::Api;
 
+use self::controller::{error_policy, reconcile};
+use self::types::Playbook;
 use crate::app::Context;
 
+pub mod controller;
+pub mod error;
 pub mod resource;
 pub mod types;
 
+/// Initialize the composer and shared state (given the crd is installed)
 pub async fn init(ctx: Arc<Context>) {
-    // Initialize CustomResourceDefinition.
-    if let Err(err) = resource::uninstall(ctx.k8s.clone()).await {
-        error!("{:?}", err);
-    }
+    let api = Api::<Playbook>::all(ctx.k8s.clone());
 
-    if let Err(err) = resource::install(ctx.k8s.clone()).await {
-        error!("{:?}", err);
+    // Ensure CRD is installed before loop-watching
+    if let Err(e) = api.list(&ListParams::default().limit(1)).await {
+        tracing::error!("CRD is not queryable; {e:?}. Is the CRD installed?");
+        tracing::info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
         std::process::exit(1);
     }
+
+    let context = Arc::new(self::controller::Context {
+        client: ctx.k8s.clone(),
+    });
+
+    Controller::new(api, ListParams::default())
+        .run(reconcile, error_policy, context)
+        .for_each(|res| async move {
+            match res {
+                Ok(o) => tracing::info!("reconciled {:?}", o),
+                Err(e) => tracing::warn!("reconcile failed: {}", e),
+            }
+        })
+        .await;
 }
