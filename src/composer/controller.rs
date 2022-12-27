@@ -20,9 +20,7 @@ use kube::runtime::finalizer::{finalizer, Event};
 use kube::{Api, Client, ResourceExt};
 
 use super::error::{Error, Result};
-use super::types::Playbook;
-
-pub static PLAYBOOK_FINALIZER: &str = "playbooks.amphitheatre.app";
+use super::types::{Playbook, PLAYBOOK_RESOURCE_NAME};
 
 pub struct Context {
     pub client: Client,
@@ -34,7 +32,7 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Act
     let api: Api<Playbook> = Api::namespaced(ctx.client.clone(), &ns);
 
     tracing::info!("Reconciling Playbook \"{}\" in {}", playbook.name_any(), ns);
-    finalizer(&api, PLAYBOOK_FINALIZER, playbook, |event| async {
+    finalizer(&api, PLAYBOOK_RESOURCE_NAME, playbook, |event| async {
         match event {
             Event::Apply(playbook) => playbook.reconcile(ctx.clone()).await,
             Event::Cleanup(playbook) => playbook.cleanup(ctx.clone()).await,

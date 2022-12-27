@@ -22,7 +22,7 @@ use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use tokio::time::sleep;
 use tracing::debug;
 
-use super::types::{Playbook, PlaybookSpec};
+use super::types::{Playbook, PlaybookSpec, PLAYBOOK_RESOURCE_NAME};
 
 pub async fn install(client: Client) -> Result<(), Box<dyn std::error::Error>> {
     let api: Api<CustomResourceDefinition> = Api::all(client);
@@ -54,7 +54,7 @@ pub async fn uninstall(client: Client) -> Result<(), Box<dyn std::error::Error>>
 
     // Ignore delete error if not exists
     let _ = api
-        .delete("playbooks.amphitheatre.app", &params)
+        .delete(PLAYBOOK_RESOURCE_NAME, &params)
         .await?
         .map_left(|o| debug!("Deleting CRD: {:?}", o.status))
         .map_right(|s| debug!("Deleted CRD: {:?}", s));

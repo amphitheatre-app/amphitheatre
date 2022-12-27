@@ -18,6 +18,8 @@ use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+pub static PLAYBOOK_RESOURCE_NAME: &str = "playbooks.amphitheatre.app";
+
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
 #[kube(
     group = "amphitheatre.app",
