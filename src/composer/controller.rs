@@ -16,47 +16,71 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use kube::runtime::controller::Action;
-use kube::runtime::finalizer::{finalizer, Event};
-use kube::{Api, Client, ResourceExt};
+use kube::runtime::events::{Event, EventType, Recorder};
+use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
+use kube::{Api, Client, Resource, ResourceExt};
 
 use super::error::{Error, Result};
 use super::types::{Playbook, PLAYBOOK_RESOURCE_NAME};
 
-pub struct Context {
+pub struct Ctx {
+    /// Kubernetes client
     pub client: Client,
 }
 
+impl Ctx {
+    fn recorder(&self, client: Client, playbook: &Playbook) -> Recorder {
+        Recorder::new(
+            client,
+            "amphitheatre-composer".into(),
+            playbook.object_ref(&()),
+        )
+    }
+}
+
 /// The reconciler that will be called when either object change
-pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Action> {
+pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Ctx>) -> Result<Action> {
     let ns = playbook.namespace().unwrap(); // doc is namespace scoped
     let api: Api<Playbook> = Api::namespaced(ctx.client.clone(), &ns);
 
     tracing::info!("Reconciling Playbook \"{}\" in {}", playbook.name_any(), ns);
     finalizer(&api, PLAYBOOK_RESOURCE_NAME, playbook, |event| async {
         match event {
-            Event::Apply(playbook) => playbook.reconcile(ctx.clone()).await,
-            Event::Cleanup(playbook) => playbook.cleanup(ctx.clone()).await,
+            FinalizerEvent::Apply(playbook) => playbook.reconcile(ctx.clone()).await,
+            FinalizerEvent::Cleanup(playbook) => playbook.cleanup(ctx.clone()).await,
         }
     })
     .await
-    .map_err(Error::FinalizerError)
+    .map_err(|e| Error::FinalizerError(Box::new(e)))
     // Ok(Action::requeue(Duration::from_secs(300)))
 }
 /// an error handler that will be called when the reconciler fails with access to both the
 /// object that caused the failure and the actual error
-pub fn error_policy(playbook: Arc<Playbook>, error: &Error, ctx: Arc<Context>) -> Action {
+pub fn error_policy(playbook: Arc<Playbook>, error: &Error, ctx: Arc<Ctx>) -> Action {
     tracing::warn!("reconcile failed: {:?}", error);
     Action::requeue(Duration::from_secs(60))
 }
 
 impl Playbook {
-    pub async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action, kube::Error> {
+    pub async fn reconcile(&self, ctx: Arc<Ctx>) -> Result<Action> {
         // If no events were received, check back every 5 minutes
         Ok(Action::requeue(Duration::from_secs(5 * 60)))
     }
 
-    pub async fn cleanup(&self, _ctx: Arc<Context>) -> Result<Action, kube::Error> {
+    pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
         // todo add some deletion event logging, db clean up, etc.?
+        let recorder = ctx.recorder(ctx.client.clone(), self);
+        // Doesn't have dependencies in this example case, so we just publish an event
+        recorder
+            .publish(Event {
+                type_: EventType::Normal,
+                reason: "DeletePlaybook".into(),
+                note: Some(format!("Delete `{}`", self.name_any())),
+                action: "Reconciling".into(),
+                secondary: None,
+            })
+            .await
+            .map_err(Error::KubeError)?;
         Ok(Action::await_change())
     }
 }

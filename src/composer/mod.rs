@@ -19,7 +19,7 @@ use kube::api::ListParams;
 use kube::runtime::Controller;
 use kube::Api;
 
-use self::controller::{error_policy, reconcile};
+use self::controller::{error_policy, reconcile, Ctx};
 use self::types::Playbook;
 use crate::app::Context;
 
@@ -39,7 +39,7 @@ pub async fn run(ctx: Arc<Context>) {
         std::process::exit(1);
     }
 
-    let context = Arc::new(self::controller::Context {
+    let context = Arc::new(Ctx {
         client: ctx.k8s.clone(),
     });
 
