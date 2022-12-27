@@ -28,8 +28,8 @@ pub mod error;
 pub mod resource;
 pub mod types;
 
-/// Initialize the composer and shared state (given the crd is installed)
-pub async fn init(ctx: Arc<Context>) {
+/// Initialize the controller and shared state (given the crd is installed)
+pub async fn run(ctx: Arc<Context>) {
     let api = Api::<Playbook>::all(ctx.k8s.clone());
 
     // Ensure CRD is installed before loop-watching

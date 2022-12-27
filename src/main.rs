@@ -37,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
     let ctx = Arc::new(Context::new(config).await?);
 
     tokio::select! {
-        _ = composer::init(ctx.clone()) => tracing::warn!("composer exited"),
+        _ = composer::run(ctx.clone()) => tracing::warn!("composer exited"),
         _ = app::run(ctx.clone()) => tracing::info!("server exited"),
     }
 
