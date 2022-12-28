@@ -28,6 +28,10 @@ pub struct Model {
     pub name: String,
     /// The description of the actor.
     pub description: String,
+    /// Specifies the image to launch the container. The image must follow
+    /// the Open Container Specification addressable image format.
+    /// such as: [<registry>/][<project>/]<image>[:<tag>|@<digest>].
+    pub image: String,
     /// Git repository the package should be cloned from.
     /// e.g. https://github.com/amphitheatre-app/amphitheatre.git.
     pub repo: String,
