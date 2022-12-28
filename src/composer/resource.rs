@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
 use std::time::Duration;
 
 use k8s_openapi::apiextensions_apiserver as server;
@@ -22,7 +23,7 @@ use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use tokio::time::sleep;
 use tracing::debug;
 
-use super::types::{Playbook, PlaybookSpec, PLAYBOOK_RESOURCE_NAME};
+use super::types::{Actor, Playbook, PlaybookSpec, PLAYBOOK_RESOURCE_NAME};
 
 pub async fn install(client: Client) -> Result<(), Box<dyn std::error::Error>> {
     let api: Api<CustomResourceDefinition> = Api::all(client);
@@ -80,9 +81,18 @@ pub async fn create(
         PlaybookSpec {
             title,
             description,
-            actors: vec![],
+            actors: vec![Actor {
+                name: "amp-example-rust".into(),
+                version: "0.0.1".into(),
+                image: "amp-example-rust".into(),
+                source: "git@github.com:amphitheatre-app/amp-example-rust.git".into(),
+                checksum: "d582e8ddf81177ecf2ae6b136642868ba089a898".into(),
+                environment: HashMap::new(),
+                labels: HashMap::new(),
+                partners: vec![],
+            }],
         },
     );
-
+    tracing::info!("{:#?}", serde_yaml::to_string(&playbook));
     api.create(&params, &playbook).await
 }

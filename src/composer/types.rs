@@ -17,10 +17,11 @@ use std::collections::HashMap;
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 pub static PLAYBOOK_RESOURCE_NAME: &str = "playbooks.amphitheatre.app";
 
-#[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate)]
 #[kube(
     group = "amphitheatre.app",
     version = "v1",
@@ -31,6 +32,7 @@ pub static PLAYBOOK_RESOURCE_NAME: &str = "playbooks.amphitheatre.app";
 pub struct PlaybookSpec {
     pub title: String,
     pub description: String,
+    #[validate(length(min = 1))]
     pub actors: Vec<Actor>,
 }
 

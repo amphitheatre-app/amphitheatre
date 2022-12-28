@@ -44,6 +44,10 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Ctx>) -> Result<Action>
     let api: Api<Playbook> = Api::namespaced(ctx.client.clone(), &ns);
 
     tracing::info!("Reconciling Playbook \"{}\" in {}", playbook.name_any(), ns);
+    if playbook.spec.actors.is_empty() {
+        return Err(Error::EmptyActorsError);
+    }
+
     finalizer(&api, PLAYBOOK_RESOURCE_NAME, playbook, |event| async {
         match event {
             FinalizerEvent::Apply(playbook) => playbook.reconcile(ctx.clone()).await,
