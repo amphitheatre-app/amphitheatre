@@ -49,12 +49,25 @@ pub enum PlaybookStatus {
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct Actor {
+    /// The title of the actor.
     pub name: String,
-    pub version: String,
+    /// The description of the actor.
+    pub description: String,
+    /// Specifies the image to launch the container. The image must follow
+    /// the Open Container Specification addressable image format.
+    /// such as: [<registry>/][<project>/]<image>[:<tag>|@<digest>].
     pub image: String,
-    pub source: String,
-    pub checksum: String,
+    /// Git repository the package should be cloned from.
+    /// e.g. https://github.com/amphitheatre-app/amphitheatre.git.
+    pub repo: String,
+    /// Relative path from the repo root to the configuration file.
+    /// eg. getting-started/amp.yaml.
+    pub path: String,
+    /// Git ref the package should be cloned from. eg. master or main
+    pub reference: String,
+    /// The selected commit of the actor.
+    pub commit: String,
+
     pub environment: HashMap<String, String>,
-    pub labels: HashMap<String, String>,
     pub partners: Vec<String>,
 }
