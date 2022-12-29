@@ -29,6 +29,9 @@ pub enum Error {
 
     #[error("Empty Actors Error")]
     EmptyActorsError,
+
+    #[error("MissingObjectKey: {0}")]
+    MissingObjectKey(&'static str),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

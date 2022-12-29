@@ -21,6 +21,7 @@ use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Client, Resource, ResourceExt};
 
 use super::error::{Error, Result};
+use super::resource;
 use super::types::{Playbook, PLAYBOOK_RESOURCE_NAME};
 
 pub struct Ctx {
@@ -67,6 +68,14 @@ pub fn error_policy(playbook: Arc<Playbook>, error: &Error, ctx: Arc<Ctx>) -> Ac
 
 impl Playbook {
     pub async fn reconcile(&self, ctx: Arc<Ctx>) -> Result<Action> {
+        if self.status == Some(super::types::PlaybookStatus::Solved) {
+            for actor in &self.spec.actors {
+                resource::build(ctx.client.clone(), self, actor)
+                    .await
+                    .unwrap();
+            }
+        }
+
         // If no events were received, check back every 5 minutes
         Ok(Action::requeue(Duration::from_secs(5 * 60)))
     }

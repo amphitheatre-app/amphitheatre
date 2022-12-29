@@ -36,15 +36,16 @@ pub struct PlaybookSpec {
     pub actors: Vec<Actor>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum PlaybookStatus {
-    Initial,
-    Completed,
-    Downloaded,
-    Builded,
-    Published,
-    Deployed,
-    Finished,
+    Pending,
+    Solving,
+    Solved,
+    Building,
+    Running,
+    Succeeded,
+    Failed,
+    Unknown,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]

@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use futures::StreamExt;
+use futures::{future, StreamExt};
 use kube::api::ListParams;
 use kube::runtime::Controller;
 use kube::Api;
@@ -45,11 +45,6 @@ pub async fn run(ctx: Arc<Context>) {
 
     Controller::new(api, ListParams::default())
         .run(reconcile, error_policy, context)
-        .for_each(|res| async move {
-            match res {
-                Ok(o) => tracing::info!("reconciled {:?}", o),
-                Err(e) => tracing::warn!("reconcile failed: {}", e),
-            }
-        })
+        .for_each(|_| future::ready(()))
         .await;
 }
