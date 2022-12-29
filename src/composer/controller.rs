@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -22,7 +23,7 @@ use kube::{Api, Client, Resource, ResourceExt};
 
 use super::error::{Error, Result};
 use super::resource;
-use super::types::{Playbook, PLAYBOOK_RESOURCE_NAME};
+use super::types::{Playbook, PlaybookStatus, PLAYBOOK_RESOURCE_NAME};
 
 pub struct Ctx {
     /// Kubernetes client
@@ -68,13 +69,68 @@ pub fn error_policy(playbook: Arc<Playbook>, error: &Error, ctx: Arc<Ctx>) -> Ac
 
 impl Playbook {
     pub async fn reconcile(&self, ctx: Arc<Ctx>) -> Result<Action> {
-        if self.status == Some(super::types::PlaybookStatus::Solved) {
-            for actor in &self.spec.actors {
-                resource::build(ctx.client.clone(), self, actor)
+        let recorder = ctx.recorder(self);
+
+        let status = self.status.clone().unwrap_or(PlaybookStatus::Unknown);
+        match status {
+            PlaybookStatus::Pending => {
+                resource::status(ctx.client.clone(), self, PlaybookStatus::Solving).await?;
+                recorder
+                    .publish(Event {
+                        type_: EventType::Normal,
+                        reason: "SolvingPlaybook".into(),
+                        note: Some(format!("Solving playbook `{}`", self.name_any())),
+                        action: "Reconciling".into(),
+                        secondary: None,
+                    })
                     .await
-                    .unwrap();
+                    .map_err(Error::KubeError)?;
             }
-        }
+            PlaybookStatus::Solving => {
+                let exists: HashSet<String> =
+                    self.spec.actors.iter().map(|a| a.name.clone()).collect();
+                let mut fetches: HashSet<String> = HashSet::new();
+
+                for actor in &self.spec.actors {
+                    if actor.partners.is_empty() {
+                        continue;
+                    }
+
+                    for partner in &actor.partners {
+                        if exists.contains(partner) {
+                            continue;
+                        }
+                        fetches.insert(partner.to_string());
+                    }
+                }
+
+                if fetches.is_empty() {
+                    resource::status(ctx.client.clone(), self, PlaybookStatus::Solved).await?;
+                    recorder
+                        .publish(Event {
+                            type_: EventType::Normal,
+                            reason: "SolvedPlaybook".into(),
+                            note: Some(format!("Solved playbook `{}`", self.name_any())),
+                            action: "Reconciling".into(),
+                            secondary: None,
+                        })
+                        .await
+                        .map_err(Error::KubeError)?;
+                }
+            }
+            PlaybookStatus::Solved => {
+                for actor in &self.spec.actors {
+                    resource::build(ctx.client.clone(), self, actor)
+                        .await
+                        .unwrap();
+                }
+            }
+            PlaybookStatus::Building => todo!(),
+            PlaybookStatus::Running => todo!(),
+            PlaybookStatus::Succeeded => todo!(),
+            PlaybookStatus::Failed => todo!(),
+            PlaybookStatus::Unknown => todo!(),
+        };
 
         // If no events were received, check back every 5 minutes
         Ok(Action::requeue(Duration::from_secs(5 * 60)))

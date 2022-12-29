@@ -78,7 +78,7 @@ pub async fn create(
     title: String,
     description: String,
 ) -> Result<Playbook> {
-    let api: Api<Playbook> = Api::namespaced(client, namespace.as_str());
+    let api: Api<Playbook> = Api::namespaced(client.clone(), namespace.as_str());
     let params = PostParams::default();
 
     let playbook = Playbook::new(
@@ -108,11 +108,21 @@ pub async fn create(
         Err(err) => return Err(Error::KubeError(err)),
     }
 
-    tracing::info!("Patch Status on instance");
-    let status = json!({ "status": PlaybookStatus::Pending });
+    // Patch this playbook as initial Pending status
+    status(client.clone(), &playbook, PlaybookStatus::Pending).await?;
+    Ok(playbook)
+}
+
+pub async fn status(client: Client, playbook: &Playbook, status: PlaybookStatus) -> Result<()> {
+    let namespace = playbook
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let api: Api<Playbook> = Api::namespaced(client, namespace.as_str());
+
+    let status = json!({ "status": status });
     let playbook = api
         .patch_status(
-            name.as_str(),
+            playbook.name_any().as_str(),
             &PatchParams::default(),
             &Patch::Merge(&status),
         )
@@ -126,7 +136,7 @@ pub async fn create(
         playbook.name_any()
     );
 
-    Ok(playbook)
+    Ok(())
 }
 
 pub async fn build(client: Client, playbook: &Playbook, actor: &Actor) -> Result<()> {
