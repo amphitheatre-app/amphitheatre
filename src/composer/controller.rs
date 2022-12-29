@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -23,7 +23,7 @@ use kube::{Api, Client, Resource, ResourceExt};
 
 use super::error::{Error, Result};
 use super::resource;
-use super::types::{Playbook, PlaybookStatus, PLAYBOOK_RESOURCE_NAME};
+use super::types::{Actor, Playbook, PlaybookStatus, PLAYBOOK_RESOURCE_NAME};
 
 pub struct Ctx {
     /// Kubernetes client
@@ -58,7 +58,6 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Ctx>) -> Result<Action>
     })
     .await
     .map_err(|e| Error::FinalizerError(Box::new(e)))
-    // Ok(Action::requeue(Duration::from_secs(300)))
 }
 /// an error handler that will be called when the reconciler fails with access to both the
 /// object that caused the failure and the actual error
@@ -71,7 +70,7 @@ impl Playbook {
     pub async fn reconcile(&self, ctx: Arc<Ctx>) -> Result<Action> {
         let recorder = ctx.recorder(self);
 
-        let status = self.status.clone().unwrap_or(PlaybookStatus::Unknown);
+        let status = self.status.clone().unwrap_or(PlaybookStatus::Pending);
         match status {
             PlaybookStatus::Pending => {
                 resource::status(ctx.client.clone(), self, PlaybookStatus::Solving).await?;
@@ -88,7 +87,7 @@ impl Playbook {
             }
             PlaybookStatus::Solving => {
                 let exists: HashSet<String> =
-                    self.spec.actors.iter().map(|a| a.name.clone()).collect();
+                    self.spec.actors.iter().map(|a| a.repo.clone()).collect();
                 let mut fetches: HashSet<String> = HashSet::new();
 
                 for actor in &self.spec.actors {
@@ -96,13 +95,36 @@ impl Playbook {
                         continue;
                     }
 
-                    for partner in &actor.partners {
-                        if exists.contains(partner) {
+                    for repo in &actor.partners {
+                        if exists.contains(repo) {
                             continue;
                         }
-                        fetches.insert(partner.to_string());
+                        fetches.insert(repo.to_string());
                     }
                 }
+
+                for url in fetches.iter() {
+                    tracing::info!("fetches url: {}", url);
+                    recorder
+                        .publish(Event {
+                            type_: EventType::Normal,
+                            reason: "ReadPartner".into(),
+                            note: Some(format!(
+                                "Reading partner from `{} for {}`",
+                                url,
+                                self.name_any()
+                            )),
+                            action: "Reconciling".into(),
+                            secondary: None,
+                        })
+                        .await
+                        .map_err(Error::KubeError)?;
+
+                    let actor: Actor = read_partner(url);
+                    resource::add(ctx.client.clone(), self, actor).await?;
+                }
+
+                tracing::info!("fetches length: {}", fetches.len());
 
                 if fetches.is_empty() {
                     resource::status(ctx.client.clone(), self, PlaybookStatus::Solved).await?;
@@ -120,9 +142,7 @@ impl Playbook {
             }
             PlaybookStatus::Solved => {
                 for actor in &self.spec.actors {
-                    resource::build(ctx.client.clone(), self, actor)
-                        .await
-                        .unwrap();
+                    resource::build(ctx.client.clone(), self, actor).await?;
                 }
             }
             PlaybookStatus::Building => todo!(),
@@ -151,5 +171,19 @@ impl Playbook {
             .await
             .map_err(Error::KubeError)?;
         Ok(Action::await_change())
+    }
+}
+
+fn read_partner(url: &String) -> Actor {
+    Actor {
+        name: "amp-example-rust-demo".into(),
+        description: "A simple Rust example app".into(),
+        image: "amp-example-rust-demo".into(),
+        repo: url.into(),
+        path: ".".into(),
+        reference: "master".into(),
+        commit: "d582e8ddf81177ecf2ae6b136642868ba089a898".into(),
+        environment: HashMap::new(),
+        partners: vec![],
     }
 }

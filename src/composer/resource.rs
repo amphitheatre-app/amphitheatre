@@ -60,8 +60,7 @@ pub async fn uninstall(client: Client) -> Result<()> {
     let _ = api
         .delete(PLAYBOOK_RESOURCE_NAME, &params)
         .await
-        .map_err(Error::KubeError)
-        .unwrap()
+        .map_err(Error::KubeError)?
         .map_left(|o| debug!("Deleting CRD: {:?}", o.status))
         .map_right(|s| debug!("Deleted CRD: {:?}", s));
 
@@ -81,7 +80,7 @@ pub async fn create(
     let api: Api<Playbook> = Api::namespaced(client.clone(), namespace.as_str());
     let params = PostParams::default();
 
-    let playbook = Playbook::new(
+    let mut playbook = Playbook::new(
         name.as_str(),
         PlaybookSpec {
             title,
@@ -95,18 +94,19 @@ pub async fn create(
                 reference: "master".into(),
                 commit: "d582e8ddf81177ecf2ae6b136642868ba089a898".into(),
                 environment: HashMap::new(),
-                partners: vec![],
+                partners: vec![
+                    "git@github.com:amphitheatre-app/amp-example-python.git".to_string(),
+                    "git@github.com:amphitheatre-app/amp-example-java.git".to_string(),
+                ],
             }],
         },
     );
 
     tracing::info!("{:#?}", serde_yaml::to_string(&playbook));
-    match api.create(&params, &playbook).await {
-        Ok(o) => {
-            debug!("Created {} ({:?})", o.name_any(), o.status.unwrap());
-        }
-        Err(err) => return Err(Error::KubeError(err)),
-    }
+    playbook = api
+        .create(&params, &playbook)
+        .await
+        .map_err(Error::KubeError)?;
 
     // Patch this playbook as initial Pending status
     status(client.clone(), &playbook, PlaybookStatus::Pending).await?;
@@ -127,8 +127,7 @@ pub async fn status(client: Client, playbook: &Playbook, status: PlaybookStatus)
             &Patch::Merge(&status),
         )
         .await
-        .map_err(Error::KubeError)
-        .unwrap();
+        .map_err(Error::KubeError)?;
 
     tracing::info!(
         "Patched status {:?} for {}",
@@ -168,11 +167,35 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &Actor) -> Result
             }
         }
     }))
-    .map_err(Error::SerializationError)
-    .unwrap();
+    .map_err(Error::SerializationError)?;
 
     tracing::info!("created building job: {:#?}", serde_yaml::to_string(&job));
-    let _ = api.create(&params, &job).await.map_err(Error::KubeError);
+    api.create(&params, &job).await.map_err(Error::KubeError)?;
+
+    Ok(())
+}
+
+pub async fn add(client: Client, playbook: &Playbook, actor: Actor) -> Result<()> {
+    let namespace = playbook
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let api: Api<Playbook> = Api::namespaced(client, namespace.as_str());
+
+    let actor_name = actor.name.clone();
+    let mut actors = playbook.spec.actors.clone();
+    actors.push(actor);
+
+    let patch = json!({"spec": { "actors": actors }});
+    let playbook = api
+        .patch(
+            playbook.name_any().as_str(),
+            &PatchParams::apply("amp-composer"),
+            &Patch::Merge(&patch),
+        )
+        .await
+        .map_err(Error::KubeError)?;
+
+    tracing::info!("Added actor {:?} for {}", actor_name, playbook.name_any());
 
     Ok(())
 }
