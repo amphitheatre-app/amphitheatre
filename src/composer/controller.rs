@@ -62,7 +62,7 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Ctx>) -> Result<Action>
 /// an error handler that will be called when the reconciler fails with access to both the
 /// object that caused the failure and the actual error
 pub fn error_policy(playbook: Arc<Playbook>, error: &Error, ctx: Arc<Ctx>) -> Action {
-    tracing::warn!("reconcile failed: {:?}", error);
+    tracing::error!("reconcile failed: {:?}", error);
     Action::requeue(Duration::from_secs(60))
 }
 

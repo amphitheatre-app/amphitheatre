@@ -15,14 +15,14 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use k8s_openapi::api::batch::v1::Job;
 use k8s_openapi::apiextensions_apiserver as server;
 use kube::api::{DeleteParams, Patch, PatchParams, PostParams};
+use kube::core::{DynamicObject, GroupVersionKind};
+use kube::discovery::ApiResource;
 use kube::{Api, Client, CustomResourceExt, ResourceExt};
 use serde_json::{from_value, json, to_string_pretty};
 use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use tokio::time::sleep;
-use tracing::debug;
 
 use super::error::{Error, Result};
 use super::types::{Actor, Playbook, PlaybookSpec, PLAYBOOK_RESOURCE_NAME};
@@ -31,7 +31,7 @@ use crate::composer::types::PlaybookStatus;
 pub async fn install(client: Client) -> Result<()> {
     let api: Api<CustomResourceDefinition> = Api::all(client);
     let crd = Playbook::crd();
-    debug!(
+    tracing::debug!(
         "Creating the Playbook CustomResourceDefinition: {}",
         to_string_pretty(&crd).unwrap()
     );
@@ -39,8 +39,8 @@ pub async fn install(client: Client) -> Result<()> {
     let params = PostParams::default();
     match api.create(&params, &crd).await {
         Ok(o) => {
-            debug!("Created {} ({:?})", o.name_any(), o.status.unwrap());
-            debug!("Created CRD: {:?}", o.spec);
+            tracing::debug!("Created {} ({:?})", o.name_any(), o.status.unwrap());
+            tracing::debug!("Created CRD: {:?}", o.spec);
         }
         Err(kube::Error::Api(err)) => assert_eq!(err.code, 409), /* if you skipped delete, for instance */
         Err(err) => return Err(Error::KubeError(err)),
@@ -61,8 +61,8 @@ pub async fn uninstall(client: Client) -> Result<()> {
         .delete(PLAYBOOK_RESOURCE_NAME, &params)
         .await
         .map_err(Error::KubeError)?
-        .map_left(|o| debug!("Deleting CRD: {:?}", o.status))
-        .map_right(|s| debug!("Deleted CRD: {:?}", s));
+        .map_left(|o| tracing::debug!("Deleting CRD: {:?}", o.status))
+        .map_right(|s| tracing::debug!("Deleted CRD: {:?}", s));
 
     // Wait for the delete to take place (map-left case or delete from previous run)
     sleep(Duration::from_secs(2)).await;
@@ -143,34 +143,42 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &Actor) -> Result
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
 
-    let api: Api<Job> = Api::namespaced(client, namespace.as_str());
-    let params = PostParams::default();
+    let gvk = GroupVersionKind::gvk("kpack.io", "v1alpha2", "Image");
+    let ar = ApiResource::from_gvk(&gvk);
+    let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &ar);
 
-    let job = from_value(json!({
-        "apiVersion": "batch/v1",
-        "kind": "Job",
+    let params = PostParams::default();
+    let resource = from_value(json!({
+        "apiVersion": "kpack.io/v1alpha2",
+        "kind": "Image",
         "metadata": {
-            "name": actor.name,
+            "name": format!("{}-{}", actor.name, actor.commit),
         },
         "spec": {
-            "template": {
-                "metadata": {
-                    "name": "empty-job-pod"
+            "tag": actor.image,
+            "serviceAccountName": "tutorial-service-account",
+            "builder": {
+                "name": "my-builder",
+                "kind": "Builder",
+            },
+            "source": {
+                "git": {
+                    "url": actor.repo,
+                    "revision": actor.commit,
                 },
-                "spec": {
-                    "containers": [{
-                        "name": "empty",
-                        "image": "alpine:latest"
-                    }],
-                    "restartPolicy": "Never",
-                }
+                "subPath": actor.path,
             }
         }
     }))
     .map_err(Error::SerializationError)?;
 
-    tracing::info!("created building job: {:#?}", serde_yaml::to_string(&job));
-    api.create(&params, &job).await.map_err(Error::KubeError)?;
+    tracing::info!(
+        "created image resource: {:#?}",
+        serde_yaml::to_string(&resource)
+    );
+    api.create(&params, &resource)
+        .await
+        .map_err(Error::KubeError)?;
 
     Ok(())
 }
