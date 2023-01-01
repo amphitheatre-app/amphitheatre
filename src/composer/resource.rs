@@ -156,10 +156,10 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &Actor) -> Result
         },
         "spec": {
             "tag": actor.image,
-            "serviceAccountName": "tutorial-service-account",
+            "serviceAccountName": "kpack-service-account",
             "builder": {
-                "name": "my-builder",
-                "kind": "Builder",
+                "name": "amp-default-builder",
+                "kind": "ClusterBuilder",
             },
             "source": {
                 "git": {
