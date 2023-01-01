@@ -155,7 +155,7 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &Actor) -> Result
             "name": format!("{}-{}", actor.name, actor.commit),
         },
         "spec": {
-            "tag": actor.image,
+            "tag": format!("ttl.sh/{}", actor.image),
             "serviceAccountName": "kpack-service-account",
             "builder": {
                 "name": "amp-default-builder",
