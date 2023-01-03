@@ -176,13 +176,13 @@ impl Playbook {
 
 fn read_partner(url: &String) -> Actor {
     Actor {
-        name: "amp-example-rust-demo".into(),
-        description: "A simple Rust example app".into(),
-        image: "amp-example-rust-demo".into(),
+        name: "amp-example-nodejs".into(),
+        description: "A simple NodeJs example app".into(),
+        image: "amp-example-nodejs".into(),
         repo: url.into(),
         path: ".".into(),
         reference: "master".into(),
-        commit: "d582e8ddf81177ecf2ae6b136642868ba089a898".into(),
+        commit: "285ef2bc98fb6b3db46a96b6a750fad2d0c566b5".into(),
         environment: HashMap::new(),
         partners: vec![],
     }

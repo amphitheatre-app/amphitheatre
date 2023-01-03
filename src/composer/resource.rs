@@ -86,17 +86,16 @@ pub async fn create(
             title,
             description,
             actors: vec![Actor {
-                name: "amp-example-rust".into(),
-                description: "A simple Rust example app".into(),
-                image: "amp-example-rust".into(),
-                repo: "git@github.com:amphitheatre-app/amp-example-rust.git".into(),
+                name: "amp-example-java".into(),
+                description: "A simple Java example app".into(),
+                image: "amp-example-java".into(),
+                repo: "https://github.com/amphitheatre-app/amp-example-java".into(),
                 path: ".".into(),
                 reference: "master".into(),
-                commit: "d582e8ddf81177ecf2ae6b136642868ba089a898".into(),
+                commit: "875db185acc8bf7c7effc389a350cae7aa926e57".into(),
                 environment: HashMap::new(),
                 partners: vec![
-                    "git@github.com:amphitheatre-app/amp-example-python.git".to_string(),
-                    "git@github.com:amphitheatre-app/amp-example-java.git".to_string(),
+                    "https://github.com/amphitheatre-app/amp-example-nodejs.git".to_string()
                 ],
             }],
         },
@@ -156,9 +155,9 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &Actor) -> Result
         },
         "spec": {
             "tag": format!("ttl.sh/{}", actor.image),
-            "serviceAccountName": "kpack-service-account",
+            "serviceAccountName": "default",
             "builder": {
-                "name": "amp-default-builder",
+                "name": "amp-default-cluster-builder",
                 "kind": "ClusterBuilder",
             },
             "source": {
