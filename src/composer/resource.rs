@@ -154,7 +154,7 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &Actor) -> Result
             "name": format!("{}-{}", actor.name, actor.commit),
         },
         "spec": {
-            "tag": format!("ttl.sh/{}", actor.image),
+            "tag": format!("harbor.amp-system.svc.cluster.local/library/{}:{}", actor.image, actor.commit),
             "serviceAccountName": "default",
             "builder": {
                 "name": "amp-default-cluster-builder",
