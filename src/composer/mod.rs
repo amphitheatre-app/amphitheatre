@@ -20,13 +20,10 @@ use kube::runtime::Controller;
 use kube::Api;
 
 use self::controller::{error_policy, reconcile, Ctx};
-use self::types::Playbook;
 use crate::app::Context;
+use crate::resources::types::Playbook;
 
 pub mod controller;
-pub mod error;
-pub mod resource;
-pub mod types;
 
 /// Initialize the controller and shared state (given the crd is installed)
 pub async fn run(ctx: Arc<Context>) {

@@ -20,9 +20,9 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::app::Context;
-use crate::composer::resource;
 use crate::models::playbook::Playbook;
 use crate::repositories::playbook::PlaybookRepository;
+use crate::resources::playbook;
 use crate::response::ApiError;
 use crate::services::Result;
 
@@ -66,7 +66,7 @@ impl PlaybookService {
         description: String,
     ) -> Result<Uuid> {
         let uuid = Uuid::new_v4();
-        let playbook = resource::create(
+        let playbook = playbook::create(
             ctx.k8s.clone(),
             "default".into(),
             uuid.to_string(),

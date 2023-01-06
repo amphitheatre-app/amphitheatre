@@ -21,9 +21,9 @@ use kube::runtime::events::{Event, EventType, Recorder};
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Client, Resource, ResourceExt};
 
-use super::error::{Error, Result};
-use super::resource;
-use super::types::{Actor, Playbook, PlaybookStatus, PLAYBOOK_RESOURCE_NAME};
+use crate::resources::error::{Error, Result};
+use crate::resources::types::{Actor, Playbook, PlaybookStatus, PLAYBOOK_RESOURCE_NAME};
+use crate::resources::{actor, playbook};
 
 pub struct Ctx {
     /// Kubernetes client
@@ -73,7 +73,7 @@ impl Playbook {
         let status = self.status.clone().unwrap_or(PlaybookStatus::Pending);
         match status {
             PlaybookStatus::Pending => {
-                resource::status(ctx.client.clone(), self, PlaybookStatus::Solving).await?;
+                playbook::status(ctx.client.clone(), self, PlaybookStatus::Solving).await?;
                 recorder
                     .publish(Event {
                         type_: EventType::Normal,
@@ -121,13 +121,13 @@ impl Playbook {
                         .map_err(Error::KubeError)?;
 
                     let actor: Actor = read_partner(url);
-                    resource::add(ctx.client.clone(), self, actor).await?;
+                    actor::add(ctx.client.clone(), self, actor).await?;
                 }
 
                 tracing::info!("fetches length: {}", fetches.len());
 
                 if fetches.is_empty() {
-                    resource::status(ctx.client.clone(), self, PlaybookStatus::Solved).await?;
+                    playbook::status(ctx.client.clone(), self, PlaybookStatus::Solved).await?;
                     recorder
                         .publish(Event {
                             type_: EventType::Normal,
@@ -142,7 +142,7 @@ impl Playbook {
             }
             PlaybookStatus::Solved => {
                 for actor in &self.spec.actors {
-                    resource::build(ctx.client.clone(), self, actor).await?;
+                    actor::build(ctx.client.clone(), self, actor).await?;
                 }
             }
             PlaybookStatus::Building => todo!(),

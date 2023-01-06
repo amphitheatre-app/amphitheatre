@@ -1,4 +1,4 @@
-// Copyright 2022 The Amphitheatre Authors.
+// Copyright 2023 The Amphitheatre Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,16 +17,13 @@ use std::time::Duration;
 
 use k8s_openapi::apiextensions_apiserver as server;
 use kube::api::{DeleteParams, Patch, PatchParams, PostParams};
-use kube::core::{DynamicObject, GroupVersionKind};
-use kube::discovery::ApiResource;
 use kube::{Api, Client, CustomResourceExt, ResourceExt};
-use serde_json::{from_value, json, to_string_pretty};
+use serde_json::{json, to_string_pretty};
 use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use tokio::time::sleep;
 
 use super::error::{Error, Result};
-use super::types::{Actor, Playbook, PlaybookSpec, PLAYBOOK_RESOURCE_NAME};
-use crate::composer::types::PlaybookStatus;
+use super::types::{Actor, Playbook, PlaybookSpec, PlaybookStatus, PLAYBOOK_RESOURCE_NAME};
 
 pub async fn install(client: Client) -> Result<()> {
     let api: Api<CustomResourceDefinition> = Api::all(client);
@@ -133,76 +130,6 @@ pub async fn status(client: Client, playbook: &Playbook, status: PlaybookStatus)
         playbook.status,
         playbook.name_any()
     );
-
-    Ok(())
-}
-
-pub async fn build(client: Client, playbook: &Playbook, actor: &Actor) -> Result<()> {
-    let namespace = playbook
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-
-    let gvk = GroupVersionKind::gvk("kpack.io", "v1alpha2", "Image");
-    let ar = ApiResource::from_gvk(&gvk);
-    let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &ar);
-
-    let params = PostParams::default();
-    let resource = from_value(json!({
-        "apiVersion": "kpack.io/v1alpha2",
-        "kind": "Image",
-        "metadata": {
-            "name": format!("{}-{}", actor.name, actor.commit),
-        },
-        "spec": {
-            "tag": format!("harbor.amp-system.svc.cluster.local/library/{}:{}", actor.image, actor.commit),
-            "serviceAccountName": "default",
-            "builder": {
-                "name": "amp-default-cluster-builder",
-                "kind": "ClusterBuilder",
-            },
-            "source": {
-                "git": {
-                    "url": actor.repo,
-                    "revision": actor.commit,
-                },
-                "subPath": actor.path,
-            }
-        }
-    }))
-    .map_err(Error::SerializationError)?;
-
-    tracing::info!(
-        "created image resource: {:#?}",
-        serde_yaml::to_string(&resource)
-    );
-    api.create(&params, &resource)
-        .await
-        .map_err(Error::KubeError)?;
-
-    Ok(())
-}
-
-pub async fn add(client: Client, playbook: &Playbook, actor: Actor) -> Result<()> {
-    let namespace = playbook
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-    let api: Api<Playbook> = Api::namespaced(client, namespace.as_str());
-
-    let actor_name = actor.name.clone();
-    let mut actors = playbook.spec.actors.clone();
-    actors.push(actor);
-
-    let patch = json!({"spec": { "actors": actors }});
-    let playbook = api
-        .patch(
-            playbook.name_any().as_str(),
-            &PatchParams::apply("amp-composer"),
-            &Patch::Merge(&patch),
-        )
-        .await
-        .map_err(Error::KubeError)?;
-
-    tracing::info!("Added actor {:?} for {}", actor_name, playbook.name_any());
 
     Ok(())
 }
