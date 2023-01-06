@@ -15,4 +15,6 @@
 pub mod actor;
 pub mod error;
 pub mod playbook;
+pub mod secret;
+pub mod service_account;
 pub mod types;

@@ -69,12 +69,12 @@ pub async fn uninstall(client: Client) -> Result<()> {
 
 pub async fn create(
     client: Client,
-    namespace: String,
+    namespace: &str,
     name: String,
     title: String,
     description: String,
 ) -> Result<Playbook> {
-    let api: Api<Playbook> = Api::namespaced(client.clone(), namespace.as_str());
+    let api: Api<Playbook> = Api::namespaced(client.clone(), namespace);
     let params = PostParams::default();
 
     let mut playbook = Playbook::new(
