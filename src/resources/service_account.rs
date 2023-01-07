@@ -35,6 +35,12 @@ pub async fn patch(
         .await
         .map_err(Error::KubeError)?;
 
+    tracing::debug!(
+        "The current {} ServiceAccount is: {:#?}",
+        service_account_name,
+        service_account
+    );
+
     let secret_name = credential.name();
 
     // Fetch original secrets
@@ -45,6 +51,7 @@ pub async fn patch(
             ..Default::default()
         });
     }
+    tracing::debug!("The secrets is: {:#?}", secrets);
 
     // Fetch original imagePullSecrets
     let mut image_pull_secrets = service_account.image_pull_secrets.map_or(vec![], |v| v);
@@ -53,9 +60,12 @@ pub async fn patch(
             name: Some(secret_name.clone()),
         });
     }
+    tracing::debug!("The image_pull_secrets is: {:#?}", image_pull_secrets);
 
     // Create patch for update.
-    let patch = json!({"spec": { "secrets": secrets, "imagePullSecrets": image_pull_secrets }});
+    let patch = json!({"secrets": secrets, "imagePullSecrets": image_pull_secrets });
+    tracing::debug!("The service account patch is: {:#?}", patch);
+
     service_account = api
         .patch(
             service_account_name,
@@ -66,9 +76,10 @@ pub async fn patch(
         .map_err(Error::KubeError)?;
 
     tracing::info!(
-        "Added Secret {:?} for ServiceAccount {}",
+        "Added Secret {:?} for ServiceAccount {}: {:#?}",
         secret_name,
-        service_account_name
+        service_account_name,
+        service_account
     );
 
     Ok(service_account)

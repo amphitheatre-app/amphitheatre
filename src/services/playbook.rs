@@ -72,7 +72,7 @@ impl PlaybookService {
         secret::create(ctx.k8s.clone(), namespace, &credential)
             .await
             .map_err(|err| {
-                error!("{:?}", err);
+                error!("Create registry credential failed: {:?}", err);
                 ApiError::KubernetesError
             })?;
 
@@ -87,7 +87,7 @@ impl PlaybookService {
         )
         .await
         .map_err(|err| {
-            error!("{:?}", err);
+            error!("Patch credentials to service account failed: {:?}", err);
             ApiError::KubernetesError
         })?;
 

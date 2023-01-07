@@ -95,7 +95,7 @@ impl Credential {
     }
 
     pub fn name(&self) -> String {
-        format!("{}-{}-secret", self.kind, self.location)
+        format!("{}-{}-secret", self.kind, self.location).to_lowercase()
     }
 }
 
@@ -110,7 +110,7 @@ pub async fn create(client: Client, namespace: &str, credential: &Credential) ->
             ("username", credential.username.clone()),
             ("password", credential.password.clone()),
         ]),
-        Authorization::Token => HashMap::from([("value", credential.token.clone())]),
+        Authorization::Token => HashMap::from([("ssh-privatekey", credential.token.clone())]),
     };
 
     let mut secret = from_value(json!({
@@ -121,7 +121,7 @@ pub async fn create(client: Client, namespace: &str, credential: &Credential) ->
             "annotations": annotations,
         },
         "type": credential.auth.schema_name(),
-        "data": data
+        "stringData": data,
     }))
     .map_err(Error::SerializationError)?;
 
