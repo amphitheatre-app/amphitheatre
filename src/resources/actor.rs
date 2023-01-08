@@ -18,6 +18,7 @@ use kube::discovery::ApiResource;
 use kube::{Api, Client, ResourceExt};
 use serde_json::{from_value, json};
 
+use super::deployment;
 use super::error::{Error, Result};
 use super::types::{Actor, Playbook};
 
@@ -87,6 +88,15 @@ pub async fn add(client: Client, playbook: &Playbook, actor: Actor) -> Result<()
         .map_err(Error::KubeError)?;
 
     tracing::info!("Added actor {:?} for {}", actor_name, playbook.name_any());
+
+    Ok(())
+}
+
+pub async fn deploy(client: Client, playbook: &Playbook, actor: &Actor) -> Result<()> {
+    // Create Deployment resource for this actor
+    deployment::create(client, playbook, actor).await?;
+
+    // TODO: Create Service resource if needed.
 
     Ok(())
 }

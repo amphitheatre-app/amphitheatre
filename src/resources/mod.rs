@@ -13,6 +13,7 @@
 // limitations under the License.
 
 pub mod actor;
+pub mod deployment;
 pub mod error;
 pub mod namespace;
 pub mod playbook;
