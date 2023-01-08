@@ -23,7 +23,7 @@ use crate::app::Context;
 use crate::models::playbook::Playbook;
 use crate::repositories::playbook::PlaybookRepository;
 use crate::resources::secret::{Credential, Kind};
-use crate::resources::{playbook, secret, service_account};
+use crate::resources::{namespace, playbook, secret, service_account};
 use crate::response::ApiError;
 use crate::services::Result;
 
@@ -62,6 +62,14 @@ impl PlaybookService {
     }
 
     async fn init(ctx: &State<Arc<Context>>, namespace: &str) -> Result<()> {
+        // Create namespace for this playbook
+        namespace::create(ctx.k8s.clone(), namespace)
+            .await
+            .map_err(|err| {
+                error!("Create namespace {} failed: {:?}", namespace, err);
+                ApiError::KubernetesError
+            })?;
+
         // Docker registry Credential
         let credential = Credential::basic(
             Kind::Image,
@@ -100,14 +108,14 @@ impl PlaybookService {
         description: String,
     ) -> Result<Uuid> {
         let uuid = Uuid::new_v4();
-        let namespace = "default";
+        let namespace = format!("amp-{}", uuid);
 
         // Init create namespace, credentials and service accounts
-        Self::init(ctx, namespace).await?;
+        Self::init(ctx, namespace.as_str()).await?;
 
         let playbook = playbook::create(
             ctx.k8s.clone(),
-            namespace,
+            namespace.as_str(),
             uuid.to_string(),
             title,
             description,

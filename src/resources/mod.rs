@@ -14,6 +14,7 @@
 
 pub mod actor;
 pub mod error;
+pub mod namespace;
 pub mod playbook;
 pub mod secret;
 pub mod service_account;
