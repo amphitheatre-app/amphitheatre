@@ -28,6 +28,7 @@ path = "src/lib.rs"
 [dependencies]
 anyhow = "1.0"
 axum = { version = "0.6", features = ["headers"] }
+convert_case = "0.6.0"
 clap = { version = "4.0.29", features = ["derive", "env"] }
 dotenv = "0.15.0"
 futures = "0.3"

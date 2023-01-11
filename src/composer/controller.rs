@@ -22,7 +22,7 @@ use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Client, Resource, ResourceExt};
 
 use crate::resources::error::{Error, Result};
-use crate::resources::types::{Actor, Playbook, PlaybookStatus, PLAYBOOK_RESOURCE_NAME};
+use crate::resources::types::{Actor, Playbook, PlaybookState, PLAYBOOK_RESOURCE_NAME};
 use crate::resources::{actor, playbook};
 
 pub struct Ctx {
@@ -68,92 +68,63 @@ pub fn error_policy(playbook: Arc<Playbook>, error: &Error, ctx: Arc<Ctx>) -> Ac
 
 impl Playbook {
     pub async fn reconcile(&self, ctx: Arc<Ctx>) -> Result<Action> {
-        let recorder = ctx.recorder(self);
-
-        let status = self.status.clone().unwrap_or(PlaybookStatus::Pending);
-        match status {
-            PlaybookStatus::Pending => {
-                playbook::status(ctx.client.clone(), self, PlaybookStatus::Solving).await?;
-                recorder
-                    .publish(Event {
-                        type_: EventType::Normal,
-                        reason: "SolvingPlaybook".into(),
-                        note: Some(format!("Solving playbook `{}`", self.name_any())),
-                        action: "Reconciling".into(),
-                        secondary: None,
-                    })
-                    .await
-                    .map_err(Error::KubeError)?;
+        if let Some(ref status) = self.status {
+            if status.pending() {
+                self.start(ctx).await?
+            } else if status.solving() {
+                self.solve(ctx).await?
+            } else if status.running() {
+                self.run(ctx).await?
             }
-            PlaybookStatus::Solving => {
-                let exists: HashSet<String> =
-                    self.spec.actors.iter().map(|a| a.repo.clone()).collect();
-                let mut fetches: HashSet<String> = HashSet::new();
+        } else {
+            tracing::debug!("Waiting for PlaybookStatus to be reported, not starting yet");
+        }
 
-                for actor in &self.spec.actors {
-                    if actor.partners.is_empty() {
-                        continue;
-                    }
+        Ok(Action::await_change())
+    }
 
-                    for repo in &actor.partners {
-                        if exists.contains(repo) {
-                            continue;
-                        }
-                        fetches.insert(repo.to_string());
-                    }
-                }
+    async fn start(&self, ctx: Arc<Ctx>) -> Result<()> {
+        playbook::patch_status(ctx.client.clone(), self, PlaybookState::solving()).await
+    }
 
-                for url in fetches.iter() {
-                    tracing::info!("fetches url: {}", url);
-                    recorder
-                        .publish(Event {
-                            type_: EventType::Normal,
-                            reason: "ReadPartner".into(),
-                            note: Some(format!(
-                                "Reading partner from `{} for {}`",
-                                url,
-                                self.name_any()
-                            )),
-                            action: "Reconciling".into(),
-                            secondary: None,
-                        })
-                        .await
-                        .map_err(Error::KubeError)?;
+    async fn solve(&self, ctx: Arc<Ctx>) -> Result<()> {
+        let exists: HashSet<String> = self.spec.actors.iter().map(|a| a.repo.clone()).collect();
+        let mut fetches: HashSet<String> = HashSet::new();
 
-                    let actor: Actor = read_partner(url);
-                    actor::add(ctx.client.clone(), self, actor).await?;
-                }
-
-                tracing::info!("fetches length: {}", fetches.len());
-
-                if fetches.is_empty() {
-                    playbook::status(ctx.client.clone(), self, PlaybookStatus::Solved).await?;
-                    recorder
-                        .publish(Event {
-                            type_: EventType::Normal,
-                            reason: "SolvedPlaybook".into(),
-                            note: Some(format!("Solved playbook `{}`", self.name_any())),
-                            action: "Reconciling".into(),
-                            secondary: None,
-                        })
-                        .await
-                        .map_err(Error::KubeError)?;
-                }
+        for actor in &self.spec.actors {
+            if actor.partners.is_empty() {
+                continue;
             }
-            PlaybookStatus::Solved => {
-                for actor in &self.spec.actors {
-                    actor::build(ctx.client.clone(), self, actor).await?;
-                }
-            }
-            PlaybookStatus::Building => todo!(),
-            PlaybookStatus::Running => todo!(),
-            PlaybookStatus::Succeeded => todo!(),
-            PlaybookStatus::Failed => todo!(),
-            PlaybookStatus::Unknown => todo!(),
-        };
 
-        // If no events were received, check back every 5 minutes
-        Ok(Action::requeue(Duration::from_secs(5 * 60)))
+            for repo in &actor.partners {
+                if exists.contains(repo) {
+                    continue;
+                }
+                fetches.insert(repo.to_string());
+            }
+        }
+
+        for url in fetches.iter() {
+            tracing::info!("fetches url: {}", url);
+            let actor: Actor = read_partner(url);
+            actor::add(ctx.client.clone(), self, actor).await?;
+        }
+
+        tracing::info!("fetches length: {}", fetches.len());
+
+        if fetches.is_empty() {
+            playbook::patch_status(ctx.client.clone(), self, PlaybookState::ready()).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
+        for actor in &self.spec.actors {
+            actor::build(ctx.client.clone(), self, actor).await?;
+            actor::deploy(ctx.client.clone(), self, actor).await?;
+        }
+        Ok(())
     }
 
     pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {

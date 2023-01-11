@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use k8s_openapi::apiextensions_apiserver as server;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{DeleteParams, Patch, PatchParams, PostParams};
 use kube::{Api, Client, CustomResourceExt, ResourceExt};
 use serde_json::{json, to_string_pretty};
@@ -23,7 +24,8 @@ use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use tokio::time::sleep;
 
 use super::error::{Error, Result};
-use super::types::{Actor, Playbook, PlaybookSpec, PlaybookStatus, PLAYBOOK_RESOURCE_NAME};
+use super::types::{Actor, Playbook, PlaybookSpec, PLAYBOOK_RESOURCE_NAME};
+use crate::resources::types::PlaybookState;
 
 pub async fn install(client: Client) -> Result<()> {
     let api: Api<CustomResourceDefinition> = Api::all(client);
@@ -105,17 +107,17 @@ pub async fn create(
         .map_err(Error::KubeError)?;
 
     // Patch this playbook as initial Pending status
-    status(client.clone(), &playbook, PlaybookStatus::Pending).await?;
+    patch_status(client.clone(), &playbook, PlaybookState::pending()).await?;
     Ok(playbook)
 }
 
-pub async fn status(client: Client, playbook: &Playbook, status: PlaybookStatus) -> Result<()> {
+pub async fn patch_status(client: Client, playbook: &Playbook, condition: Condition) -> Result<()> {
     let namespace = playbook
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Playbook> = Api::namespaced(client, namespace.as_str());
 
-    let status = json!({ "status": status });
+    let status = json!({ "status": { "conditions": vec![condition] }});
     let playbook = api
         .patch_status(
             playbook.name_any().as_str(),
