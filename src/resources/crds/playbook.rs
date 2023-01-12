@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
 use std::fmt::Display;
 
 use convert_case::{Case, Casing};
@@ -24,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use self::PlaybookState::*;
+use super::actor::ActorSpec;
 
 pub static PLAYBOOK_RESOURCE_NAME: &str = "playbooks.amphitheatre.app";
 
@@ -32,18 +32,19 @@ pub static PLAYBOOK_RESOURCE_NAME: &str = "playbooks.amphitheatre.app";
     group = "amphitheatre.app",
     version = "v1",
     kind = "Playbook",
+    status = "PlaybookStatus",
     namespaced
 )]
-#[kube(status = "PlaybookStatus")]
 pub struct PlaybookSpec {
     pub title: String,
     pub description: String,
     #[validate(length(min = 1))]
-    pub actors: Vec<Actor>,
+    pub actors: Vec<ActorSpec>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub struct PlaybookStatus {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     conditions: Vec<Condition>,
 }
 
@@ -145,29 +146,4 @@ impl Display for PlaybookState {
             Failed => f.write_str("Failed"),
         }
     }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
-pub struct Actor {
-    /// The title of the actor.
-    pub name: String,
-    /// The description of the actor.
-    pub description: String,
-    /// Specifies the image to launch the container. The image must follow
-    /// the Open Container Specification addressable image format.
-    /// such as: [<registry>/][<project>/]<image>[:<tag>|@<digest>].
-    pub image: String,
-    /// Git repository the package should be cloned from.
-    /// e.g. https://github.com/amphitheatre-app/amphitheatre.git.
-    pub repo: String,
-    /// Relative path from the repo root to the configuration file.
-    /// eg. getting-started/amp.yaml.
-    pub path: String,
-    /// Git ref the package should be cloned from. eg. master or main
-    pub reference: String,
-    /// The selected commit of the actor.
-    pub commit: String,
-
-    pub environment: HashMap<String, String>,
-    pub partners: Vec<String>,
 }

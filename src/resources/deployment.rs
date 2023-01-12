@@ -17,11 +17,11 @@ use kube::api::PostParams;
 use kube::{Api, Client, ResourceExt};
 use serde_json::{from_value, json};
 
+use super::crds::{ActorSpec, Playbook};
 use super::error::Result;
-use super::types::{Actor, Playbook};
 use crate::resources::error::Error;
 
-pub async fn create(client: Client, playbook: &Playbook, actor: &Actor) -> Result<Deployment> {
+pub async fn create(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Result<Deployment> {
     let api: Api<Deployment> = Api::all(client);
     let params = PostParams::default();
 

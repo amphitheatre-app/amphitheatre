@@ -18,11 +18,11 @@ use kube::discovery::ApiResource;
 use kube::{Api, Client, ResourceExt};
 use serde_json::{from_value, json};
 
+use super::crds::{ActorSpec, Playbook};
 use super::deployment;
 use super::error::{Error, Result};
-use super::types::{Actor, Playbook};
 
-pub async fn build(client: Client, playbook: &Playbook, actor: &Actor) -> Result<()> {
+pub async fn build(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Result<()> {
     let namespace = playbook
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
@@ -67,7 +67,7 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &Actor) -> Result
     Ok(())
 }
 
-pub async fn add(client: Client, playbook: &Playbook, actor: Actor) -> Result<()> {
+pub async fn add(client: Client, playbook: &Playbook, actor: ActorSpec) -> Result<()> {
     let namespace = playbook
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
@@ -92,7 +92,7 @@ pub async fn add(client: Client, playbook: &Playbook, actor: Actor) -> Result<()
     Ok(())
 }
 
-pub async fn deploy(client: Client, playbook: &Playbook, actor: &Actor) -> Result<()> {
+pub async fn deploy(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Result<()> {
     // Create Deployment resource for this actor
     deployment::create(client, playbook, actor).await?;
 

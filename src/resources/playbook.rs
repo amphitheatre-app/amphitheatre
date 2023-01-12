@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
 use std::time::Duration;
 
 use k8s_openapi::apiextensions_apiserver as server;
@@ -23,9 +22,8 @@ use serde_json::{json, to_string_pretty};
 use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use tokio::time::sleep;
 
+use super::crds::{ActorSpec, Playbook, PlaybookSpec, PlaybookState, PLAYBOOK_RESOURCE_NAME};
 use super::error::{Error, Result};
-use super::types::{Actor, Playbook, PlaybookSpec, PLAYBOOK_RESOURCE_NAME};
-use crate::resources::types::PlaybookState;
 
 pub async fn install(client: Client) -> Result<()> {
     let api: Api<CustomResourceDefinition> = Api::all(client);
@@ -84,7 +82,7 @@ pub async fn create(
         PlaybookSpec {
             title,
             description,
-            actors: vec![Actor {
+            actors: vec![ActorSpec {
                 name: "amp-example-java".into(),
                 description: "A simple Java example app".into(),
                 image: "amp-example-java".into(),
@@ -92,10 +90,11 @@ pub async fn create(
                 path: ".".into(),
                 reference: "master".into(),
                 commit: "875db185acc8bf7c7effc389a350cae7aa926e57".into(),
-                environment: HashMap::new(),
-                partners: vec![
-                    "https://github.com/amphitheatre-app/amp-example-nodejs.git".to_string()
-                ],
+                environment: None,
+                partners: Some(vec![
+                    "https://github.com/amphitheatre-app/amp-example-nodejs.git".to_string(),
+                ]),
+                services: None,
             }],
         },
     );

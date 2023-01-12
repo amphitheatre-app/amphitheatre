@@ -21,7 +21,7 @@ use kube::Api;
 
 use self::controller::{error_policy, reconcile, Ctx};
 use crate::app::Context;
-use crate::resources::types::Playbook;
+use crate::resources::crds::Playbook;
 
 pub mod controller;
 

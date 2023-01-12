@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -21,8 +21,8 @@ use kube::runtime::events::{Event, EventType, Recorder};
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Client, Resource, ResourceExt};
 
+use crate::resources::crds::{ActorSpec, Playbook, PlaybookState, PLAYBOOK_RESOURCE_NAME};
 use crate::resources::error::{Error, Result};
-use crate::resources::types::{Actor, Playbook, PlaybookState, PLAYBOOK_RESOURCE_NAME};
 use crate::resources::{actor, playbook};
 
 pub struct Ctx {
@@ -92,21 +92,19 @@ impl Playbook {
         let mut fetches: HashSet<String> = HashSet::new();
 
         for actor in &self.spec.actors {
-            if actor.partners.is_empty() {
-                continue;
-            }
-
-            for repo in &actor.partners {
-                if exists.contains(repo) {
-                    continue;
+            if let Some(partners) = &actor.partners {
+                for repo in partners {
+                    if exists.contains(repo) {
+                        continue;
+                    }
+                    fetches.insert(repo.to_string());
                 }
-                fetches.insert(repo.to_string());
             }
         }
 
         for url in fetches.iter() {
             tracing::info!("fetches url: {}", url);
-            let actor: Actor = read_partner(url);
+            let actor = read_partner(url);
             actor::add(ctx.client.clone(), self, actor).await?;
         }
 
@@ -145,8 +143,8 @@ impl Playbook {
     }
 }
 
-fn read_partner(url: &String) -> Actor {
-    Actor {
+fn read_partner(url: &String) -> ActorSpec {
+    ActorSpec {
         name: "amp-example-nodejs".into(),
         description: "A simple NodeJs example app".into(),
         image: "amp-example-nodejs".into(),
@@ -154,7 +152,8 @@ fn read_partner(url: &String) -> Actor {
         path: ".".into(),
         reference: "master".into(),
         commit: "285ef2bc98fb6b3db46a96b6a750fad2d0c566b5".into(),
-        environment: HashMap::new(),
-        partners: vec![],
+        environment: None,
+        partners: None,
+        services: None,
     }
 }
