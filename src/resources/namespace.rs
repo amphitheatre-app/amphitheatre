@@ -20,7 +20,7 @@ use serde_json::{from_value, json};
 use super::error::Result;
 use crate::resources::error::Error;
 
-pub async fn create(client: Client, name: &str) -> Result<Namespace> {
+pub async fn create(client: Client, name: &String) -> Result<Namespace> {
     let api: Api<Namespace> = Api::all(client);
     let params = PostParams::default();
 

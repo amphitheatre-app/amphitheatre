@@ -22,8 +22,9 @@ use kube::runtime::Controller;
 use kube::{Api, Client};
 
 use crate::app::Context;
-use crate::resources::crds::Playbook;
+use crate::resources::crds::{Actor, Playbook};
 
+pub mod actor_controller;
 pub mod playbook_controller;
 
 pub struct Ctx {
@@ -43,10 +44,17 @@ impl Ctx {
 /// Initialize the controller and shared state (given the crd is installed)
 pub async fn run(ctx: Arc<Context>) {
     let playbook = Api::<Playbook>::all(ctx.k8s.clone());
+    let actor = Api::<Actor>::all(ctx.k8s.clone());
 
     // Ensure CRD is installed before loop-watching
     if let Err(e) = playbook.list(&ListParams::default().limit(1)).await {
-        tracing::error!("CRD is not queryable; {e:?}. Is the CRD installed?");
+        tracing::error!("Playbook CRD is not queryable; {e:?}. Is the CRD installed?");
+        tracing::info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
+        std::process::exit(1);
+    }
+
+    if let Err(e) = actor.list(&ListParams::default().limit(1)).await {
+        tracing::error!("Actor CRD is not queryable; {e:?}. Is the CRD installed?");
         tracing::info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
         std::process::exit(1);
     }
@@ -59,7 +67,16 @@ pub async fn run(ctx: Arc<Context>) {
         .run(
             playbook_controller::reconcile,
             playbook_controller::error_policy,
-            context,
+            context.clone(),
+        )
+        .for_each(|_| future::ready(()))
+        .await;
+
+    Controller::new(actor, ListParams::default())
+        .run(
+            actor_controller::reconcile,
+            actor_controller::error_policy,
+            context.clone(),
         )
         .for_each(|_| future::ready(()))
         .await;

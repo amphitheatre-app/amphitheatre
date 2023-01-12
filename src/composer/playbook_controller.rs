@@ -74,7 +74,7 @@ impl Playbook {
         let namespace = &self.spec.namespace;
 
         // Create namespace for this playbook
-        namespace::create(ctx.client.clone(), namespace.as_str()).await?;
+        namespace::create(ctx.client.clone(), namespace).await?;
 
         // Docker registry Credential
         let credential = Credential::basic(
@@ -84,7 +84,7 @@ impl Playbook {
             "Harbor12345".into(),
         );
 
-        secret::create(ctx.client.clone(), namespace, &credential).await?;
+        secret::create(ctx.client.clone(), namespace.clone(), &credential).await?;
 
         // Patch this credential to default service account
         service_account::patch(

@@ -99,8 +99,8 @@ impl Credential {
     }
 }
 
-pub async fn create(client: Client, namespace: &str, credential: &Credential) -> Result<Secret> {
-    let api: Api<Secret> = Api::namespaced(client, namespace);
+pub async fn create(client: Client, namespace: String, credential: &Credential) -> Result<Secret> {
+    let api: Api<Secret> = Api::namespaced(client, &namespace);
     let params = PostParams::default();
 
     let annotations = HashMap::from([(credential.kind.schema_name(), credential.location.clone())]);

@@ -82,6 +82,31 @@ pub struct ActorStatus {
     conditions: Vec<Condition>,
 }
 
+impl ActorStatus {
+    pub fn pending(&self) -> bool {
+        self.state(ActorState::Pending, true)
+    }
+
+    pub fn building(&self) -> bool {
+        self.state(ActorState::Building, true)
+    }
+
+    pub fn running(&self) -> bool {
+        self.state(ActorState::Running, true)
+    }
+
+    pub fn failed(&self) -> bool {
+        self.state(ActorState::Failed, true)
+    }
+
+    fn state(&self, s: ActorState, status: bool) -> bool {
+        self.conditions.iter().any(|condition| {
+            condition.type_ == s.to_string()
+                && condition.status == status.to_string().to_case(Case::Pascal)
+        })
+    }
+}
+
 pub enum ActorState {
     Pending,
     Building,
