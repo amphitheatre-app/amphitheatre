@@ -23,8 +23,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-pub static ACTOR_RESOURCE_NAME: &str = "actors.amphitheatre.app";
-
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate)]
 #[kube(
     group = "amphitheatre.app",

@@ -21,17 +21,18 @@ use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 
 use super::Ctx;
-use crate::resources::crds::{Actor, ACTOR_RESOURCE_NAME};
+use crate::resources::crds::Actor;
 use crate::resources::error::{Error, Result};
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Ctx>) -> Result<Action> {
     let ns = actor.namespace().unwrap(); // actor is namespace scoped
-
     let api: Api<Actor> = Api::namespaced(ctx.client.clone(), &ns);
 
     tracing::info!("Reconciling Actor \"{}\"", actor.name_any());
-    finalizer(&api, ACTOR_RESOURCE_NAME, actor, |event| async {
+
+    let finalizer_name = "actors.amphitheatre.app/finalizer";
+    finalizer(&api, finalizer_name, actor, |event| async {
         match event {
             FinalizerEvent::Apply(actor) => actor.reconcile(ctx.clone()).await,
             FinalizerEvent::Cleanup(actor) => actor.cleanup(ctx.clone()).await,

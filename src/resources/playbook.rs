@@ -22,7 +22,7 @@ use serde_json::{json, to_string_pretty};
 use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use tokio::time::sleep;
 
-use super::crds::{ActorSpec, Playbook, PlaybookSpec, PlaybookState, PLAYBOOK_RESOURCE_NAME};
+use super::crds::{ActorSpec, Playbook, PlaybookSpec, PlaybookState};
 use super::error::{Error, Result};
 
 pub async fn install(client: Client) -> Result<()> {
@@ -54,8 +54,9 @@ pub async fn uninstall(client: Client) -> Result<()> {
     let params = DeleteParams::default();
 
     // Ignore delete error if not exists
+    let name = "playbooks.amphitheatre.app";
     let _ = api
-        .delete(PLAYBOOK_RESOURCE_NAME, &params)
+        .delete(name, &params)
         .await
         .map_err(Error::KubeError)?
         .map_left(|o| tracing::debug!("Deleting CRD: {:?}", o.status))

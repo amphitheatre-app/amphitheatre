@@ -22,7 +22,7 @@ use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 
 use super::Ctx;
-use crate::resources::crds::{ActorSpec, Playbook, PlaybookState, PLAYBOOK_RESOURCE_NAME};
+use crate::resources::crds::{ActorSpec, Playbook, PlaybookState};
 use crate::resources::error::{Error, Result};
 use crate::resources::secret::{self, Credential, Kind};
 use crate::resources::{actor, namespace, playbook, service_account};
@@ -36,7 +36,8 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Ctx>) -> Result<Action>
         return Err(Error::EmptyActorsError);
     }
 
-    finalizer(&api, PLAYBOOK_RESOURCE_NAME, playbook, |event| async {
+    let finalizer_name = "playbooks.amphitheatre.app/finalizer";
+    finalizer(&api, finalizer_name, playbook, |event| async {
         match event {
             FinalizerEvent::Apply(playbook) => playbook.reconcile(ctx.clone()).await,
             FinalizerEvent::Cleanup(playbook) => playbook.cleanup(ctx.clone()).await,

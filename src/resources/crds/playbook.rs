@@ -24,8 +24,6 @@ use validator::Validate;
 
 use super::actor::ActorSpec;
 
-pub static PLAYBOOK_RESOURCE_NAME: &str = "playbooks.amphitheatre.app";
-
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate)]
 #[kube(
     group = "amphitheatre.app",
