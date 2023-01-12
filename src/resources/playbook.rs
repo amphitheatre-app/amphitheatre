@@ -135,3 +135,20 @@ pub async fn patch_status(client: Client, playbook: &Playbook, condition: Condit
 
     Ok(())
 }
+
+pub async fn replace_status(
+    client: Client,
+    playbook: &Playbook,
+    condition: Condition,
+) -> Result<()> {
+    todo!()
+}
+
+pub async fn replace_status_with(
+    client: Client,
+    playbook: &Playbook,
+    before: Condition,
+    after: Condition,
+) -> Result<()> {
+    todo!()
+}

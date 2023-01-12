@@ -113,6 +113,7 @@ impl PlaybookState {
         PlaybookState::create(Failed, status, reason, message)
     }
 
+    #[inline]
     fn create(
         state: PlaybookState,
         status: bool,
