@@ -15,6 +15,9 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 
+use convert_case::{Case, Casing};
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
+use k8s_openapi::chrono::Utc;
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -74,20 +77,58 @@ pub struct Port {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum ActorStatus {
+pub struct ActorStatus {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    conditions: Vec<Condition>,
+}
+
+pub enum ActorState {
     Pending,
     Building,
     Running,
     Failed,
 }
 
-impl Display for ActorStatus {
+impl ActorState {
+    pub fn pending() -> Condition {
+        ActorState::create(ActorState::Pending, true, "Created", None)
+    }
+
+    pub fn building() -> Condition {
+        ActorState::create(ActorState::Building, true, "Build", None)
+    }
+
+    pub fn running(status: bool, reason: &str, message: Option<String>) -> Condition {
+        ActorState::create(ActorState::Running, status, reason, message)
+    }
+
+    pub fn failed(status: bool, reason: &str, message: Option<String>) -> Condition {
+        ActorState::create(ActorState::Failed, status, reason, message)
+    }
+
+    #[inline]
+    fn create(state: ActorState, status: bool, reason: &str, message: Option<String>) -> Condition {
+        Condition {
+            type_: state.to_string(),
+            status: status.to_string().to_case(Case::Pascal),
+            last_transition_time: Time(Utc::now()),
+            reason: reason.to_case(Case::Pascal),
+            observed_generation: None,
+            message: match message {
+                Some(message) => message,
+                None => "".to_string(),
+            },
+        }
+    }
+}
+
+impl Display for ActorState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ActorStatus::Pending => f.write_str("Pending"),
-            ActorStatus::Building => f.write_str("Building"),
-            ActorStatus::Running => f.write_str("Running"),
-            ActorStatus::Failed => f.write_str("Failed"),
+            ActorState::Pending => f.write_str("Pending"),
+            ActorState::Building => f.write_str("Building"),
+            ActorState::Running => f.write_str("Running"),
+            ActorState::Failed => f.write_str("Failed"),
         }
     }
 }

@@ -22,7 +22,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use self::PlaybookState::*;
 use super::actor::ActorSpec;
 
 pub static PLAYBOOK_RESOURCE_NAME: &str = "playbooks.amphitheatre.app";
@@ -51,27 +50,27 @@ pub struct PlaybookStatus {
 
 impl PlaybookStatus {
     pub fn pending(&self) -> bool {
-        self.state(Pending, true)
+        self.state(PlaybookState::Pending, true)
     }
 
     pub fn solving(&self) -> bool {
-        self.state(Solving, true)
+        self.state(PlaybookState::Solving, true)
     }
 
     pub fn ready(&self) -> bool {
-        self.state(Ready, true)
+        self.state(PlaybookState::Ready, true)
     }
 
     pub fn running(&self) -> bool {
-        self.state(Running, true)
+        self.state(PlaybookState::Running, true)
     }
 
     pub fn succeeded(&self) -> bool {
-        self.state(Succeeded, true)
+        self.state(PlaybookState::Succeeded, true)
     }
 
     pub fn failed(&self) -> bool {
-        self.state(Failed, true)
+        self.state(PlaybookState::Failed, true)
     }
 
     fn state(&self, s: PlaybookState, status: bool) -> bool {
@@ -90,29 +89,30 @@ pub enum PlaybookState {
     Succeeded,
     Failed,
 }
+
 impl PlaybookState {
     pub fn pending() -> Condition {
-        PlaybookState::create(Pending, true, "Created", None)
+        PlaybookState::create(PlaybookState::Pending, true, "Created", None)
     }
 
     pub fn solving() -> Condition {
-        PlaybookState::create(Solving, true, "Solve", None)
+        PlaybookState::create(PlaybookState::Solving, true, "Solve", None)
     }
 
     pub fn ready() -> Condition {
-        PlaybookState::create(Ready, true, "Solved", None)
+        PlaybookState::create(PlaybookState::Ready, true, "Solved", None)
     }
 
     pub fn running(status: bool, reason: &str, message: Option<String>) -> Condition {
-        PlaybookState::create(Running, status, reason, message)
+        PlaybookState::create(PlaybookState::Running, status, reason, message)
     }
 
     pub fn succeeded(status: bool, reason: &str, message: Option<String>) -> Condition {
-        PlaybookState::create(Succeeded, status, reason, message)
+        PlaybookState::create(PlaybookState::Succeeded, status, reason, message)
     }
 
     pub fn failed(status: bool, reason: &str, message: Option<String>) -> Condition {
-        PlaybookState::create(Failed, status, reason, message)
+        PlaybookState::create(PlaybookState::Failed, status, reason, message)
     }
 
     #[inline]
@@ -139,12 +139,12 @@ impl PlaybookState {
 impl Display for PlaybookState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Pending => f.write_str("Pending"),
-            Solving => f.write_str("Solving"),
-            Ready => f.write_str("Ready"),
-            Running => f.write_str("Running"),
-            Succeeded => f.write_str("Succeeded"),
-            Failed => f.write_str("Failed"),
+            PlaybookState::Pending => f.write_str("Pending"),
+            PlaybookState::Solving => f.write_str("Solving"),
+            PlaybookState::Ready => f.write_str("Ready"),
+            PlaybookState::Running => f.write_str("Running"),
+            PlaybookState::Succeeded => f.write_str("Succeeded"),
+            PlaybookState::Failed => f.write_str("Failed"),
         }
     }
 }
