@@ -32,12 +32,13 @@ pub static PLAYBOOK_RESOURCE_NAME: &str = "playbooks.amphitheatre.app";
     group = "amphitheatre.app",
     version = "v1",
     kind = "Playbook",
-    status = "PlaybookStatus",
-    namespaced
+    status = "PlaybookStatus"
 )]
 pub struct PlaybookSpec {
     pub title: String,
     pub description: String,
+    pub namespace: String,
+
     #[validate(length(min = 1))]
     pub actors: Vec<ActorSpec>,
 }

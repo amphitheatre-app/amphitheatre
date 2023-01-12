@@ -22,8 +22,7 @@ use uuid::Uuid;
 use crate::app::Context;
 use crate::models::playbook::Playbook;
 use crate::repositories::playbook::PlaybookRepository;
-use crate::resources::secret::{Credential, Kind};
-use crate::resources::{namespace, playbook, secret, service_account};
+use crate::resources::playbook;
 use crate::response::ApiError;
 use crate::services::Result;
 
@@ -61,47 +60,6 @@ impl PlaybookService {
             .map_err(|_| ApiError::DatabaseError)
     }
 
-    async fn init(ctx: &State<Arc<Context>>, namespace: &str) -> Result<()> {
-        // Create namespace for this playbook
-        namespace::create(ctx.k8s.clone(), namespace)
-            .await
-            .map_err(|err| {
-                error!("Create namespace {} failed: {:?}", namespace, err);
-                ApiError::KubernetesError
-            })?;
-
-        // Docker registry Credential
-        let credential = Credential::basic(
-            Kind::Image,
-            "harbor.amp-system.svc.cluster.local".into(),
-            "admin".into(),
-            "Harbor12345".into(),
-        );
-        secret::create(ctx.k8s.clone(), namespace, &credential)
-            .await
-            .map_err(|err| {
-                error!("Create registry credential failed: {:?}", err);
-                ApiError::KubernetesError
-            })?;
-
-        // Patch this credential to default service account
-        service_account::patch(
-            ctx.k8s.clone(),
-            namespace,
-            "default",
-            &credential,
-            true,
-            true,
-        )
-        .await
-        .map_err(|err| {
-            error!("Patch credentials to service account failed: {:?}", err);
-            ApiError::KubernetesError
-        })?;
-
-        Ok(())
-    }
-
     pub async fn create(
         ctx: &State<Arc<Context>>,
         title: String,
@@ -110,12 +68,9 @@ impl PlaybookService {
         let uuid = Uuid::new_v4();
         let namespace = format!("amp-{}", uuid);
 
-        // Init create namespace, credentials and service accounts
-        Self::init(ctx, namespace.as_str()).await?;
-
         let playbook = playbook::create(
             ctx.k8s.clone(),
-            namespace.as_str(),
+            namespace,
             uuid.to_string(),
             title,
             description,

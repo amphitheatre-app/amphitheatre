@@ -68,10 +68,7 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Re
 }
 
 pub async fn add(client: Client, playbook: &Playbook, actor: ActorSpec) -> Result<()> {
-    let namespace = playbook
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-    let api: Api<Playbook> = Api::namespaced(client, namespace.as_str());
+    let api: Api<Playbook> = Api::all(client);
 
     let actor_name = actor.name.clone();
     let mut actors = playbook.spec.actors.clone();

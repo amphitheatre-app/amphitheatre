@@ -69,12 +69,12 @@ pub async fn uninstall(client: Client) -> Result<()> {
 
 pub async fn create(
     client: Client,
-    namespace: &str,
+    namespace: String,
     name: String,
     title: String,
     description: String,
 ) -> Result<Playbook> {
-    let api: Api<Playbook> = Api::namespaced(client.clone(), namespace);
+    let api: Api<Playbook> = Api::all(client.clone());
     let params = PostParams::default();
 
     let mut playbook = Playbook::new(
@@ -82,6 +82,7 @@ pub async fn create(
         PlaybookSpec {
             title,
             description,
+            namespace,
             actors: vec![ActorSpec {
                 name: "amp-example-java".into(),
                 description: "A simple Java example app".into(),
@@ -111,10 +112,7 @@ pub async fn create(
 }
 
 pub async fn patch_status(client: Client, playbook: &Playbook, condition: Condition) -> Result<()> {
-    let namespace = playbook
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-    let api: Api<Playbook> = Api::namespaced(client, namespace.as_str());
+    let api: Api<Playbook> = Api::all(client);
 
     let status = json!({ "status": { "conditions": vec![condition] }});
     let playbook = api

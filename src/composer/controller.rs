@@ -23,7 +23,8 @@ use kube::{Api, Client, Resource, ResourceExt};
 
 use crate::resources::crds::{ActorSpec, Playbook, PlaybookState, PLAYBOOK_RESOURCE_NAME};
 use crate::resources::error::{Error, Result};
-use crate::resources::{actor, playbook};
+use crate::resources::secret::{self, Credential, Kind};
+use crate::resources::{actor, namespace, playbook, service_account};
 
 pub struct Ctx {
     /// Kubernetes client
@@ -42,10 +43,9 @@ impl Ctx {
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Ctx>) -> Result<Action> {
-    let ns = playbook.namespace().unwrap(); // doc is namespace scoped
-    let api: Api<Playbook> = Api::namespaced(ctx.client.clone(), &ns);
+    let api: Api<Playbook> = Api::all(ctx.client.clone());
 
-    tracing::info!("Reconciling Playbook \"{}\" in {}", playbook.name_any(), ns);
+    tracing::info!("Reconciling Playbook \"{}\"", playbook.name_any());
     if playbook.spec.actors.is_empty() {
         return Err(Error::EmptyActorsError);
     }
@@ -70,7 +70,7 @@ impl Playbook {
     pub async fn reconcile(&self, ctx: Arc<Ctx>) -> Result<Action> {
         if let Some(ref status) = self.status {
             if status.pending() {
-                self.start(ctx).await?
+                self.init(ctx).await?
             } else if status.solving() {
                 self.solve(ctx).await?
             } else if status.running() {
@@ -83,8 +83,37 @@ impl Playbook {
         Ok(Action::await_change())
     }
 
-    async fn start(&self, ctx: Arc<Ctx>) -> Result<()> {
-        playbook::patch_status(ctx.client.clone(), self, PlaybookState::solving()).await
+    /// Init create namespace, credentials and service accounts
+    async fn init(&self, ctx: Arc<Ctx>) -> Result<()> {
+        let namespace = &self.spec.namespace;
+
+        // Create namespace for this playbook
+        namespace::create(ctx.client.clone(), namespace.as_str()).await?;
+
+        // Docker registry Credential
+        let credential = Credential::basic(
+            Kind::Image,
+            "harbor.amp-system.svc.cluster.local".into(),
+            "admin".into(),
+            "Harbor12345".into(),
+        );
+
+        secret::create(ctx.client.clone(), namespace, &credential).await?;
+
+        // Patch this credential to default service account
+        service_account::patch(
+            ctx.client.clone(),
+            namespace,
+            "default",
+            &credential,
+            true,
+            true,
+        )
+        .await?;
+
+        playbook::patch_status(ctx.client.clone(), self, PlaybookState::solving()).await?;
+
+        Ok(())
     }
 
     async fn solve(&self, ctx: Arc<Ctx>) -> Result<()> {
