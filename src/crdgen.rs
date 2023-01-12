@@ -12,13 +12,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::fs::OpenOptions;
+use std::io::Write;
+use std::path::Path;
+use std::{env, fs};
+
 use amphitheatre::resources::crds::{Actor, Playbook};
 use kube::CustomResourceExt;
 
 fn main() {
-    print!(
-        "{}\n---\n{}",
-        serde_yaml::to_string(&Playbook::crd()).unwrap(),
-        serde_yaml::to_string(&Actor::crd()).unwrap()
-    )
+    let args: Vec<String> = env::args().collect();
+
+    let playbook_definition = serde_yaml::to_string(&Playbook::crd()).unwrap();
+    let actor_definition = serde_yaml::to_string(&Actor::crd()).unwrap();
+
+    if args.len() == 2 {
+        let dir = Path::new(&args[1]);
+
+        write(&dir.join("playbook.yaml"), playbook_definition);
+        write(&dir.join("actor.yaml"), actor_definition);
+        return;
+    }
+
+    print!("{}\n---\n{}", playbook_definition, actor_definition)
+}
+
+fn write(path: &Path, data: String) {
+    if path.exists() {
+        fs::remove_file(path).unwrap();
+    }
+
+    let mut file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(path)
+        .unwrap();
+
+    if let Err(e) = write!(file, "{}", data) {
+        eprintln!("Couldn't write to file: {}", e);
+    }
 }
