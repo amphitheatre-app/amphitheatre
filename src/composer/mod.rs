@@ -15,22 +15,37 @@
 use std::sync::Arc;
 
 use futures::{future, StreamExt};
+use k8s_openapi::api::core::v1::ObjectReference;
 use kube::api::ListParams;
+use kube::runtime::events::Recorder;
 use kube::runtime::Controller;
-use kube::Api;
+use kube::{Api, Client};
 
-use self::controller::{error_policy, reconcile, Ctx};
 use crate::app::Context;
 use crate::resources::crds::Playbook;
 
-pub mod controller;
+pub mod playbook_controller;
+
+pub struct Ctx {
+    pub client: Client,
+}
+
+impl Ctx {
+    fn recorder(&self, reference: ObjectReference) -> Recorder {
+        Recorder::new(
+            self.client.clone(),
+            "amphitheatre-composer".into(),
+            reference,
+        )
+    }
+}
 
 /// Initialize the controller and shared state (given the crd is installed)
 pub async fn run(ctx: Arc<Context>) {
-    let api = Api::<Playbook>::all(ctx.k8s.clone());
+    let playbook = Api::<Playbook>::all(ctx.k8s.clone());
 
     // Ensure CRD is installed before loop-watching
-    if let Err(e) = api.list(&ListParams::default().limit(1)).await {
+    if let Err(e) = playbook.list(&ListParams::default().limit(1)).await {
         tracing::error!("CRD is not queryable; {e:?}. Is the CRD installed?");
         tracing::info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
         std::process::exit(1);
@@ -40,8 +55,12 @@ pub async fn run(ctx: Arc<Context>) {
         client: ctx.k8s.clone(),
     });
 
-    Controller::new(api, ListParams::default())
-        .run(reconcile, error_policy, context)
+    Controller::new(playbook, ListParams::default())
+        .run(
+            playbook_controller::reconcile,
+            playbook_controller::error_policy,
+            context,
+        )
         .for_each(|_| future::ready(()))
         .await;
 }

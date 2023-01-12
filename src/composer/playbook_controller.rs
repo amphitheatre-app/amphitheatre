@@ -17,29 +17,15 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use kube::runtime::controller::Action;
-use kube::runtime::events::{Event, EventType, Recorder};
+use kube::runtime::events::{Event, EventType};
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
-use kube::{Api, Client, Resource, ResourceExt};
+use kube::{Api, Resource, ResourceExt};
 
+use super::Ctx;
 use crate::resources::crds::{ActorSpec, Playbook, PlaybookState, PLAYBOOK_RESOURCE_NAME};
 use crate::resources::error::{Error, Result};
 use crate::resources::secret::{self, Credential, Kind};
 use crate::resources::{actor, namespace, playbook, service_account};
-
-pub struct Ctx {
-    /// Kubernetes client
-    pub client: Client,
-}
-
-impl Ctx {
-    fn recorder(&self, playbook: &Playbook) -> Recorder {
-        Recorder::new(
-            self.client.clone(),
-            "amphitheatre-composer".into(),
-            playbook.object_ref(&()),
-        )
-    }
-}
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Ctx>) -> Result<Action> {
@@ -156,7 +142,7 @@ impl Playbook {
 
     pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
         // todo add some deletion event logging, db clean up, etc.?
-        let recorder = ctx.recorder(self);
+        let recorder = ctx.recorder(self.object_ref(&()));
         // Doesn't have dependencies in this example case, so we just publish an event
         recorder
             .publish(Event {
