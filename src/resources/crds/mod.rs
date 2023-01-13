@@ -17,3 +17,22 @@ mod playbook;
 
 pub use self::actor::*;
 pub use self::playbook::*;
+
+fn url(repository: &String, reference: &Option<String>, path: &Option<String>) -> String {
+    let mut url = String::from(repository);
+
+    if reference.is_some() || path.is_some() {
+        url.push('#');
+    }
+
+    if let Some(reference) = reference {
+        url.push_str(reference.as_str());
+    }
+
+    if let Some(path) = path {
+        url.push(':');
+        url.push_str(path.as_str());
+    }
+
+    url
+}

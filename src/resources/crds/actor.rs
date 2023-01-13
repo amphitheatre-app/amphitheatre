@@ -23,6 +23,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
+use super::url;
+
 #[derive(CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate)]
 #[kube(
     group = "amphitheatre.app",
@@ -52,7 +54,7 @@ pub struct ActorSpec {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
     /// Git ref the package should be cloned from. eg. master or main
-    pub reference: String,
+    pub reference: Option<String>,
     /// The selected commit of the actor.
     pub commit: String,
     /// Defines environment variables set in the container. Any boolean values:
@@ -76,11 +78,11 @@ pub struct ActorSpec {
 impl ActorSpec {
     #[inline]
     pub fn url(&self) -> String {
-        format!("{}#{}:{:?}", self.repository, self.reference, self.path)
+        url(&self.repository, &self.reference, &self.path)
     }
 }
 
-#[derive(Default, Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[derive(Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Eq, Hash, PartialEq)]
 pub struct Partner {
     /// The name of the character.
     pub name: String,
@@ -91,13 +93,13 @@ pub struct Partner {
     /// eg. getting-started/amp.toml. default is `./.amp.toml`.
     pub path: Option<String>,
     /// Git ref the package should be cloned from. eg. master or main
-    pub reference: String,
+    pub reference: Option<String>,
 }
 
 impl Partner {
     #[inline]
     pub fn url(&self) -> String {
-        format!("{}#{}:{:?}", self.repository, self.reference, self.path)
+        url(&self.repository, &self.reference, &self.path)
     }
 }
 

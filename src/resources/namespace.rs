@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use k8s_openapi::api::core::v1::Namespace;
-use kube::api::PostParams;
+use kube::api::{DeleteParams, PostParams};
 use kube::{Api, Client};
 use serde_json::{from_value, json};
 
@@ -47,4 +47,17 @@ pub async fn create(client: Client, name: &String) -> Result<Namespace> {
         .map_err(Error::KubeError)?;
 
     Ok(namespace)
+}
+
+pub async fn delete(client: Client, name: String) -> Result<()> {
+    let api: Api<Namespace> = Api::all(client);
+    let params = DeleteParams::default();
+
+    // Ignore delete error if not exists
+    let _ = api.delete(&name, &params).await.map(|res| {
+        res.map_left(|o| tracing::info!("Deleting namespace: {:?}", o.status))
+            .map_right(|s| tracing::info!("Deleted namespace: {:?}", s));
+    });
+
+    Ok(())
 }

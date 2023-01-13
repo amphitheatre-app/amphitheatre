@@ -90,12 +90,12 @@ pub async fn create(
                 description: "A simple Java example app".into(),
                 image: "amp-example-java".into(),
                 repository: "https://github.com/amphitheatre-app/amp-example-java".into(),
-                reference: "master".into(),
+                reference: Some("master".into()),
                 commit: "875db185acc8bf7c7effc389a350cae7aa926e57".into(),
                 partners: Some(vec![Partner {
                     name: "amp-example-nodejs".into(),
                     repository: "https://github.com/amphitheatre-app/amp-example-nodejs.git".into(),
-                    reference: "master".into(),
+                    reference: Some("master".into()),
                     ..Partner::default()
                 }]),
                 ..ActorSpec::default()

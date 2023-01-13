@@ -22,7 +22,7 @@ use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 
 use super::Ctx;
-use crate::resources::crds::{ActorSpec, Playbook, PlaybookState};
+use crate::resources::crds::{ActorSpec, Partner, Playbook, PlaybookState};
 use crate::resources::error::{Error, Result};
 use crate::resources::secret::{self, Credential, Kind};
 use crate::resources::{actor, namespace, playbook, service_account};
@@ -104,28 +104,27 @@ impl Playbook {
     }
 
     async fn solve(&self, ctx: Arc<Ctx>) -> Result<()> {
-        let exists: HashSet<String> = self.spec.actors.iter().map(|a| a.url()).collect();
-        let mut fetches: HashSet<String> = HashSet::new();
+        let exists: HashSet<String> = self.spec.actors.iter().map(|actor| actor.url()).collect();
 
+        let mut fetches: HashSet<Partner> = HashSet::new();
         for actor in &self.spec.actors {
             if let Some(partners) = &actor.partners {
                 for partner in partners {
-                    let url = partner.url();
-                    if exists.contains(&url) {
+                    if exists.contains(&partner.url()) {
                         continue;
                     }
-                    fetches.insert(url);
+                    fetches.insert(partner.clone());
                 }
             }
         }
 
-        for url in fetches.iter() {
-            tracing::info!("fetches url: {}", url);
-            let actor = read_partner(url);
+        tracing::info!("exists urls are:\n{exists:#?}\nand fetches are: {fetches:#?}");
+
+        for partner in fetches.iter() {
+            tracing::info!("fetches url: {}", partner.url());
+            let actor = read_partner(partner);
             actor::add(ctx.client.clone(), self, actor).await?;
         }
-
-        tracing::info!("fetches length: {}", fetches.len());
 
         if fetches.is_empty() {
             playbook::patch_status(ctx.client.clone(), self, PlaybookState::ready()).await?;
@@ -143,9 +142,8 @@ impl Playbook {
     }
 
     pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
-        // todo add some deletion event logging, db clean up, etc.?
+        namespace::delete(ctx.client.clone(), self.spec.namespace.clone()).await?;
         let recorder = ctx.recorder(self.object_ref(&()));
-        // Doesn't have dependencies in this example case, so we just publish an event
         recorder
             .publish(Event {
                 type_: EventType::Normal,
@@ -160,13 +158,14 @@ impl Playbook {
     }
 }
 
-fn read_partner(url: &String) -> ActorSpec {
+fn read_partner(partner: &Partner) -> ActorSpec {
     ActorSpec {
-        name: "amp-example-nodejs".into(),
+        name: partner.name.clone(),
         description: "A simple NodeJs example app".into(),
         image: "amp-example-nodejs".into(),
-        repository: url.into(),
-        reference: "master".into(),
+        repository: partner.repository.clone(),
+        reference: partner.reference.clone(),
+        path: partner.path.clone(),
         commit: "285ef2bc98fb6b3db46a96b6a750fad2d0c566b5".into(),
         ..ActorSpec::default()
     }
