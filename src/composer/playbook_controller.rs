@@ -104,16 +104,17 @@ impl Playbook {
     }
 
     async fn solve(&self, ctx: Arc<Ctx>) -> Result<()> {
-        let exists: HashSet<String> = self.spec.actors.iter().map(|a| a.repo.clone()).collect();
+        let exists: HashSet<String> = self.spec.actors.iter().map(|a| a.url()).collect();
         let mut fetches: HashSet<String> = HashSet::new();
 
         for actor in &self.spec.actors {
             if let Some(partners) = &actor.partners {
-                for repo in partners {
-                    if exists.contains(repo) {
+                for partner in partners {
+                    let url = partner.url();
+                    if exists.contains(&url) {
                         continue;
                     }
-                    fetches.insert(repo.to_string());
+                    fetches.insert(url);
                 }
             }
         }
@@ -164,12 +165,9 @@ fn read_partner(url: &String) -> ActorSpec {
         name: "amp-example-nodejs".into(),
         description: "A simple NodeJs example app".into(),
         image: "amp-example-nodejs".into(),
-        repo: url.into(),
-        path: ".".into(),
+        repository: url.into(),
         reference: "master".into(),
         commit: "285ef2bc98fb6b3db46a96b6a750fad2d0c566b5".into(),
-        environment: None,
-        partners: None,
-        services: None,
+        ..ActorSpec::default()
     }
 }

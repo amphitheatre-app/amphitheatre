@@ -47,7 +47,7 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Re
             },
             "source": {
                 "git": {
-                    "url": actor.repo,
+                    "url": actor.repository,
                     "revision": actor.commit,
                 },
                 "subPath": actor.path,

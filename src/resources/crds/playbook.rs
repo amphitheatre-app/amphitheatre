@@ -24,7 +24,7 @@ use validator::Validate;
 
 use super::actor::ActorSpec;
 
-#[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate)]
+#[derive(CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate)]
 #[kube(
     group = "amphitheatre.app",
     version = "v1",

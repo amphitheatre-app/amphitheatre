@@ -23,7 +23,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-#[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate)]
+#[derive(CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate)]
 #[kube(
     group = "amphitheatre.app",
     version = "v1",
@@ -32,7 +32,7 @@ use validator::Validate;
     namespaced
 )]
 pub struct ActorSpec {
-    /// The title of the actor.
+    /// The name of the actor.
     pub name: String,
     /// The description of the actor.
     pub description: String,
@@ -40,33 +40,75 @@ pub struct ActorSpec {
     /// the Open Container Specification addressable image format.
     /// such as: [<registry>/][<project>/]<image>[:<tag>|@<digest>].
     pub image: String,
-    /// Git repository the package should be cloned from.
+    /// overrides the default command declared by the container image
+    /// (i.e. by Dockerfile’s CMD)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    /// Source code repository the package should be cloned from.
     /// e.g. https://github.com/amphitheatre-app/amphitheatre.git.
-    pub repo: String,
+    pub repository: String,
     /// Relative path from the repo root to the configuration file.
-    /// eg. getting-started/amp.yaml.
-    pub path: String,
+    /// eg. getting-started/.amp.toml. default is `./.amp.toml`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
     /// Git ref the package should be cloned from. eg. master or main
     pub reference: String,
     /// The selected commit of the actor.
     pub commit: String,
-
+    /// Defines environment variables set in the container. Any boolean values:
+    /// true, false, yes, no, SHOULD be enclosed in quotes to ensure they are
+    /// not converted to True or False by the YAML parser.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub environment: Option<HashMap<String, String>>,
-
+    pub environments: Option<HashMap<String, String>>,
+    /// Depend on other partners from other repositories, or subdirectories on
+    /// your local file system.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub partners: Option<Vec<String>>,
-
+    pub partners: Option<Vec<Partner>>,
+    /// Defines the behavior of a service
     #[serde(skip_serializing_if = "Option::is_none")]
     pub services: Option<Vec<Service>>,
+    /// sync mode, if enabled, pulls the latest code from source version
+    /// control in real time via Webhook, etc. and then rebuilds and deploys it
+    #[serde(default)]
+    pub sync: bool,
 }
 
+impl ActorSpec {
+    #[inline]
+    pub fn url(&self) -> String {
+        format!("{}#{}:{:?}", self.repository, self.reference, self.path)
+    }
+}
+
+#[derive(Default, Deserialize, Serialize, Clone, Debug, JsonSchema)]
+pub struct Partner {
+    /// The name of the character.
+    pub name: String,
+    /// Source code repository the package should be cloned from.
+    /// e.g. https://github.com/amphitheatre-app/amphitheatre.git.
+    pub repository: String,
+    /// Relative path from the repo root to the configuration file.
+    /// eg. getting-started/amp.toml. default is `./.amp.toml`.
+    pub path: Option<String>,
+    /// Git ref the package should be cloned from. eg. master or main
+    pub reference: String,
+}
+
+impl Partner {
+    #[inline]
+    pub fn url(&self) -> String {
+        format!("{}#{}:{:?}", self.repository, self.reference, self.path)
+    }
+}
+
+/// Defines the behavior of a service
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 pub struct Service {
     pub kind: String,
     pub ports: Vec<Port>,
 }
 
+/// List of ports to expose from the container.
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 pub struct Port {
     pub port: u32,

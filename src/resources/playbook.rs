@@ -24,6 +24,7 @@ use tokio::time::sleep;
 
 use super::crds::{ActorSpec, Playbook, PlaybookSpec, PlaybookState};
 use super::error::{Error, Result};
+use crate::resources::crds::Partner;
 
 pub async fn install(client: Client) -> Result<()> {
     let api: Api<CustomResourceDefinition> = Api::all(client);
@@ -84,21 +85,22 @@ pub async fn create(
             title,
             description,
             namespace,
-            sync: false,
             actors: vec![ActorSpec {
                 name: "amp-example-java".into(),
                 description: "A simple Java example app".into(),
                 image: "amp-example-java".into(),
-                repo: "https://github.com/amphitheatre-app/amp-example-java".into(),
-                path: ".".into(),
+                repository: "https://github.com/amphitheatre-app/amp-example-java".into(),
                 reference: "master".into(),
                 commit: "875db185acc8bf7c7effc389a350cae7aa926e57".into(),
-                environment: None,
-                partners: Some(vec![
-                    "https://github.com/amphitheatre-app/amp-example-nodejs.git".to_string(),
-                ]),
-                services: None,
+                partners: Some(vec![Partner {
+                    name: "amp-example-nodejs".into(),
+                    repository: "https://github.com/amphitheatre-app/amp-example-nodejs.git".into(),
+                    reference: "master".into(),
+                    ..Partner::default()
+                }]),
+                ..ActorSpec::default()
             }],
+            ..PlaybookSpec::default()
         },
     );
 
