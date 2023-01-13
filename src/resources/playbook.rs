@@ -84,6 +84,7 @@ pub async fn create(
             title,
             description,
             namespace,
+            sync: false,
             actors: vec![ActorSpec {
                 name: "amp-example-java".into(),
                 description: "A simple Java example app".into(),

@@ -32,10 +32,17 @@ use super::actor::ActorSpec;
     status = "PlaybookStatus"
 )]
 pub struct PlaybookSpec {
+    /// The title of the playbook
     pub title: String,
+    /// The description of the playbook
     pub description: String,
+    /// Namespace for its managed resources and Actor deployment instances
     pub namespace: String,
-
+    /// Global sync mode, if enabled, pulls the latest code from source version
+    /// control in real time via Webhook, etc. and then rebuilds and deploys it
+    #[serde(default)]
+    pub sync: bool,
+    /// All the actors involved in this playbook
     #[validate(length(min = 1))]
     pub actors: Vec<ActorSpec>,
 }
