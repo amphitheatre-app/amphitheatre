@@ -25,7 +25,6 @@ use crate::resources::error::Error;
 
 pub async fn create(client: Client, name: &String) -> Result<Namespace> {
     let api: Api<Namespace> = Api::all(client);
-    let params = PatchParams::apply("amp-composer");
 
     let resource = Namespace {
         metadata: ObjectMeta {
@@ -42,7 +41,11 @@ pub async fn create(client: Client, name: &String) -> Result<Namespace> {
     tracing::debug!("The namespace resource:\n {:#?}\n", to_string(&resource));
 
     let namespace = api
-        .patch(name, &params, &Patch::Apply(&resource))
+        .patch(
+            name,
+            &PatchParams::apply("amp-composer"),
+            &Patch::Apply(&resource),
+        )
         .await
         .map_err(Error::KubeError)?;
 

@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::Display;
 
 use k8s_openapi::api::core::v1::Secret;
-use kube::api::PostParams;
-use kube::{Api, Client};
-use serde_json::{from_value, json};
+use kube::api::{Patch, PatchParams};
+use kube::core::ObjectMeta;
+use kube::{Api, Client, ResourceExt};
+use serde_json::to_string;
 
 use super::error::{Error, Result};
 
@@ -97,43 +98,57 @@ impl Credential {
     pub fn name(&self) -> String {
         format!("{}-{}-secret", self.kind, self.location).to_lowercase()
     }
+
+    pub fn username_any(&self) -> String {
+        self.username.clone().unwrap_or_default()
+    }
+
+    pub fn password_any(&self) -> String {
+        self.password.clone().unwrap_or_default()
+    }
+
+    pub fn token_any(&self) -> String {
+        self.token.clone().unwrap_or_default()
+    }
 }
 
 pub async fn create(client: Client, namespace: String, credential: &Credential) -> Result<Secret> {
     let api: Api<Secret> = Api::namespaced(client, &namespace);
-    let params = PostParams::default();
 
-    let annotations = HashMap::from([(credential.kind.schema_name(), credential.location.clone())]);
+    let annotations =
+        BTreeMap::from([(credential.kind.schema_name(), credential.location.clone())]);
 
     let data = match credential.auth {
-        Authorization::Basic => HashMap::from([
-            ("username", credential.username.clone()),
-            ("password", credential.password.clone()),
+        Authorization::Basic => BTreeMap::from([
+            ("username".to_string(), credential.username_any()),
+            ("password".to_string(), credential.username_any()),
         ]),
-        Authorization::Token => HashMap::from([("ssh-privatekey", credential.token.clone())]),
+        Authorization::Token => {
+            BTreeMap::from([("ssh-privatekey".to_string(), credential.token_any())])
+        }
     };
 
-    let mut secret = from_value(json!({
-        "apiVersion": "v1",
-        "kind": "Secret",
-        "metadata": {
-            "name": credential.name(),
-            "annotations": annotations,
+    let resource = Secret {
+        metadata: ObjectMeta {
+            name: Some(credential.name()),
+            annotations: Some(annotations),
+            ..ObjectMeta::default()
         },
-        "type": credential.auth.schema_name(),
-        "stringData": data,
-    }))
-    .map_err(Error::SerializationError)?;
+        type_: Some(credential.auth.schema_name()),
+        string_data: Some(data),
+        ..Secret::default()
+    };
+    tracing::debug!("The secret resource:\n {:#?}\n", to_string(&resource));
 
-    tracing::info!(
-        "created secret resource: {:#?}",
-        serde_yaml::to_string(&secret)
-    );
-
-    secret = api
-        .create(&params, &secret)
+    let secret = api
+        .patch(
+            &credential.name(),
+            &PatchParams::apply("amp-composer"),
+            &Patch::Apply(&resource),
+        )
         .await
         .map_err(Error::KubeError)?;
 
+    tracing::info!("Added Secret {:?}", secret.name_any());
     Ok(secret)
 }
