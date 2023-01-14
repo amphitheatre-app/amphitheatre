@@ -12,40 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::BTreeMap;
+
 use k8s_openapi::api::core::v1::Namespace;
-use kube::api::{DeleteParams, PostParams};
-use kube::{Api, Client};
-use serde_json::{from_value, json};
+use kube::api::{DeleteParams, Patch, PatchParams};
+use kube::core::ObjectMeta;
+use kube::{Api, Client, ResourceExt};
+use serde_json::to_string;
 
 use super::error::Result;
 use crate::resources::error::Error;
 
 pub async fn create(client: Client, name: &String) -> Result<Namespace> {
     let api: Api<Namespace> = Api::all(client);
-    let params = PostParams::default();
+    let params = PatchParams::apply("amp-composer");
 
-    let mut namespace = from_value(json!({
-        "apiVersion": "v1",
-        "kind": "Namespace",
-        "metadata": {
-            "name": name,
-            "labels": {
-                "app.kubernetes.io/managed-by": "Amphitheatre"
-            }
-        }
-    }))
-    .map_err(Error::SerializationError)?;
+    let resource = Namespace {
+        metadata: ObjectMeta {
+            name: Some(name.to_owned()),
+            // owner_references: todo!(),
+            labels: Some(BTreeMap::from([(
+                "app.kubernetes.io/managed-by".into(),
+                "Amphitheatre".into(),
+            )])),
+            ..ObjectMeta::default()
+        },
+        ..Namespace::default()
+    };
+    tracing::debug!("The namespace resource:\n {:#?}\n", to_string(&resource));
 
-    tracing::info!(
-        "created namespace resource: {:#?}",
-        serde_yaml::to_string(&namespace)
-    );
-
-    namespace = api
-        .create(&params, &namespace)
+    let namespace = api
+        .patch(name, &params, &Patch::Apply(&resource))
         .await
         .map_err(Error::KubeError)?;
 
+    tracing::info!("Added Namespace {:?}", namespace.name_any());
     Ok(namespace)
 }
 
