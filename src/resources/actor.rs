@@ -17,27 +17,64 @@ use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::{DynamicObject, GroupVersionKind};
 use kube::discovery::ApiResource;
 use kube::{Api, Client, ResourceExt};
-use serde_json::{from_value, json};
+use serde_json::{from_value, json, to_string};
 
 use super::crds::{Actor, ActorSpec};
 use super::deployment;
 use super::error::{Error, Result};
 use crate::resources::crds::ActorState;
 
+pub async fn exists(client: Client, namespace: String, name: String) -> Result<bool> {
+    let api: Api<Actor> = Api::namespaced(client, namespace.as_str());
+    Ok(api
+        .get_opt(&name)
+        .await
+        .map_err(Error::KubeError)?
+        .is_some())
+}
+
 pub async fn create(client: Client, namespace: String, spec: ActorSpec) -> Result<Actor> {
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
-    let params = PostParams::default();
 
-    let mut actor = Actor::new(&spec.name.clone(), spec);
-    tracing::info!("{:#?}", serde_yaml::to_string(&actor));
+    let resource = Actor::new(&spec.name.clone(), spec);
+    tracing::debug!("The actor resource:\n {:#?}\n", to_string(&resource));
 
-    actor = api
-        .create(&params, &actor)
+    let actor = api
+        .create(&PostParams::default(), &resource)
         .await
         .map_err(Error::KubeError)?;
 
     // Patch this actor as initial Pending status
     patch_status(client.clone(), &actor, ActorState::pending()).await?;
+    Ok(actor)
+}
+
+pub async fn update(client: Client, namespace: String, spec: ActorSpec) -> Result<Actor> {
+    let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
+
+    let name = spec.name.clone();
+    let mut actor = api.get(&name).await.map_err(Error::KubeError)?;
+    tracing::debug!("The Actor {} was existed: {:#?}", &spec.name, actor);
+
+    if actor.spec != spec {
+        let resource = Actor::new(&name, spec);
+        tracing::debug!(
+            "The updated actor resource:\n {:#?}\n",
+            to_string(&resource)
+        );
+
+        actor = api
+            .patch(
+                &name,
+                &PatchParams::apply("amp-composer"),
+                &Patch::Apply(&resource),
+            )
+            .await
+            .map_err(Error::KubeError)?;
+
+        tracing::info!("Updated Actor {:?}", actor.name_any());
+    }
+
     Ok(actor)
 }
 

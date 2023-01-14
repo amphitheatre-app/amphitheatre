@@ -125,7 +125,12 @@ impl Playbook {
         }
 
         if fetches.is_empty() {
-            playbook::patch_status(ctx.client.clone(), self, PlaybookState::ready()).await?;
+            playbook::patch_status(
+                ctx.client.clone(),
+                self,
+                PlaybookState::running(true, "AutoRun", None),
+            )
+            .await?;
         }
 
         Ok(())
@@ -133,12 +138,32 @@ impl Playbook {
 
     async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
         for spec in &self.spec.actors {
-            actor::create(
+            match actor::exists(
                 ctx.client.clone(),
                 self.spec.namespace.clone(),
-                spec.clone(),
+                spec.name.clone(),
             )
-            .await?;
+            .await?
+            {
+                // Actor already exists, update it if there are new changes
+                true => {
+                    actor::update(
+                        ctx.client.clone(),
+                        self.spec.namespace.clone(),
+                        spec.clone(),
+                    )
+                    .await?;
+                }
+                // Create a new actor
+                false => {
+                    actor::create(
+                        ctx.client.clone(),
+                        self.spec.namespace.clone(),
+                        spec.clone(),
+                    )
+                    .await?;
+                }
+            }
         }
         Ok(())
     }

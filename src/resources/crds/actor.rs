@@ -25,7 +25,9 @@ use validator::Validate;
 
 use super::url;
 
-#[derive(CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate)]
+#[derive(
+    CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate, PartialEq,
+)]
 #[kube(
     group = "amphitheatre.app",
     version = "v1",
@@ -107,7 +109,7 @@ impl Partner {
 }
 
 /// Defines the behavior of a service
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub struct Service {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
@@ -115,7 +117,7 @@ pub struct Service {
 }
 
 /// List of ports to expose from the container.
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub struct Port {
     pub port: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
