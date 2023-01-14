@@ -12,18 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::{DynamicObject, GroupVersionKind};
 use kube::discovery::ApiResource;
 use kube::{Api, Client, ResourceExt};
 use serde_json::{from_value, json};
 
-use super::crds::{ActorSpec, Playbook};
+use super::crds::{Actor, ActorSpec};
 use super::deployment;
 use super::error::{Error, Result};
+use crate::resources::crds::ActorState;
 
-pub async fn build(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Result<()> {
-    let namespace = playbook
+pub async fn create(client: Client, namespace: String, spec: ActorSpec) -> Result<Actor> {
+    let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
+    let params = PostParams::default();
+
+    let mut actor = Actor::new(&spec.name.clone(), spec);
+    tracing::info!("{:#?}", serde_yaml::to_string(&actor));
+
+    actor = api
+        .create(&params, &actor)
+        .await
+        .map_err(Error::KubeError)?;
+
+    // Patch this actor as initial Pending status
+    patch_status(client.clone(), &actor, ActorState::pending()).await?;
+    Ok(actor)
+}
+
+pub async fn build(client: Client, actor: &Actor) -> Result<()> {
+    let namespace = actor
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
 
@@ -36,10 +55,10 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Re
         "apiVersion": "kpack.io/v1alpha2",
         "kind": "Image",
         "metadata": {
-            "name": format!("{}-{}", actor.name, actor.commit),
+            "name": format!("{}-{}", actor.spec.name, actor.spec.commit),
         },
         "spec": {
-            "tag": format!("harbor.amp-system.svc.cluster.local/library/{}:{}", actor.image, actor.commit),
+            "tag": format!("harbor.amp-system.svc.cluster.local/library/{}:{}", actor.spec.image, actor.spec.commit),
             "serviceAccountName": "default",
             "builder": {
                 "name": "amp-default-cluster-builder",
@@ -47,10 +66,10 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Re
             },
             "source": {
                 "git": {
-                    "url": actor.repository,
-                    "revision": actor.commit,
+                    "url": actor.spec.repository,
+                    "revision": actor.spec.commit,
                 },
-                "subPath": actor.path,
+                "subPath": actor.spec.path,
             }
         }
     }))
@@ -67,33 +86,33 @@ pub async fn build(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Re
     Ok(())
 }
 
-pub async fn add(client: Client, playbook: &Playbook, actor: ActorSpec) -> Result<()> {
-    let api: Api<Playbook> = Api::all(client);
+pub async fn deploy(client: Client, actor: &Actor) -> Result<()> {
+    // Create Deployment resource for this actor
+    deployment::create(client, actor).await?;
 
-    let actor_name = actor.name.clone();
-    let mut actors = playbook.spec.actors.clone();
-    actors.push(actor);
-
-    let patch = json!({"spec": { "actors": actors }});
-    let playbook = api
-        .patch(
-            playbook.name_any().as_str(),
-            &PatchParams::apply("amp-composer"),
-            &Patch::Merge(&patch),
-        )
-        .await
-        .map_err(Error::KubeError)?;
-
-    tracing::info!("Added actor {:?} for {}", actor_name, playbook.name_any());
+    // TODO: Create Service resource if needed.
 
     Ok(())
 }
 
-pub async fn deploy(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Result<()> {
-    // Create Deployment resource for this actor
-    deployment::create(client, playbook, actor).await?;
+pub async fn patch_status(client: Client, actor: &Actor, condition: Condition) -> Result<()> {
+    let namespace = actor
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
 
-    // TODO: Create Service resource if needed.
+    let api: Api<Actor> = Api::namespaced(client, &namespace);
+
+    let status = json!({ "status": { "conditions": vec![condition] }});
+    let actor = api
+        .patch_status(
+            actor.name_any().as_str(),
+            &PatchParams::default(),
+            &Patch::Merge(&status),
+        )
+        .await
+        .map_err(Error::KubeError)?;
+
+    tracing::info!("Patched status {:?} for {}", actor.status, actor.name_any());
 
     Ok(())
 }

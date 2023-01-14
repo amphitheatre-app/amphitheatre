@@ -95,7 +95,6 @@ pub async fn create(
                 partners: Some(vec![Partner {
                     name: "amp-example-nodejs".into(),
                     repository: "https://github.com/amphitheatre-app/amp-example-nodejs.git".into(),
-                    reference: Some("master".into()),
                     ..Partner::default()
                 }]),
                 ..ActorSpec::default()
@@ -113,6 +112,28 @@ pub async fn create(
     // Patch this playbook as initial Pending status
     patch_status(client.clone(), &playbook, PlaybookState::pending()).await?;
     Ok(playbook)
+}
+
+pub async fn add(client: Client, playbook: &Playbook, actor: ActorSpec) -> Result<()> {
+    let api: Api<Playbook> = Api::all(client);
+
+    let actor_name = actor.name.clone();
+    let mut actors = playbook.spec.actors.clone();
+    actors.push(actor);
+
+    let patch = json!({"spec": { "actors": actors }});
+    let playbook = api
+        .patch(
+            playbook.name_any().as_str(),
+            &PatchParams::apply("amp-composer"),
+            &Patch::Merge(&patch),
+        )
+        .await
+        .map_err(Error::KubeError)?;
+
+    tracing::info!("Added actor {:?} for {}", actor_name, playbook.name_any());
+
+    Ok(())
 }
 
 pub async fn patch_status(client: Client, playbook: &Playbook, condition: Condition) -> Result<()> {

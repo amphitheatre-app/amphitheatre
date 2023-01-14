@@ -21,6 +21,7 @@ use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 
 use super::Ctx;
+use crate::resources::actor;
 use crate::resources::crds::Actor;
 use crate::resources::error::{Error, Result};
 
@@ -58,23 +59,24 @@ impl Actor {
             } else if status.running() {
                 self.run(ctx).await?
             }
-        } else {
-            tracing::debug!("Waiting for ActorStatus to be reported, not starting yet");
         }
 
         Ok(Action::await_change())
     }
 
     async fn init(&self, ctx: Arc<Ctx>) -> Result<()> {
-        todo!()
+        Ok(())
     }
 
     async fn build(&self, ctx: Arc<Ctx>) -> Result<()> {
-        todo!()
+        actor::build(ctx.client.clone(), self).await?;
+
+        Ok(())
     }
 
     async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
-        todo!()
+        actor::deploy(ctx.client.clone(), self).await?;
+        Ok(())
     }
 
     pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {

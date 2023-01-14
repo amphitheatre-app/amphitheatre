@@ -63,8 +63,6 @@ impl Playbook {
             } else if status.running() {
                 self.run(ctx).await?
             }
-        } else {
-            tracing::debug!("Waiting for PlaybookStatus to be reported, not starting yet");
         }
 
         Ok(Action::await_change())
@@ -123,7 +121,7 @@ impl Playbook {
         for partner in fetches.iter() {
             tracing::info!("fetches url: {}", partner.url());
             let actor = read_partner(partner);
-            actor::add(ctx.client.clone(), self, actor).await?;
+            playbook::add(ctx.client.clone(), self, actor).await?;
         }
 
         if fetches.is_empty() {
@@ -134,9 +132,13 @@ impl Playbook {
     }
 
     async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
-        for actor in &self.spec.actors {
-            actor::build(ctx.client.clone(), self, actor).await?;
-            actor::deploy(ctx.client.clone(), self, actor).await?;
+        for spec in &self.spec.actors {
+            actor::create(
+                ctx.client.clone(),
+                self.spec.namespace.clone(),
+                spec.clone(),
+            )
+            .await?;
         }
         Ok(())
     }

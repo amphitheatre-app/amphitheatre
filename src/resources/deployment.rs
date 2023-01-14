@@ -12,50 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
+
 use k8s_openapi::api::apps::v1::Deployment;
 use kube::api::PostParams;
-use kube::{Api, Client, ResourceExt};
+use kube::{Api, Client};
 use serde_json::{from_value, json};
 
-use super::crds::{ActorSpec, Playbook};
+use super::crds::Actor;
 use super::error::Result;
 use crate::resources::error::Error;
 
-pub async fn create(client: Client, playbook: &Playbook, actor: &ActorSpec) -> Result<Deployment> {
+pub async fn create(client: Client, actor: &Actor) -> Result<Deployment> {
     let api: Api<Deployment> = Api::all(client);
     let params = PostParams::default();
+
+    let labels = HashMap::from([
+        ("app.kubernetes.io/name", actor.spec.name.as_str()),
+        ("app.kubernetes.io/managed-by", "Amphitheatre"),
+    ]);
 
     let mut deployment = from_value(json!({
       "apiVersion": "apps/v1",
       "kind": "Deployment",
       "metadata": {
-        "name": actor.name,
-        "labels": {
-          "app.kubernetes.io/name": actor.name,
-          "app.kubernetes.io/instance": playbook.name_any(),
-          "app.kubernetes.io/managed-by": "Amphitheatre"
-        }
+        "name": actor.spec.name,
+        "labels": labels
       },
       "spec": {
         "replicas": 1,
         "selector": {
-          "matchLabels": {
-            "app.kubernetes.io/name": actor.name,
-            "app.kubernetes.io/instance": playbook.name_any()
-          }
+          "matchLabels": labels
         },
         "template": {
           "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": actor.name,
-              "app.kubernetes.io/instance": playbook.name_any()
-            }
+            "labels": labels
           },
           "spec": {
             "containers": [
               {
-                "name": actor.name,
-                "image": actor.image,
+                "name": actor.spec.name,
+                "image": actor.spec.image,
                 "imagePullPolicy": "IfNotPresent",
               }
             ]

@@ -40,8 +40,8 @@ pub struct PlaybookSpec {
     pub namespace: String,
     /// Global sync mode, if enabled, pulls the latest code from source version
     /// control in real time via Webhook, etc. and then rebuilds and deploys it
-    #[serde(default)]
-    pub sync: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sync: Option<bool>,
     /// All the actors involved in this playbook
     #[validate(length(min = 1))]
     pub actors: Vec<ActorSpec>,

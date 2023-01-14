@@ -54,6 +54,7 @@ pub struct ActorSpec {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
     /// Git ref the package should be cloned from. eg. master or main
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reference: Option<String>,
     /// The selected commit of the actor.
     pub commit: String,
@@ -71,8 +72,8 @@ pub struct ActorSpec {
     pub services: Option<Vec<Service>>,
     /// sync mode, if enabled, pulls the latest code from source version
     /// control in real time via Webhook, etc. and then rebuilds and deploys it
-    #[serde(default)]
-    pub sync: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sync: Option<bool>,
 }
 
 impl ActorSpec {
@@ -91,8 +92,10 @@ pub struct Partner {
     pub repository: String,
     /// Relative path from the repo root to the configuration file.
     /// eg. getting-started/amp.toml. default is `./.amp.toml`.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
     /// Git ref the package should be cloned from. eg. master or main
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reference: Option<String>,
 }
 
@@ -106,7 +109,8 @@ impl Partner {
 /// Defines the behavior of a service
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 pub struct Service {
-    pub kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
     pub ports: Vec<Port>,
 }
 
@@ -114,8 +118,10 @@ pub struct Service {
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 pub struct Port {
     pub port: u32,
-    pub protocol: String,
-    pub expose: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub protocol: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expose: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
