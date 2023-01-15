@@ -63,21 +63,24 @@ pub async fn run(ctx: Arc<Context>) {
         client: ctx.k8s.clone(),
     });
 
-    Controller::new(playbook, ListParams::default())
+    let playbook_ctrl = Controller::new(playbook, ListParams::default())
         .run(
             playbook_controller::reconcile,
             playbook_controller::error_policy,
             context.clone(),
         )
-        .for_each(|_| future::ready(()))
-        .await;
+        .for_each(|_| future::ready(()));
 
-    Controller::new(actor, ListParams::default())
+    let actor_ctrl = Controller::new(actor, ListParams::default())
         .run(
             actor_controller::reconcile,
             actor_controller::error_policy,
             context.clone(),
         )
-        .for_each(|_| future::ready(()))
-        .await;
+        .for_each(|_| future::ready(()));
+
+    tokio::select! {
+        _ = playbook_ctrl => tracing::warn!("playbook controller exited"),
+        _ = actor_ctrl => tracing::warn!("actor controller exited"),
+    }
 }
