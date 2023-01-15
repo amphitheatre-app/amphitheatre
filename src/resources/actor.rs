@@ -14,10 +14,8 @@
 
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{Patch, PatchParams, PostParams};
-use kube::core::{DynamicObject, GroupVersionKind};
-use kube::discovery::ApiResource;
 use kube::{Api, Client, ResourceExt};
-use serde_json::{from_value, json, to_string};
+use serde_json::json;
 
 use super::crds::{Actor, ActorSpec};
 use super::deployment;
@@ -37,12 +35,14 @@ pub async fn create(client: Client, namespace: String, spec: ActorSpec) -> Resul
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
 
     let resource = Actor::new(&spec.name.clone(), spec);
-    tracing::debug!("The actor resource:\n {:#?}\n", to_string(&resource));
+    tracing::debug!("The actor resource:\n {:#?}\n", resource);
 
     let actor = api
         .create(&PostParams::default(), &resource)
         .await
         .map_err(Error::KubeError)?;
+
+    tracing::info!("Created actor:\n {:#?}\n", actor.name_any());
 
     // Patch this actor as initial Pending status
     patch_status(client.clone(), &actor, ActorState::pending()).await?;
@@ -54,14 +54,11 @@ pub async fn update(client: Client, namespace: String, spec: ActorSpec) -> Resul
 
     let name = spec.name.clone();
     let mut actor = api.get(&name).await.map_err(Error::KubeError)?;
-    tracing::debug!("The Actor {} was existed: {:#?}", &spec.name, actor);
+    tracing::debug!("The Actor {} already exists: {:#?}", &spec.name, actor);
 
     if actor.spec != spec {
         let resource = Actor::new(&name, spec);
-        tracing::debug!(
-            "The updated actor resource:\n {:#?}\n",
-            to_string(&resource)
-        );
+        tracing::debug!("The updated actor resource:\n {:#?}\n", resource);
 
         actor = api
             .patch(
@@ -72,55 +69,10 @@ pub async fn update(client: Client, namespace: String, spec: ActorSpec) -> Resul
             .await
             .map_err(Error::KubeError)?;
 
-        tracing::info!("Updated Actor {:?}", actor.name_any());
+        tracing::info!("Updated actor:\n {:#?}\n", actor.name_any());
     }
 
     Ok(actor)
-}
-
-pub async fn build(client: Client, actor: &Actor) -> Result<()> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-
-    let gvk = GroupVersionKind::gvk("kpack.io", "v1alpha2", "Image");
-    let ar = ApiResource::from_gvk(&gvk);
-    let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &ar);
-
-    let params = PostParams::default();
-    let resource = from_value(json!({
-        "apiVersion": "kpack.io/v1alpha2",
-        "kind": "Image",
-        "metadata": {
-            "name": format!("{}-{}", actor.spec.name, actor.spec.commit),
-        },
-        "spec": {
-            "tag": format!("harbor.amp-system.svc.cluster.local/library/{}:{}", actor.spec.image, actor.spec.commit),
-            "serviceAccountName": "default",
-            "builder": {
-                "name": "amp-default-cluster-builder",
-                "kind": "ClusterBuilder",
-            },
-            "source": {
-                "git": {
-                    "url": actor.spec.repository,
-                    "revision": actor.spec.commit,
-                },
-                "subPath": actor.spec.path,
-            }
-        }
-    }))
-    .map_err(Error::SerializationError)?;
-
-    tracing::info!(
-        "created image resource: {:#?}",
-        serde_yaml::to_string(&resource)
-    );
-    api.create(&params, &resource)
-        .await
-        .map_err(Error::KubeError)?;
-
-    Ok(())
 }
 
 pub async fn deploy(client: Client, actor: &Actor) -> Result<()> {

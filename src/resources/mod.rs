@@ -16,6 +16,7 @@ pub mod actor;
 pub mod crds;
 pub mod deployment;
 pub mod error;
+pub mod image;
 pub mod namespace;
 pub mod playbook;
 pub mod secret;

@@ -83,6 +83,18 @@ impl ActorSpec {
     pub fn url(&self) -> String {
         url(&self.repository, &self.reference, &self.path)
     }
+
+    #[inline]
+    pub fn image_name(&self) -> String {
+        format!("{}-{}", self.name, self.commit)
+    }
+
+    pub fn tag(&self) -> String {
+        format!(
+            "harbor.amp-system.svc.cluster.local/library/{}:{}",
+            self.image, self.commit
+        )
+    }
 }
 
 #[derive(Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Eq, Hash, PartialEq)]

@@ -21,9 +21,9 @@ use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 
 use super::Ctx;
-use crate::resources::actor;
 use crate::resources::crds::{Actor, ActorState};
 use crate::resources::error::{Error, Result};
+use crate::resources::{actor, image};
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Ctx>) -> Result<Action> {
@@ -70,7 +70,26 @@ impl Actor {
     }
 
     async fn build(&self, ctx: Arc<Ctx>) -> Result<()> {
-        actor::build(ctx.client.clone(), self).await?;
+        let namespace = self
+            .namespace()
+            .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+
+        match image::exists(
+            ctx.client.clone(),
+            namespace.clone(),
+            self.spec.image_name(),
+        )
+        .await?
+        {
+            // Image already exists, update it if there are new changes
+            true => {
+                image::update(ctx.client.clone(), namespace.clone(), &self.spec).await?;
+            }
+            // Create a new image
+            false => {
+                image::create(ctx.client.clone(), namespace.clone(), &self.spec).await?;
+            }
+        }
         Ok(())
     }
 
