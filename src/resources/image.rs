@@ -42,7 +42,7 @@ pub async fn create(client: Client, namespace: String, spec: &ActorSpec) -> Resu
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Created image:\n {:#?}\n", image.name_any());
+    tracing::info!("Created image: {}", image.name_any());
 
     Ok(image)
 }
@@ -57,18 +57,18 @@ pub async fn update(client: Client, namespace: String, spec: &ActorSpec) -> Resu
     let resource = new(spec)?;
 
     if image.data.pointer("/spec") != resource.data.pointer("/spec") {
-        tracing::debug!("The updated image resource:\n {:#?}\n", resource);
+        tracing::debug!("The updating image resource:\n {:#?}\n", resource);
 
         image = api
             .patch(
                 &name,
-                &PatchParams::apply("amp-composer"),
+                &PatchParams::apply("amp-composer").force(),
                 &Patch::Apply(&resource),
             )
             .await
             .map_err(Error::KubeError)?;
 
-        tracing::info!("Updated image:\n {:#?}\n", image.name_any());
+        tracing::info!("Updated image: {}", image.name_any());
     }
 
     Ok(image)

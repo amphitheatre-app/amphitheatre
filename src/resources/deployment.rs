@@ -12,65 +12,108 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-use k8s_openapi::api::apps::v1::Deployment;
-use kube::api::PostParams;
-use kube::{Api, Client};
-use serde_json::{from_value, json};
+use k8s_openapi::api::apps::v1::{Deployment, DeploymentSpec};
+use k8s_openapi::api::core::v1::{Container, PodSpec, PodTemplateSpec};
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
+use kube::api::{Patch, PatchParams, PostParams};
+use kube::core::ObjectMeta;
+use kube::{Api, Client, ResourceExt};
 
-use super::crds::Actor;
+use super::crds::ActorSpec;
 use super::error::Result;
 use crate::resources::error::Error;
 
-pub async fn create(client: Client, actor: &Actor) -> Result<Deployment> {
-    let api: Api<Deployment> = Api::all(client);
-    let params = PostParams::default();
+pub async fn exists(client: Client, namespace: String, name: String) -> Result<bool> {
+    let api: Api<Deployment> = Api::namespaced(client, namespace.as_str());
+    Ok(api
+        .get_opt(&name)
+        .await
+        .map_err(Error::KubeError)?
+        .is_some())
+}
 
-    let labels = HashMap::from([
-        ("app.kubernetes.io/name", actor.spec.name.as_str()),
-        ("app.kubernetes.io/managed-by", "Amphitheatre"),
-    ]);
+pub async fn create(client: Client, namespace: String, spec: &ActorSpec) -> Result<Deployment> {
+    let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
 
-    let mut deployment = from_value(json!({
-      "apiVersion": "apps/v1",
-      "kind": "Deployment",
-      "metadata": {
-        "name": actor.spec.name,
-        "labels": labels
-      },
-      "spec": {
-        "replicas": 1,
-        "selector": {
-          "matchLabels": labels
-        },
-        "template": {
-          "metadata": {
-            "labels": labels
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": actor.spec.name,
-                "image": actor.spec.image,
-                "imagePullPolicy": "IfNotPresent",
-              }
-            ]
-          }
-        }
-      }
-    }))
-    .map_err(Error::SerializationError)?;
+    let resource = new(spec)?;
+    tracing::debug!("The deployment resource:\n {:#?}\n", resource);
 
-    tracing::info!(
-        "created deployment resource: {:#?}",
-        serde_yaml::to_string(&deployment)
-    );
-
-    deployment = api
-        .create(&params, &deployment)
+    let deployment = api
+        .create(&PostParams::default(), &resource)
         .await
         .map_err(Error::KubeError)?;
 
+    tracing::info!("Created deployment: {}", deployment.name_any());
     Ok(deployment)
+}
+
+pub async fn update(client: Client, namespace: String, spec: &ActorSpec) -> Result<Deployment> {
+    let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
+
+    let name = spec.name.clone();
+    let mut deployment = api.get(&name).await.map_err(Error::KubeError)?;
+    tracing::debug!("The Deployment {} already exists: {:#?}", &name, deployment);
+
+    let resource = new(spec)?;
+    if deployment.spec != resource.spec {
+        tracing::debug!("The updating deployment resource:\n {:#?}\n", resource);
+
+        deployment = api
+            .patch(
+                &name,
+                &PatchParams::apply("amp-composer").force(),
+                &Patch::Apply(&resource),
+            )
+            .await
+            .map_err(Error::KubeError)?;
+
+        tracing::info!("Updated deployment: {}", deployment.name_any());
+    }
+
+    Ok(deployment)
+}
+
+fn new(spec: &ActorSpec) -> Result<Deployment> {
+    let labels = BTreeMap::from([
+        ("app.kubernetes.io/name".into(), spec.name.to_owned()),
+        ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),
+    ]);
+
+    let container = Container {
+        name: spec.name.to_string(),
+        image: Some(spec.tag()),
+        image_pull_policy: Some("Always".into()),
+        ..Default::default()
+    };
+
+    let template = PodTemplateSpec {
+        metadata: Some(ObjectMeta {
+            labels: Some(labels.clone()),
+            ..Default::default()
+        }),
+        spec: Some(PodSpec {
+            containers: vec![container],
+            ..Default::default()
+        }),
+    };
+
+    let resource = Deployment {
+        metadata: ObjectMeta {
+            name: Some(spec.name.to_string()),
+            labels: Some(labels.clone()),
+            ..Default::default()
+        },
+        spec: Some(DeploymentSpec {
+            selector: LabelSelector {
+                match_labels: Some(labels),
+                ..Default::default()
+            },
+            template,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    Ok(resource)
 }

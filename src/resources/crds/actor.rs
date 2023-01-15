@@ -84,6 +84,7 @@ impl ActorSpec {
         url(&self.repository, &self.reference, &self.path)
     }
 
+    // For kpack Image name
     #[inline]
     pub fn image_name(&self) -> String {
         format!("{}-{}", self.name, self.commit)

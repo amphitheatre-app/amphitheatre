@@ -23,7 +23,7 @@ use kube::{Api, Resource, ResourceExt};
 use super::Ctx;
 use crate::resources::crds::{Actor, ActorState};
 use crate::resources::error::{Error, Result};
-use crate::resources::{actor, image};
+use crate::resources::{actor, deployment, image};
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Ctx>) -> Result<Action> {
@@ -90,11 +90,42 @@ impl Actor {
                 image::create(ctx.client.clone(), namespace.clone(), &self.spec).await?;
             }
         }
+
+        actor::patch_status(
+            ctx.client.clone(),
+            self,
+            ActorState::running(true, "AutoRun", None),
+        )
+        .await?;
         Ok(())
     }
 
     async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
-        actor::deploy(ctx.client.clone(), self).await?;
+        tracing::info!(
+            "Deploying the deployment and service for actor {} ...",
+            self.name_any()
+        );
+
+        let namespace = self
+            .namespace()
+            .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+
+        match deployment::exists(
+            ctx.client.clone(),
+            namespace.clone(),
+            self.spec.name.to_string(),
+        )
+        .await?
+        {
+            // Deployment already exists, update it if there are new changes
+            true => {
+                deployment::update(ctx.client.clone(), namespace.clone(), &self.spec).await?;
+            }
+            // Create a new Deployment
+            false => {
+                deployment::create(ctx.client.clone(), namespace.clone(), &self.spec).await?;
+            }
+        }
         Ok(())
     }
 

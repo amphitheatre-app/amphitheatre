@@ -43,13 +43,13 @@ pub async fn create(client: Client, name: &String) -> Result<Namespace> {
     let namespace = api
         .patch(
             name,
-            &PatchParams::apply("amp-composer"),
+            &PatchParams::apply("amp-composer").force(),
             &Patch::Apply(&resource),
         )
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Added Namespace {:?}", namespace.name_any());
+    tracing::info!("Added namespace: {}", namespace.name_any());
     Ok(namespace)
 }
 

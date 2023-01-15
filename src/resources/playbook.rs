@@ -77,7 +77,6 @@ pub async fn create(
     description: String,
 ) -> Result<Playbook> {
     let api: Api<Playbook> = Api::all(client.clone());
-    let params = PostParams::default();
 
     let mut playbook = Playbook::new(
         name.as_str(),
@@ -101,12 +100,14 @@ pub async fn create(
             ..PlaybookSpec::default()
         },
     );
+    tracing::debug!("The playbook resource:\n {:#?}\n", playbook);
 
-    tracing::info!("{:#?}", serde_yaml::to_string(&playbook));
     playbook = api
-        .create(&params, &playbook)
+        .create(&PostParams::default(), &playbook)
         .await
         .map_err(Error::KubeError)?;
+
+    tracing::info!("Created playbook: {}", playbook.name_any());
 
     // Patch this playbook as initial Pending status
     patch_status(client.clone(), &playbook, PlaybookState::pending()).await?;

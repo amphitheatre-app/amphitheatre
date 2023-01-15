@@ -143,7 +143,7 @@ pub async fn create(client: Client, namespace: String, credential: &Credential) 
     let secret = api
         .patch(
             &credential.name(),
-            &PatchParams::apply("amp-composer"),
+            &PatchParams::apply("amp-composer").force(),
             &Patch::Apply(&resource),
         )
         .await

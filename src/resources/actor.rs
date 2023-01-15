@@ -18,7 +18,6 @@ use kube::{Api, Client, ResourceExt};
 use serde_json::json;
 
 use super::crds::{Actor, ActorSpec};
-use super::deployment;
 use super::error::{Error, Result};
 use crate::resources::crds::ActorState;
 
@@ -42,7 +41,7 @@ pub async fn create(client: Client, namespace: String, spec: ActorSpec) -> Resul
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Created actor:\n {:#?}\n", actor.name_any());
+    tracing::info!("Created actor: {}", actor.name_any());
 
     // Patch this actor as initial Pending status
     patch_status(client.clone(), &actor, ActorState::pending()).await?;
@@ -58,30 +57,21 @@ pub async fn update(client: Client, namespace: String, spec: ActorSpec) -> Resul
 
     if actor.spec != spec {
         let resource = Actor::new(&name, spec);
-        tracing::debug!("The updated actor resource:\n {:#?}\n", resource);
+        tracing::debug!("The updating actor resource:\n {:#?}\n", resource);
 
         actor = api
             .patch(
                 &name,
-                &PatchParams::apply("amp-composer"),
+                &PatchParams::apply("amp-composer").force(),
                 &Patch::Apply(&resource),
             )
             .await
             .map_err(Error::KubeError)?;
 
-        tracing::info!("Updated actor:\n {:#?}\n", actor.name_any());
+        tracing::info!("Updated actor: {}", actor.name_any());
     }
 
     Ok(actor)
-}
-
-pub async fn deploy(client: Client, actor: &Actor) -> Result<()> {
-    // Create Deployment resource for this actor
-    deployment::create(client, actor).await?;
-
-    // TODO: Create Service resource if needed.
-
-    Ok(())
 }
 
 pub async fn patch_status(client: Client, actor: &Actor, condition: Condition) -> Result<()> {
