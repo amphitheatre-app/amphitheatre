@@ -53,5 +53,6 @@ utoipa = { version = "2", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "3", features = ["axum"] }
 uuid = { version = "1.2.2", features = ["v4", "fast-rng", "macro-diagnostics"] }
 schemars = "0.8.11"
+sha2 = "0.10.6"
 tracing = "0.1.37"
 validator = { version = "0.16.0", features = ["derive"] }

@@ -20,6 +20,9 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, ResourceExt};
+use serde::Serialize;
+use serde_json::to_string;
+use sha2::{Digest, Sha256};
 
 use super::crds::ActorSpec;
 use super::error::Result;
@@ -56,8 +59,14 @@ pub async fn update(client: Client, namespace: String, spec: &ActorSpec) -> Resu
     let mut deployment = api.get(&name).await.map_err(Error::KubeError)?;
     tracing::debug!("The Deployment {} already exists: {:#?}", &name, deployment);
 
-    let resource = new(spec)?;
-    if deployment.spec != resource.spec {
+    let expected_hash = hash(spec)?;
+    let found_hash: String = deployment
+        .annotations()
+        .get(LAST_APPLIED_HASH_KEY)
+        .map_or("".into(), |v| v.into());
+
+    if found_hash != expected_hash {
+        let resource = new(spec)?;
         tracing::debug!("The updating deployment resource:\n {:#?}\n", resource);
 
         deployment = api
@@ -75,11 +84,25 @@ pub async fn update(client: Client, namespace: String, spec: &ActorSpec) -> Resu
     Ok(deployment)
 }
 
+fn hash<T>(resource: &T) -> Result<String>
+where
+    T: Serialize,
+{
+    let data = to_string(resource).map_err(Error::SerializationError)?;
+    let hash = Sha256::digest(data);
+
+    Ok(format!("{:x}", hash))
+}
+
+const LAST_APPLIED_HASH_KEY: &str = "actors.amphitheatre.io/last-applied-hash";
+
 fn new(spec: &ActorSpec) -> Result<Deployment> {
     let labels = BTreeMap::from([
         ("app.kubernetes.io/name".into(), spec.name.to_owned()),
         ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),
     ]);
+
+    let annotations = BTreeMap::from([(LAST_APPLIED_HASH_KEY.into(), hash(spec)?)]);
 
     let container = Container {
         name: spec.name.to_string(),
@@ -103,6 +126,7 @@ fn new(spec: &ActorSpec) -> Result<Deployment> {
         metadata: ObjectMeta {
             name: Some(spec.name.to_string()),
             labels: Some(labels.clone()),
+            annotations: Some(annotations),
             ..Default::default()
         },
         spec: Some(DeploymentSpec {

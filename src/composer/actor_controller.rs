@@ -101,8 +101,8 @@ impl Actor {
     }
 
     async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
-        tracing::info!(
-            "Deploying the deployment and service for actor {} ...",
+        tracing::debug!(
+            "Try to deploying the deployment and service for actor {} ...",
             self.name_any()
         );
 
