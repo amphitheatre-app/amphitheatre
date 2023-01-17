@@ -78,23 +78,25 @@ pub struct ActorSpec {
     pub sync: Option<bool>,
 }
 
+impl Actor {
+    // For kpack Image name
+    #[inline]
+    pub fn kpack_image_name(&self) -> String {
+        format!("{}-{}", self.spec.name, self.spec.commit)
+    }
+
+    pub fn docker_tag(&self) -> String {
+        format!(
+            "harbor.amp-system.svc.cluster.local/library/{}:{}",
+            self.spec.image, self.spec.commit
+        )
+    }
+}
+
 impl ActorSpec {
     #[inline]
     pub fn url(&self) -> String {
         url(&self.repository, &self.reference, &self.path)
-    }
-
-    // For kpack Image name
-    #[inline]
-    pub fn image_name(&self) -> String {
-        format!("{}-{}", self.name, self.commit)
-    }
-
-    pub fn tag(&self) -> String {
-        format!(
-            "harbor.amp-system.svc.cluster.local/library/{}:{}",
-            self.image, self.commit
-        )
     }
 }
 

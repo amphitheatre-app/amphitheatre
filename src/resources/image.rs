@@ -18,11 +18,15 @@ use kube::discovery::ApiResource;
 use kube::{Api, Client, ResourceExt};
 use serde_json::{from_value, json};
 
-use super::crds::ActorSpec;
+use super::crds::Actor;
 use super::error::{Error, Result};
 
-pub async fn exists(client: Client, namespace: String, name: String) -> Result<bool> {
+pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
+    let namespace = actor
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
+    let name = actor.kpack_image_name();
 
     Ok(api
         .get_opt(&name)
@@ -31,10 +35,13 @@ pub async fn exists(client: Client, namespace: String, name: String) -> Result<b
         .is_some())
 }
 
-pub async fn create(client: Client, namespace: String, spec: &ActorSpec) -> Result<DynamicObject> {
+pub async fn create(client: Client, actor: &Actor) -> Result<DynamicObject> {
+    let namespace = actor
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
 
-    let resource = new(spec)?;
+    let resource = new(actor)?;
     tracing::debug!("The image resource:\n {:#?}\n", resource);
 
     let image = api
@@ -47,14 +54,17 @@ pub async fn create(client: Client, namespace: String, spec: &ActorSpec) -> Resu
     Ok(image)
 }
 
-pub async fn update(client: Client, namespace: String, spec: &ActorSpec) -> Result<DynamicObject> {
+pub async fn update(client: Client, actor: &Actor) -> Result<DynamicObject> {
+    let namespace = actor
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
 
-    let name = spec.image_name();
+    let name = actor.kpack_image_name();
     let mut image = api.get(&name).await.map_err(Error::KubeError)?;
     tracing::debug!("The image \"{}\" already exists:\n {:#?}\n", name, image);
 
-    let resource = new(spec)?;
+    let resource = new(actor)?;
 
     if image.data.pointer("/spec") != resource.data.pointer("/spec") {
         tracing::debug!("The updating image resource:\n {:#?}\n", resource);
@@ -79,10 +89,15 @@ fn api_resource() -> ApiResource {
     ApiResource::from_gvk(&GroupVersionKind::gvk("kpack.io", "v1alpha2", "Image"))
 }
 
-fn new(spec: &ActorSpec) -> Result<DynamicObject> {
-    let data = from_value(json!({
+fn new(actor: &Actor) -> Result<DynamicObject> {
+    let resource = from_value(json!({
+        "apiVersion": "kpack.io/v1alpha2",
+        "kind": "Image",
+        "metadata": {
+            "name": actor.kpack_image_name(),
+        },
         "spec": {
-            "tag": spec.tag(),
+            "tag": actor.docker_tag(),
             "serviceAccountName": "default",
             "builder": {
                 "name": "amp-default-cluster-builder",
@@ -90,14 +105,14 @@ fn new(spec: &ActorSpec) -> Result<DynamicObject> {
             },
             "source": {
                 "git": {
-                    "url": spec.repository,
-                    "revision": spec.commit,
+                    "url": actor.spec.repository,
+                    "revision": actor.spec.commit,
                 },
-                "subPath": spec.path.as_deref().unwrap_or_default(),
+                "subPath": actor.spec.path.as_deref().unwrap_or_default(),
             }
         }
     }))
     .map_err(Error::SerializationError)?;
 
-    Ok(DynamicObject::new(spec.image_name().as_str(), &api_resource()).data(data))
+    Ok(resource)
 }

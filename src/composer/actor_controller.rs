@@ -70,62 +70,40 @@ impl Actor {
     }
 
     async fn build(&self, ctx: Arc<Ctx>) -> Result<()> {
-        let namespace = self
-            .namespace()
-            .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-
-        match image::exists(
-            ctx.client.clone(),
-            namespace.clone(),
-            self.spec.image_name(),
-        )
-        .await?
-        {
-            // Image already exists, update it if there are new changes
+        match image::exists(ctx.client.clone(), self).await? {
             true => {
-                image::update(ctx.client.clone(), namespace.clone(), &self.spec).await?;
+                // Image already exists, update it if there are new changes
+                image::update(ctx.client.clone(), self).await?;
             }
-            // Create a new image
             false => {
-                image::create(ctx.client.clone(), namespace.clone(), &self.spec).await?;
+                // Create a new image
+                image::create(ctx.client.clone(), self).await?;
             }
         }
 
-        actor::patch_status(
-            ctx.client.clone(),
-            self,
-            ActorState::running(true, "AutoRun", None),
-        )
-        .await?;
+        let condition = ActorState::running(true, "AutoRun", None);
+        actor::patch_status(ctx.client.clone(), self, condition).await?;
+
         Ok(())
     }
 
     async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
         tracing::debug!(
-            "Try to deploying the deployment and service for actor {} ...",
+            "Try to deploying the resources for actor {}",
             self.name_any()
         );
 
-        let namespace = self
-            .namespace()
-            .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-
-        match deployment::exists(
-            ctx.client.clone(),
-            namespace.clone(),
-            self.spec.name.to_string(),
-        )
-        .await?
-        {
-            // Deployment already exists, update it if there are new changes
+        match deployment::exists(ctx.client.clone(), self).await? {
             true => {
-                deployment::update(ctx.client.clone(), namespace.clone(), &self.spec).await?;
+                // Deployment already exists, update it if there are new changes
+                deployment::update(ctx.client.clone(), self).await?;
             }
-            // Create a new Deployment
             false => {
-                deployment::create(ctx.client.clone(), namespace.clone(), &self.spec).await?;
+                // Create a new Deployment
+                deployment::create(ctx.client.clone(), self).await?;
             }
         }
+
         Ok(())
     }
 

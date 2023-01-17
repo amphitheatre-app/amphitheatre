@@ -24,12 +24,17 @@ use serde::Serialize;
 use serde_json::to_string;
 use sha2::{Digest, Sha256};
 
-use super::crds::ActorSpec;
+use super::crds::Actor;
 use super::error::Result;
 use crate::resources::error::Error;
 
-pub async fn exists(client: Client, namespace: String, name: String) -> Result<bool> {
+pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
+    let namespace = actor
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Deployment> = Api::namespaced(client, namespace.as_str());
+    let name = actor.spec.name.to_string();
+
     Ok(api
         .get_opt(&name)
         .await
@@ -37,10 +42,13 @@ pub async fn exists(client: Client, namespace: String, name: String) -> Result<b
         .is_some())
 }
 
-pub async fn create(client: Client, namespace: String, spec: &ActorSpec) -> Result<Deployment> {
+pub async fn create(client: Client, actor: &Actor) -> Result<Deployment> {
+    let namespace = actor
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
 
-    let resource = new(spec)?;
+    let resource = new(actor)?;
     tracing::debug!("The deployment resource:\n {:#?}\n", resource);
 
     let deployment = api
@@ -52,21 +60,24 @@ pub async fn create(client: Client, namespace: String, spec: &ActorSpec) -> Resu
     Ok(deployment)
 }
 
-pub async fn update(client: Client, namespace: String, spec: &ActorSpec) -> Result<Deployment> {
+pub async fn update(client: Client, actor: &Actor) -> Result<Deployment> {
+    let namespace = actor
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
+    let name = actor.spec.name.to_string();
 
-    let name = spec.name.clone();
     let mut deployment = api.get(&name).await.map_err(Error::KubeError)?;
     tracing::debug!("The Deployment {} already exists: {:#?}", &name, deployment);
 
-    let expected_hash = hash(spec)?;
+    let expected_hash = hash(actor)?;
     let found_hash: String = deployment
         .annotations()
         .get(LAST_APPLIED_HASH_KEY)
         .map_or("".into(), |v| v.into());
 
     if found_hash != expected_hash {
-        let resource = new(spec)?;
+        let resource = new(actor)?;
         tracing::debug!("The updating deployment resource:\n {:#?}\n", resource);
 
         deployment = api
@@ -96,17 +107,19 @@ where
 
 const LAST_APPLIED_HASH_KEY: &str = "actors.amphitheatre.io/last-applied-hash";
 
-fn new(spec: &ActorSpec) -> Result<Deployment> {
+fn new(actor: &Actor) -> Result<Deployment> {
+    let name = actor.spec.name.to_string();
+
     let labels = BTreeMap::from([
-        ("app.kubernetes.io/name".into(), spec.name.to_owned()),
+        ("app.kubernetes.io/name".into(), name.clone()),
         ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),
     ]);
 
-    let annotations = BTreeMap::from([(LAST_APPLIED_HASH_KEY.into(), hash(spec)?)]);
+    let annotations = BTreeMap::from([(LAST_APPLIED_HASH_KEY.into(), hash(&actor.spec)?)]);
 
     let container = Container {
-        name: spec.name.to_string(),
-        image: Some(spec.tag()),
+        name: name.clone(),
+        image: Some(actor.docker_tag()),
         image_pull_policy: Some("Always".into()),
         ..Default::default()
     };
@@ -124,7 +137,7 @@ fn new(spec: &ActorSpec) -> Result<Deployment> {
 
     let resource = Deployment {
         metadata: ObjectMeta {
-            name: Some(spec.name.to_string()),
+            name: Some(name),
             labels: Some(labels.clone()),
             annotations: Some(annotations),
             ..Default::default()
