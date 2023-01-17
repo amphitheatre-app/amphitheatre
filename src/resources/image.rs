@@ -15,7 +15,7 @@
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::{DynamicObject, GroupVersionKind};
 use kube::discovery::ApiResource;
-use kube::{Api, Client, ResourceExt};
+use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::{from_value, json};
 
 use super::crds::Actor;
@@ -90,11 +90,13 @@ fn api_resource() -> ApiResource {
 }
 
 fn new(actor: &Actor) -> Result<DynamicObject> {
+    let owner_reference = actor.controller_owner_ref(&()).unwrap();
     let resource = from_value(json!({
         "apiVersion": "kpack.io/v1alpha2",
         "kind": "Image",
         "metadata": {
             "name": actor.kpack_image_name(),
+            "ownerReferences": vec![owner_reference]
         },
         "spec": {
             "tag": actor.docker_tag(),
