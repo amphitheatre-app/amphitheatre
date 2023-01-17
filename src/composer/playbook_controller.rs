@@ -116,7 +116,7 @@ impl Playbook {
             }
         }
 
-        tracing::info!("exists urls are:\n{exists:#?}\nand fetches are: {fetches:#?}");
+        tracing::debug!("Existing repos are:\n{exists:#?}\nand fetches are: {fetches:#?}");
 
         for partner in fetches.iter() {
             tracing::info!("fetches url: {}", partner.url());

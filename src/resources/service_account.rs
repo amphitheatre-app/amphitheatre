@@ -75,7 +75,7 @@ pub async fn patch(
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!(
+    tracing::debug!(
         "Added Secret {:?} for ServiceAccount {}: {:#?}",
         secret_name,
         service_account_name,

@@ -15,8 +15,7 @@
 use std::sync::Arc;
 
 use axum::extract::State;
-use serde_json::to_string_pretty;
-use tracing::{error, info};
+use tracing::error;
 use uuid::Uuid;
 
 use crate::app::Context;
@@ -80,11 +79,6 @@ impl PlaybookService {
             error!("{:?}", err);
             ApiError::KubernetesError
         })?;
-
-        info!(
-            "Creating the playbook: {}",
-            to_string_pretty(&playbook).unwrap()
-        );
 
         Ok(uuid)
         // PlaybookRepository::create(&ctx.db, title, description)
