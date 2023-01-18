@@ -19,7 +19,7 @@ use k8s_openapi::api::core::v1::{Container, PodSpec, PodTemplateSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
-use kube::{Api, Client, ResourceExt};
+use kube::{Api, Client, Resource, ResourceExt};
 use serde::Serialize;
 use serde_json::to_string;
 use sha2::{Digest, Sha256};
@@ -110,11 +110,11 @@ const LAST_APPLIED_HASH_KEY: &str = "actors.amphitheatre.io/last-applied-hash";
 fn new(actor: &Actor) -> Result<Deployment> {
     let name = actor.spec.name.to_string();
 
+    let owner_reference = actor.controller_owner_ref(&()).unwrap();
     let labels = BTreeMap::from([
         ("app.kubernetes.io/name".into(), name.clone()),
         ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),
     ]);
-
     let annotations = BTreeMap::from([(LAST_APPLIED_HASH_KEY.into(), hash(&actor.spec)?)]);
 
     let container = Container {
@@ -138,6 +138,7 @@ fn new(actor: &Actor) -> Result<Deployment> {
     let resource = Deployment {
         metadata: ObjectMeta {
             name: Some(name),
+            owner_references: Some(vec![owner_reference]),
             labels: Some(labels.clone()),
             annotations: Some(annotations),
             ..Default::default()
