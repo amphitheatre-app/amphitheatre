@@ -16,9 +16,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use kube::runtime::controller::Action;
-use kube::runtime::events::{Event, EventType};
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
-use kube::{Api, Resource, ResourceExt};
+use kube::{Api, ResourceExt};
 
 use super::Ctx;
 use crate::resources::crds::{Actor, ActorState};
@@ -108,19 +107,6 @@ impl Actor {
     }
 
     pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
-        // todo add some deletion event logging, db clean up, etc.?
-        let recorder = ctx.recorder(self.object_ref(&()));
-        // Doesn't have dependencies in this example case, so we just publish an event
-        recorder
-            .publish(Event {
-                type_: EventType::Normal,
-                reason: "DeleteActor".into(),
-                note: Some(format!("Delete actor `{}`", self.name_any())),
-                action: "Reconciling".into(),
-                secondary: None,
-            })
-            .await
-            .map_err(Error::KubeError)?;
         Ok(Action::await_change())
     }
 }

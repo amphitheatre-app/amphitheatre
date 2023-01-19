@@ -14,14 +14,17 @@
 
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{Patch, PatchParams, PostParams};
-use kube::{Api, Client, ResourceExt};
+use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
 
-use super::crds::{Actor, ActorSpec};
+use super::crds::{Actor, ActorSpec, Playbook};
 use super::error::{Error, Result};
 use crate::resources::crds::ActorState;
 
-pub async fn exists(client: Client, namespace: String, name: String) -> Result<bool> {
+pub async fn exists(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Result<bool> {
+    let namespace = playbook.spec.namespace.clone();
+    let name = spec.name.clone();
+
     let api: Api<Actor> = Api::namespaced(client, namespace.as_str());
     Ok(api
         .get_opt(&name)
@@ -30,10 +33,15 @@ pub async fn exists(client: Client, namespace: String, name: String) -> Result<b
         .is_some())
 }
 
-pub async fn create(client: Client, namespace: String, spec: ActorSpec) -> Result<Actor> {
+pub async fn create(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Result<Actor> {
+    let namespace = playbook.spec.namespace.clone();
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
 
-    let resource = Actor::new(&spec.name.clone(), spec);
+    let name = spec.name.clone();
+    let mut resource = Actor::new(&name, spec.clone());
+    resource
+        .owner_references_mut()
+        .push(playbook.controller_owner_ref(&()).unwrap());
     tracing::debug!("The actor resource:\n {:#?}\n", resource);
 
     let actor = api
@@ -48,15 +56,19 @@ pub async fn create(client: Client, namespace: String, spec: ActorSpec) -> Resul
     Ok(actor)
 }
 
-pub async fn update(client: Client, namespace: String, spec: ActorSpec) -> Result<Actor> {
+pub async fn update(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Result<Actor> {
+    let namespace = playbook.spec.namespace.clone();
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
 
     let name = spec.name.clone();
     let mut actor = api.get(&name).await.map_err(Error::KubeError)?;
     tracing::debug!("The Actor {} already exists: {:#?}", &spec.name, actor);
 
-    if actor.spec != spec {
-        let resource = Actor::new(&name, spec);
+    if &actor.spec != spec {
+        let mut resource = Actor::new(&name, spec.clone());
+        resource
+            .owner_references_mut()
+            .push(playbook.controller_owner_ref(&()).unwrap());
         tracing::debug!("The updating actor resource:\n {:#?}\n", resource);
 
         actor = api

@@ -15,9 +15,7 @@
 use std::sync::Arc;
 
 use futures::{future, StreamExt};
-use k8s_openapi::api::core::v1::ObjectReference;
 use kube::api::ListParams;
-use kube::runtime::events::Recorder;
 use kube::runtime::Controller;
 use kube::{Api, Client};
 
@@ -29,16 +27,6 @@ pub mod playbook_controller;
 
 pub struct Ctx {
     pub client: Client,
-}
-
-impl Ctx {
-    fn recorder(&self, reference: ObjectReference) -> Recorder {
-        Recorder::new(
-            self.client.clone(),
-            "amphitheatre-composer".into(),
-            reference,
-        )
-    }
 }
 
 /// Initialize the controller and shared state (given the crd is installed)

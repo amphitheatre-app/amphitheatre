@@ -17,9 +17,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use kube::runtime::controller::Action;
-use kube::runtime::events::{Event, EventType};
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
-use kube::{Api, Resource, ResourceExt};
+use kube::{Api, ResourceExt};
 
 use super::Ctx;
 use crate::resources::crds::{ActorSpec, Partner, Playbook, PlaybookState};
@@ -138,30 +137,14 @@ impl Playbook {
 
     async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
         for spec in &self.spec.actors {
-            match actor::exists(
-                ctx.client.clone(),
-                self.spec.namespace.clone(),
-                spec.name.clone(),
-            )
-            .await?
-            {
-                // Actor already exists, update it if there are new changes
+            match actor::exists(ctx.client.clone(), self, spec).await? {
                 true => {
-                    actor::update(
-                        ctx.client.clone(),
-                        self.spec.namespace.clone(),
-                        spec.clone(),
-                    )
-                    .await?;
+                    // Actor already exists, update it if there are new changes
+                    actor::update(ctx.client.clone(), self, spec).await?;
                 }
-                // Create a new actor
                 false => {
-                    actor::create(
-                        ctx.client.clone(),
-                        self.spec.namespace.clone(),
-                        spec.clone(),
-                    )
-                    .await?;
+                    // Create a new actor
+                    actor::create(ctx.client.clone(), self, spec).await?;
                 }
             }
         }
@@ -170,17 +153,6 @@ impl Playbook {
 
     pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
         namespace::delete(ctx.client.clone(), self.spec.namespace.clone()).await?;
-        let recorder = ctx.recorder(self.object_ref(&()));
-        recorder
-            .publish(Event {
-                type_: EventType::Normal,
-                reason: "DeletePlaybook".into(),
-                note: Some(format!("Delete playbook `{}`", self.name_any())),
-                action: "Reconciling".into(),
-                secondary: None,
-            })
-            .await
-            .map_err(Error::KubeError)?;
         Ok(Action::await_change())
     }
 }
