@@ -179,8 +179,10 @@ pub async fn events(
     Path(id): Path<Uuid>,
     ctx: State<Arc<Context>>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
-    let api: Api<KEvent> = Api::namespaced(ctx.k8s.clone(), "default");
-    let params = ListParams::default().fields(&format!("metadata.name={id}"));
+    let namespace = format!("amp-{}", id);
+
+    let api: Api<KEvent> = Api::namespaced(ctx.k8s.clone(), namespace.as_str());
+    let params = ListParams::default();
 
     let stream = watcher(api, params)
         .applied_objects()
