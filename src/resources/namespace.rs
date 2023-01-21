@@ -55,7 +55,7 @@ pub async fn create(client: Client, name: &String) -> Result<Namespace> {
 
 pub async fn delete(client: Client, name: String) -> Result<()> {
     let api: Api<Namespace> = Api::all(client);
-    let params = DeleteParams::default();
+    let params = DeleteParams::background();
 
     // Ignore delete error if not exists
     let _ = api.delete(&name, &params).await.map(|res| {
