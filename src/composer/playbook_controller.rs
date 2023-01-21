@@ -16,14 +16,12 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
-use kube::api::ListParams;
-use kube::error::ErrorResponse;
 use kube::runtime::controller::Action;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, ResourceExt};
 
 use super::Ctx;
-use crate::resources::crds::{Actor, ActorSpec, Partner, Playbook, PlaybookState};
+use crate::resources::crds::{ActorSpec, Partner, Playbook, PlaybookState};
 use crate::resources::error::{Error, Result};
 use crate::resources::secret::{self, Credential, Kind};
 use crate::resources::{actor, namespace, playbook, service_account};
@@ -66,7 +64,8 @@ impl Playbook {
             }
         }
 
-        Ok(Action::await_change())
+        // If no events were received, check back every 5 seconds
+        Ok(Action::requeue(Duration::from_secs(5)))
     }
 
     /// Init create namespace, credentials and service accounts
@@ -74,7 +73,7 @@ impl Playbook {
         let namespace = &self.spec.namespace;
 
         // Create namespace for this playbook
-        namespace::create(ctx.client.clone(), namespace).await?;
+        namespace::create(ctx.client.clone(), self).await?;
 
         // Docker registry Credential
         let credential = Credential::basic(
@@ -154,19 +153,6 @@ impl Playbook {
     }
 
     pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
-        let namespace = self.spec.namespace.clone();
-        let api: Api<Actor> = Api::namespaced(ctx.client.clone(), namespace.as_str());
-
-        if let Err(kube::Error::Api(ErrorResponse { reason, .. })) =
-            api.list(&ListParams::default().limit(1)).await
-        {
-            if &reason == "NotFound" {
-                tracing::info!("Cleaning up namespace record");
-                namespace::delete(ctx.client.clone(), self.spec.namespace.clone()).await?;
-            }
-        }
-
-        tracing::info!("Waiting for all resources to clean up");
         Ok(Action::await_change())
     }
 }

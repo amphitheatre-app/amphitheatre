@@ -15,21 +15,24 @@
 use std::collections::BTreeMap;
 
 use k8s_openapi::api::core::v1::Namespace;
-use kube::api::{DeleteParams, Patch, PatchParams};
+use kube::api::{Patch, PatchParams};
 use kube::core::ObjectMeta;
-use kube::{Api, Client, ResourceExt};
+use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::to_string;
 
 use super::error::Result;
+use crate::resources::crds::Playbook;
 use crate::resources::error::Error;
 
-pub async fn create(client: Client, name: &String) -> Result<Namespace> {
+pub async fn create(client: Client, playbook: &Playbook) -> Result<Namespace> {
     let api: Api<Namespace> = Api::all(client);
 
+    let name = playbook.spec.namespace.clone();
+    let owner_reference = playbook.controller_owner_ref(&()).unwrap();
     let resource = Namespace {
         metadata: ObjectMeta {
-            name: Some(name.to_owned()),
-            // owner_references: todo!(),
+            name: Some(name.clone()),
+            owner_references: Some(vec![owner_reference]),
             labels: Some(BTreeMap::from([(
                 "app.kubernetes.io/managed-by".into(),
                 "Amphitheatre".into(),
@@ -42,7 +45,7 @@ pub async fn create(client: Client, name: &String) -> Result<Namespace> {
 
     let namespace = api
         .patch(
-            name,
+            &name,
             &PatchParams::apply("amp-composer").force(),
             &Patch::Apply(&resource),
         )
@@ -51,17 +54,4 @@ pub async fn create(client: Client, name: &String) -> Result<Namespace> {
 
     tracing::info!("Added namespace: {}", namespace.name_any());
     Ok(namespace)
-}
-
-pub async fn delete(client: Client, name: String) -> Result<()> {
-    let api: Api<Namespace> = Api::all(client);
-    let params = DeleteParams::background();
-
-    // Ignore delete error if not exists
-    let _ = api.delete(&name, &params).await.map(|res| {
-        res.map_left(|o| tracing::info!("Deleting namespace: {:?}", o.status))
-            .map_right(|s| tracing::info!("Deleted namespace: {:?}", s));
-    });
-
-    Ok(())
 }

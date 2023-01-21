@@ -15,9 +15,11 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use k8s_openapi::api::core::v1::Namespace;
 use kube::runtime::controller::Action;
+use kube::runtime::events::{Event, EventType};
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
-use kube::{Api, ResourceExt};
+use kube::{Api, Resource, ResourceExt};
 
 use super::Ctx;
 use crate::resources::crds::{Actor, ActorState};
@@ -107,6 +109,33 @@ impl Actor {
     }
 
     pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
+        let namespace = self
+            .namespace()
+            .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+        let api: Api<Namespace> = Api::all(ctx.client.clone());
+
+        let ns = api
+            .get(namespace.as_str())
+            .await
+            .map_err(Error::KubeError)?;
+        if let Some(status) = ns.status {
+            if status.phase == Some("Terminating".into()) {
+                return Ok(Action::await_change());
+            }
+        }
+
+        let recorder = ctx.recorder(self.object_ref(&()));
+        recorder
+            .publish(Event {
+                type_: EventType::Normal,
+                reason: "DeleteActor".into(),
+                note: Some(format!("Delete actor `{}`", self.name_any())),
+                action: "Reconciling".into(),
+                secondary: None,
+            })
+            .await
+            .map_err(Error::KubeError)?;
+
         Ok(Action::await_change())
     }
 }
