@@ -15,24 +15,25 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use k8s_openapi::api::core::v1::Namespace;
+use k8s_openapi::api::core::v1::{Namespace, ObjectReference};
 use kube::runtime::controller::Action;
-use kube::runtime::events::{Event, EventType};
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 
 use super::Ctx;
 use crate::resources::crds::{Actor, ActorState};
 use crate::resources::error::{Error, Result};
+use crate::resources::event::trace;
 use crate::resources::{actor, deployment, image};
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Ctx>) -> Result<Action> {
+    tracing::info!("Reconciling Actor \"{}\"", actor.name_any());
+
     let ns = actor.namespace().unwrap(); // actor is namespace scoped
     let api: Api<Actor> = Api::namespaced(ctx.client.clone(), &ns);
 
-    tracing::info!("Reconciling Actor \"{}\"", actor.name_any());
-
+    // Reconcile the actor custom resource.
     let finalizer_name = "actors.amphitheatre.app/finalizer";
     finalizer(&api, finalizer_name, actor, |event| async {
         match event {
@@ -62,26 +63,35 @@ impl Actor {
             }
         }
 
-        Ok(Action::await_change())
+        // If no events were received, check back every 2 minutes
+        Ok(Action::requeue(Duration::from_secs(2 * 60)))
     }
 
     async fn init(&self, ctx: Arc<Ctx>) -> Result<()> {
+        let recorder = ctx.recorder(self.reference());
+        trace(&recorder, "Building the actor's image").await?;
+
         actor::patch_status(ctx.client.clone(), self, ActorState::building()).await?;
         Ok(())
     }
 
     async fn build(&self, ctx: Arc<Ctx>) -> Result<()> {
+        let recorder = ctx.recorder(self.reference());
+
         match image::exists(ctx.client.clone(), self).await? {
             true => {
                 // Image already exists, update it if there are new changes
+                trace(&recorder, "Image already exists, update it").await?;
                 image::update(ctx.client.clone(), self).await?;
             }
             false => {
                 // Create a new image
+                trace(&recorder, "Create a new image").await?;
                 image::create(ctx.client.clone(), self).await?;
             }
         }
 
+        trace(&recorder, "The images builded, Running").await?;
         let condition = ActorState::running(true, "AutoRun", None);
         actor::patch_status(ctx.client.clone(), self, condition).await?;
 
@@ -89,18 +99,23 @@ impl Actor {
     }
 
     async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
+        let recorder = ctx.recorder(self.reference());
+
         tracing::debug!(
             "Try to deploying the resources for actor {}",
             self.name_any()
         );
+        trace(&recorder, "Try to deploying the resources").await?;
 
         match deployment::exists(ctx.client.clone(), self).await? {
             true => {
                 // Deployment already exists, update it if there are new changes
+                trace(&recorder, "Deployment already exists, update it").await?;
                 deployment::update(ctx.client.clone(), self).await?;
             }
             false => {
                 // Create a new Deployment
+                trace(&recorder, "Create a new Deployment").await?;
                 deployment::create(ctx.client.clone(), self).await?;
             }
         }
@@ -124,18 +139,13 @@ impl Actor {
             }
         }
 
-        let recorder = ctx.recorder(self.object_ref(&()));
-        recorder
-            .publish(Event {
-                type_: EventType::Normal,
-                reason: "DeleteActor".into(),
-                note: Some(format!("Delete actor `{}`", self.name_any())),
-                action: "Reconciling".into(),
-                secondary: None,
-            })
-            .await
-            .map_err(Error::KubeError)?;
+        let recorder = ctx.recorder(self.reference());
+        trace(&recorder, format!("Delete actor `{}`", self.name_any())).await?;
 
         Ok(Action::await_change())
+    }
+
+    fn reference(&self) -> ObjectReference {
+        self.object_ref(&())
     }
 }

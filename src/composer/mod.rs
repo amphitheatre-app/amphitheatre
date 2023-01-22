@@ -32,6 +32,10 @@ pub struct Ctx {
 }
 
 impl Ctx {
+    fn new(client: Client) -> Self {
+        Self { client }
+    }
+
     fn recorder(&self, reference: ObjectReference) -> Recorder {
         Recorder::new(
             self.client.clone(),
@@ -46,23 +50,24 @@ pub async fn run(ctx: Arc<Context>) {
     let playbook = Api::<Playbook>::all(ctx.k8s.clone());
     let actor = Api::<Actor>::all(ctx.k8s.clone());
 
-    // Ensure CRD is installed before loop-watching
+    // Ensure Playbook CRD is installed before loop-watching
     if let Err(e) = playbook.list(&ListParams::default().limit(1)).await {
         tracing::error!("Playbook CRD is not queryable; {e:?}. Is the CRD installed?");
         tracing::info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
         std::process::exit(1);
     }
 
+    // Ensure Actor CRD is installed before loop-watching
     if let Err(e) = actor.list(&ListParams::default().limit(1)).await {
         tracing::error!("Actor CRD is not queryable; {e:?}. Is the CRD installed?");
         tracing::info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
         std::process::exit(1);
     }
 
-    let context = Arc::new(Ctx {
-        client: ctx.k8s.clone(),
-    });
+    // Initialize the shared context for controllers.
+    let context = Arc::new(Ctx::new(ctx.k8s.clone()));
 
+    // Create playbook controller
     let playbook_ctrl = Controller::new(playbook, ListParams::default())
         .run(
             playbook_controller::reconcile,
@@ -71,6 +76,7 @@ pub async fn run(ctx: Arc<Context>) {
         )
         .for_each(|_| future::ready(()));
 
+    // Create actor controller
     let actor_ctrl = Controller::new(actor, ListParams::default())
         .run(
             actor_controller::reconcile,

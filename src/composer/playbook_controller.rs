@@ -16,26 +16,29 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
+use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::controller::Action;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
-use kube::{Api, ResourceExt};
+use kube::{Api, Resource, ResourceExt};
 
 use super::Ctx;
 use crate::resources::crds::{ActorSpec, Partner, Playbook, PlaybookState};
 use crate::resources::error::{Error, Result};
+use crate::resources::event::trace;
 use crate::resources::secret::{self, Credential, Kind};
 use crate::resources::{actor, namespace, playbook, service_account};
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Ctx>) -> Result<Action> {
-    let api: Api<Playbook> = Api::all(ctx.client.clone());
-
     tracing::info!("Reconciling Playbook \"{}\"", playbook.name_any());
     if playbook.spec.actors.is_empty() {
         return Err(Error::EmptyActorsError);
     }
 
+    let api: Api<Playbook> = Api::all(ctx.client.clone());
     let finalizer_name = "playbooks.amphitheatre.app/finalizer";
+
+    // Reconcile the playbook custom resource.
     finalizer(&api, finalizer_name, playbook, |event| async {
         match event {
             FinalizerEvent::Apply(playbook) => playbook.reconcile(ctx.clone()).await,
@@ -64,16 +67,18 @@ impl Playbook {
             }
         }
 
-        // If no events were received, check back every 5 seconds
-        Ok(Action::requeue(Duration::from_secs(5)))
+        // If no events were received, check back every 2 minutes
+        Ok(Action::requeue(Duration::from_secs(2 * 60)))
     }
 
     /// Init create namespace, credentials and service accounts
     async fn init(&self, ctx: Arc<Ctx>) -> Result<()> {
         let namespace = &self.spec.namespace;
+        let recorder = ctx.recorder(self.reference());
 
         // Create namespace for this playbook
         namespace::create(ctx.client.clone(), self).await?;
+        trace(&recorder, "Created namespace for this playbook").await?;
 
         // Docker registry Credential
         let credential = Credential::basic(
@@ -83,9 +88,11 @@ impl Playbook {
             "Harbor12345".into(),
         );
 
+        trace(&recorder, "Creating Secret for Docker Registry Credential").await?;
         secret::create(ctx.client.clone(), namespace.clone(), &credential).await?;
 
         // Patch this credential to default service account
+        trace(&recorder, "Patch the credential to default service account").await?;
         service_account::patch(
             ctx.client.clone(),
             namespace,
@@ -96,12 +103,15 @@ impl Playbook {
         )
         .await?;
 
+        trace(&recorder, "Init successfully, Let's begin solve, now!").await?;
         playbook::patch_status(ctx.client.clone(), self, PlaybookState::solving()).await?;
 
         Ok(())
     }
 
     async fn solve(&self, ctx: Arc<Ctx>) -> Result<()> {
+        let recorder = ctx.recorder(self.reference());
+
         let exists: HashSet<String> = self.spec.actors.iter().map(|actor| actor.url()).collect();
 
         let mut fetches: HashSet<Partner> = HashSet::new();
@@ -121,10 +131,13 @@ impl Playbook {
         for partner in fetches.iter() {
             tracing::info!("fetches url: {}", partner.url());
             let actor = read_partner(partner);
+
+            trace(&recorder, "Fetch and add the actor to this playbook").await?;
             playbook::add(ctx.client.clone(), self, actor).await?;
         }
 
         if fetches.is_empty() {
+            trace(&recorder, "Solved successfully, Running").await?;
             playbook::patch_status(
                 ctx.client.clone(),
                 self,
@@ -137,14 +150,18 @@ impl Playbook {
     }
 
     async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
+        let recorder = ctx.recorder(self.reference());
+
         for spec in &self.spec.actors {
             match actor::exists(ctx.client.clone(), self, spec).await? {
                 true => {
                     // Actor already exists, update it if there are new changes
+                    trace(&recorder, "Actor already exists, update it").await?;
                     actor::update(ctx.client.clone(), self, spec).await?;
                 }
                 false => {
                     // Create a new actor
+                    trace(&recorder, "Create a new actor").await?;
                     actor::create(ctx.client.clone(), self, spec).await?;
                 }
             }
@@ -154,6 +171,12 @@ impl Playbook {
 
     pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
         Ok(Action::await_change())
+    }
+
+    fn reference(&self) -> ObjectReference {
+        let mut reference = self.object_ref(&());
+        reference.namespace = Some(self.spec.namespace.to_string());
+        reference
     }
 }
 

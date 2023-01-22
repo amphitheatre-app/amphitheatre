@@ -12,13 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod actor;
-pub mod crds;
-pub mod deployment;
-pub mod error;
-pub mod event;
-pub mod image;
-pub mod namespace;
-pub mod playbook;
-pub mod secret;
-pub mod service_account;
+use kube::runtime::events::{Event, EventType, Recorder};
+
+use super::error::{Error, Result};
+
+pub async fn trace(recorder: &Recorder, message: impl Into<String>) -> Result<()> {
+    recorder
+        .publish(Event {
+            type_: EventType::Normal,
+            reason: "Tracing".into(),
+            note: Some(message.into()),
+            action: "Reconciling".into(),
+            secondary: None,
+        })
+        .await
+        .map_err(Error::KubeError)?;
+
+    Ok(())
+}
