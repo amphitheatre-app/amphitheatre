@@ -27,6 +27,5 @@ pub mod repositories;
 pub mod resources;
 pub mod response;
 pub mod routes;
-pub mod schema;
 pub mod services;
 pub mod swagger;
