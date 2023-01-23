@@ -156,12 +156,19 @@ impl Playbook {
             match actor::exists(ctx.client.clone(), self, spec).await? {
                 true => {
                     // Actor already exists, update it if there are new changes
-                    trace(&recorder, "Actor already exists, update it").await?;
+                    trace(
+                        &recorder,
+                        format!(
+                            "Actor {} already exists, update it if there are new changes",
+                            spec.name
+                        ),
+                    )
+                    .await?;
                     actor::update(ctx.client.clone(), self, spec).await?;
                 }
                 false => {
                     // Create a new actor
-                    trace(&recorder, "Create a new actor").await?;
+                    trace(&recorder, format!("Create new Actor: {}", spec.name)).await?;
                     actor::create(ctx.client.clone(), self, spec).await?;
                 }
             }

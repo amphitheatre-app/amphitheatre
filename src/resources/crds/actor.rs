@@ -91,6 +91,10 @@ impl Actor {
             self.spec.image, self.spec.commit
         )
     }
+
+    pub fn deployment_name(&self) -> String {
+        self.spec.name.to_string()
+    }
 }
 
 impl ActorSpec {

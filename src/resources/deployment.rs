@@ -33,7 +33,7 @@ pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Deployment> = Api::namespaced(client, namespace.as_str());
-    let name = actor.spec.name.to_string();
+    let name = actor.deployment_name();
 
     Ok(api
         .get_opt(&name)
@@ -65,12 +65,12 @@ pub async fn update(client: Client, actor: &Actor) -> Result<Deployment> {
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
-    let name = actor.spec.name.to_string();
+    let name = actor.deployment_name();
 
     let mut deployment = api.get(&name).await.map_err(Error::KubeError)?;
     tracing::debug!("The Deployment {} already exists: {:#?}", &name, deployment);
 
-    let expected_hash = hash(actor)?;
+    let expected_hash = hash(&actor.spec)?;
     let found_hash: String = deployment
         .annotations()
         .get(LAST_APPLIED_HASH_KEY)
@@ -108,7 +108,7 @@ where
 const LAST_APPLIED_HASH_KEY: &str = "actors.amphitheatre.io/last-applied-hash";
 
 fn new(actor: &Actor) -> Result<Deployment> {
-    let name = actor.spec.name.to_string();
+    let name = actor.deployment_name();
 
     let owner_reference = actor.controller_owner_ref(&()).unwrap();
     let labels = BTreeMap::from([

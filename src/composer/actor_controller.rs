@@ -69,7 +69,11 @@ impl Actor {
 
     async fn init(&self, ctx: Arc<Ctx>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
-        trace(&recorder, "Building the actor's image").await?;
+        trace(
+            &recorder,
+            format!("Building the image for Actor {}", self.name_any()),
+        )
+        .await?;
 
         actor::patch_status(ctx.client.clone(), self, ActorState::building()).await?;
         Ok(())
@@ -81,12 +85,23 @@ impl Actor {
         match image::exists(ctx.client.clone(), self).await? {
             true => {
                 // Image already exists, update it if there are new changes
-                trace(&recorder, "Image already exists, update it").await?;
+                trace(
+                    &recorder,
+                    format!(
+                        "Image {} already exists, update it if there are new changes",
+                        self.kpack_image_name()
+                    ),
+                )
+                .await?;
                 image::update(ctx.client.clone(), self).await?;
             }
             false => {
                 // Create a new image
-                trace(&recorder, "Create a new image").await?;
+                trace(
+                    &recorder,
+                    format!("Create new image: {}", self.kpack_image_name()),
+                )
+                .await?;
                 image::create(ctx.client.clone(), self).await?;
             }
         }
@@ -100,22 +115,35 @@ impl Actor {
 
     async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
-
-        tracing::debug!(
-            "Try to deploying the resources for actor {}",
-            self.name_any()
-        );
-        trace(&recorder, "Try to deploying the resources").await?;
+        trace(
+            &recorder,
+            format!(
+                "Try to deploying the resources for actor {}",
+                self.name_any()
+            ),
+        )
+        .await?;
 
         match deployment::exists(ctx.client.clone(), self).await? {
             true => {
                 // Deployment already exists, update it if there are new changes
-                trace(&recorder, "Deployment already exists, update it").await?;
+                trace(
+                    &recorder,
+                    format!(
+                        "Deployment {} already exists, update it if there are new changes",
+                        self.deployment_name()
+                    ),
+                )
+                .await?;
                 deployment::update(ctx.client.clone(), self).await?;
             }
             false => {
                 // Create a new Deployment
-                trace(&recorder, "Create a new Deployment").await?;
+                trace(
+                    &recorder,
+                    format!("Create new Deployment: {}", self.deployment_name()),
+                )
+                .await?;
                 deployment::create(ctx.client.clone(), self).await?;
             }
         }
