@@ -118,7 +118,7 @@ impl Actor {
         trace(
             &recorder,
             format!(
-                "Try to deploying the resources for actor {}",
+                "Try to deploying the resources for Actor {}",
                 self.name_any()
             ),
         )
@@ -168,7 +168,7 @@ impl Actor {
         }
 
         let recorder = ctx.recorder(self.reference());
-        trace(&recorder, format!("Delete actor `{}`", self.name_any())).await?;
+        trace(&recorder, format!("Delete Actor `{}`", self.name_any())).await?;
 
         Ok(Action::await_change())
     }
