@@ -31,4 +31,24 @@ pub struct Config {
     /// The connection URL for the Postgres database this application should use.
     #[clap(long, env)]
     pub database_url: String,
+
+    /// For more information about Registry Names, Namespaces, Images, Artifacts & Tags,
+    /// please visit: https://stevelasker.blog/2020/02/17/registry-namespace-repo-names/
+    ///
+    /// The registry prefix for its corresponding registry.
+    #[clap(long, env)]
+    pub registry_url: String,
+
+    /// The path between the unique registry and the repo.
+    /// Depending on the registry, it may be nested, or single depth.
+    #[clap(long, env)]
+    pub registry_namespace: String,
+
+    /// The username of Docker Image Registry
+    #[clap(long, env)]
+    pub registry_username: String,
+
+    /// The password of Docker Image Registry
+    #[clap(long, env)]
+    pub registry_password: String,
 }
