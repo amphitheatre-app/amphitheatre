@@ -17,6 +17,7 @@ use axum::response::IntoResponse;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use thiserror::Error;
 
 /// Represents the response from an API call
 #[derive(Serialize, Deserialize, Debug)]
@@ -66,23 +67,25 @@ pub fn paginate<T>(data: T, pagination: Pagination) -> Response<T> {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Error)]
 pub enum ApiError {
+    #[error("Database Error")]
     DatabaseError,
+    #[error("Kubernetes Error")]
     KubernetesError,
+    #[error("Internal Server Error")]
     InternalServerError,
+    #[error("Not Found")]
     NotFound,
 }
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, message) = match self {
-            Self::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, "Database Error"),
-            Self::KubernetesError => (StatusCode::INTERNAL_SERVER_ERROR, "Kubernetes Error"),
-            Self::InternalServerError => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error")
-            }
-            Self::NotFound => (StatusCode::NOT_FOUND, "Not Found"),
+            Self::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Self::KubernetesError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Self::InternalServerError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Self::NotFound => (StatusCode::NOT_FOUND, self.to_string()),
         };
         (status, Json(json!({ "message": message }))).into_response()
     }

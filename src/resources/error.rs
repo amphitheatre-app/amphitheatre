@@ -14,6 +14,8 @@
 
 use thiserror::Error;
 
+use crate::response::ApiError;
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("SerializationError: {0}")]
@@ -32,6 +34,12 @@ pub enum Error {
 
     #[error("MissingObjectKey: {0}")]
     MissingObjectKey(&'static str),
+
+    #[error("UrlParseError: {0}")]
+    UrlParseError(#[source] url::ParseError),
+
+    #[error("ApiError: {0}")]
+    ApiError(#[source] ApiError),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
