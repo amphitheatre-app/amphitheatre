@@ -17,40 +17,13 @@ use std::sync::Arc;
 
 use axum::error_handling::HandleErrorLayer;
 use axum::{BoxError, Server};
-use kube::Client;
 use tower::ServiceBuilder;
 use tower_governor::errors::display_error;
 use tower_governor::governor::GovernorConfigBuilder;
 use tower_governor::GovernorLayer;
 
-use crate::config::Config;
-use crate::database::{self, Database};
+use crate::context::Context;
 use crate::{routes, swagger};
-
-/// The core type through which handler functions can access common API state.
-///
-/// This can be accessed by adding a parameter `Extension<Context>` to a handler function's
-/// parameters.
-///
-/// It may not be a bad idea if you need your API to be more modular (turn routes
-/// on and off, and disable any unused extension objects) but it's really up to a
-/// judgement call.
-pub struct Context {
-    pub config: Config,
-    pub db: Database,
-    pub k8s: Client,
-}
-
-impl Context {
-    pub async fn new(config: Config) -> anyhow::Result<Context> {
-        let dsn = config.database_url.clone();
-        Ok(Context {
-            config,
-            db: database::new(dsn).await?,
-            k8s: Client::try_default().await?,
-        })
-    }
-}
 
 pub async fn run(ctx: Arc<Context>) {
     let governor_conf = Box::new(
