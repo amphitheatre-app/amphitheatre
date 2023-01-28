@@ -20,6 +20,7 @@ use kube::api::{Patch, PatchParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, ResourceExt};
 use serde_json::to_string;
+use url::Url;
 
 use super::error::{Error, Result};
 
@@ -66,14 +67,14 @@ impl Authorization {
 pub struct Credential {
     pub kind: Kind,
     auth: Authorization,
-    location: String,
+    location: Url,
     username: Option<String>,
     password: Option<String>,
     token: Option<String>,
 }
 
 impl Credential {
-    pub fn basic(kind: Kind, location: String, username: String, password: String) -> Self {
+    pub fn basic(kind: Kind, location: Url, username: String, password: String) -> Self {
         Self {
             kind,
             auth: Authorization::Basic,
@@ -84,7 +85,7 @@ impl Credential {
         }
     }
 
-    pub fn token(kind: Kind, location: String, token: String) -> Self {
+    pub fn token(kind: Kind, location: Url, token: String) -> Self {
         Self {
             kind,
             auth: Authorization::Token,
@@ -96,7 +97,13 @@ impl Credential {
     }
 
     pub fn name(&self) -> String {
-        format!("{}-{}-secret", self.kind, self.location).to_lowercase()
+        format!(
+            "{}-{}-{}-secret",
+            self.kind,
+            self.location.scheme(),
+            self.location.host_str().unwrap(),
+        )
+        .to_lowercase()
     }
 
     pub fn username_any(&self) -> String {
@@ -115,8 +122,10 @@ impl Credential {
 pub async fn create(client: Client, namespace: String, credential: &Credential) -> Result<Secret> {
     let api: Api<Secret> = Api::namespaced(client, &namespace);
 
-    let annotations =
-        BTreeMap::from([(credential.kind.schema_name(), credential.location.clone())]);
+    let annotations = BTreeMap::from([(
+        credential.kind.schema_name(),
+        credential.location.to_string(),
+    )]);
 
     let data = match credential.auth {
         Authorization::Basic => BTreeMap::from([

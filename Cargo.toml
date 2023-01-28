@@ -48,6 +48,7 @@ tower = { version = "0.4.13", features = ["full"] }
 tower-http = { version = "0.3.5", features = ["full"] }
 tower_governor = { git = "https://github.com/benwis/tower-governor", rev="01e1a107" }
 tracing-subscriber = "0.3.16"
+url = "2.3.1"
 utoipa = { version = "2", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "3", features = ["axum"] }
 uuid = { version = "1.2.2", features = ["v4", "fast-rng", "macro-diagnostics"] }
