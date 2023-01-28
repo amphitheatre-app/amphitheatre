@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #![allow(unused_variables)]
-
 pub mod app;
 pub mod composer;
 pub mod config;

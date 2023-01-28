@@ -16,9 +16,9 @@
 
 use std::sync::Arc;
 
-use amphitheatre::app::{self, Context};
-use amphitheatre::composer;
 use amphitheatre::config::Config;
+use amphitheatre::context::Context;
+use amphitheatre::{app, composer};
 use clap::Parser;
 
 #[tokio::main]

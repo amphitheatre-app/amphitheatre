@@ -86,10 +86,7 @@ impl Actor {
     }
 
     pub fn docker_tag(&self) -> String {
-        format!(
-            "harbor.amp-system.svc.cluster.local/library/{}:{}",
-            self.spec.image, self.spec.commit
-        )
+        format!("{}:{}", self.spec.image, self.spec.commit)
     }
 
     pub fn deployment_name(&self) -> String {

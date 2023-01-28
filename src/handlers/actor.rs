@@ -27,7 +27,7 @@ use kube::Api;
 use tokio_stream::StreamExt as _;
 use uuid::Uuid;
 
-use crate::app::Context;
+use crate::context::Context;
 use crate::response::{data, ApiError};
 use crate::services::actor::ActorService;
 use crate::services::playbook::PlaybookService;
@@ -99,7 +99,7 @@ pub async fn detail(
     tag = "Actors"
 )]
 pub async fn logs(
-    Path(id): Path<Uuid>,
+    Path(_id): Path<Uuid>,
     ctx: State<Arc<Context>>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
     let api: Api<Pod> = Api::namespaced(ctx.k8s.clone(), "default");
@@ -131,13 +131,13 @@ pub async fn logs(
     ),
     tag = "Actors"
 )]
-pub async fn info(Path(id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> {
+pub async fn info(Path(_id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> {
     Ok(data(HashMap::from([
         (
             "environments",
             HashMap::from([
                 ("K3S_TOKEN", "RdqNLMXRiRsHJhmxKurR"),
-                ("K3S_KUBECONFIG_OUTPU", "/output/kubeconfig.yaml"),
+                ("K3S_KUBECONFIG_OUTPUT", "/output/kubeconfig.yaml"),
                 (
                     "PATH",
                     "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/bin/aux",
@@ -175,7 +175,7 @@ pub async fn info(Path(id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> {
     ),
     tag = "Actors"
 )]
-pub async fn stats(Path(id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> {
+pub async fn stats(Path(_id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> {
     Ok(data(HashMap::from([
         ("CPU USAGE", "1.98%"),
         ("MEMORY USAGE", "65.8MB"),

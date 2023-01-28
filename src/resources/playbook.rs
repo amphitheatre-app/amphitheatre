@@ -24,7 +24,6 @@ use tokio::time::sleep;
 
 use super::crds::{ActorSpec, Playbook, PlaybookSpec, PlaybookState};
 use super::error::{Error, Result};
-use crate::resources::crds::Partner;
 
 pub async fn install(client: Client) -> Result<()> {
     let api: Api<CustomResourceDefinition> = Api::all(client);
@@ -69,37 +68,10 @@ pub async fn uninstall(client: Client) -> Result<()> {
     Ok(())
 }
 
-pub async fn create(
-    client: Client,
-    namespace: String,
-    name: String,
-    title: String,
-    description: String,
-) -> Result<Playbook> {
+pub async fn create(client: Client, name: String, spec: PlaybookSpec) -> Result<Playbook> {
     let api: Api<Playbook> = Api::all(client.clone());
 
-    let mut playbook = Playbook::new(
-        name.as_str(),
-        PlaybookSpec {
-            title,
-            description,
-            namespace,
-            actors: vec![ActorSpec {
-                name: "amp-example-java".into(),
-                description: "A simple Java example app".into(),
-                image: "amp-example-java".into(),
-                repository: "https://github.com/amphitheatre-app/amp-example-java".into(),
-                commit: "875db185acc8bf7c7effc389a350cae7aa926e57".into(),
-                partners: Some(vec![Partner {
-                    name: "amp-example-nodejs".into(),
-                    repository: "https://github.com/amphitheatre-app/amp-example-nodejs.git".into(),
-                    ..Partner::default()
-                }]),
-                ..ActorSpec::default()
-            }],
-            ..PlaybookSpec::default()
-        },
-    );
+    let mut playbook = Playbook::new(name.as_str(), spec);
     tracing::debug!("The playbook resource:\n {:#?}\n", playbook);
 
     playbook = api
@@ -159,18 +131,18 @@ pub async fn patch_status(client: Client, playbook: &Playbook, condition: Condit
 }
 
 pub async fn replace_status(
-    client: Client,
-    playbook: &Playbook,
-    condition: Condition,
+    _client: Client,
+    _playbook: &Playbook,
+    _condition: Condition,
 ) -> Result<()> {
     todo!()
 }
 
 pub async fn replace_status_with(
-    client: Client,
-    playbook: &Playbook,
-    before: Condition,
-    after: Condition,
+    _client: Client,
+    _playbook: &Playbook,
+    _before: Condition,
+    _after: Condition,
 ) -> Result<()> {
     todo!()
 }

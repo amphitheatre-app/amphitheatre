@@ -15,35 +15,15 @@
 use std::sync::Arc;
 
 use futures::{future, StreamExt};
-use k8s_openapi::api::core::v1::ObjectReference;
 use kube::api::ListParams;
-use kube::runtime::events::Recorder;
 use kube::runtime::Controller;
-use kube::{Api, Client};
+use kube::Api;
 
-use crate::app::Context;
+use crate::context::Context;
 use crate::resources::crds::{Actor, Playbook};
 
 pub mod actor_controller;
 pub mod playbook_controller;
-
-pub struct Ctx {
-    pub client: Client,
-}
-
-impl Ctx {
-    fn new(client: Client) -> Self {
-        Self { client }
-    }
-
-    fn recorder(&self, reference: ObjectReference) -> Recorder {
-        Recorder::new(
-            self.client.clone(),
-            "amphitheatre-composer".into(),
-            reference,
-        )
-    }
-}
 
 /// Initialize the controller and shared state (given the crd is installed)
 pub async fn run(ctx: Arc<Context>) {
@@ -64,15 +44,12 @@ pub async fn run(ctx: Arc<Context>) {
         std::process::exit(1);
     }
 
-    // Initialize the shared context for controllers.
-    let context = Arc::new(Ctx::new(ctx.k8s.clone()));
-
     // Create playbook controller
     let playbook_ctrl = Controller::new(playbook, ListParams::default())
         .run(
             playbook_controller::reconcile,
             playbook_controller::error_policy,
-            context.clone(),
+            ctx.clone(),
         )
         .for_each(|_| future::ready(()));
 
@@ -81,7 +58,7 @@ pub async fn run(ctx: Arc<Context>) {
         .run(
             actor_controller::reconcile,
             actor_controller::error_policy,
-            context.clone(),
+            ctx.clone(),
         )
         .for_each(|_| future::ready(()));
 

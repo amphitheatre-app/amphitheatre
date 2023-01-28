@@ -20,18 +20,18 @@ use kube::runtime::controller::Action;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 
-use super::Ctx;
+use crate::context::Context;
 use crate::resources::crds::{Actor, ActorState};
 use crate::resources::error::{Error, Result};
 use crate::resources::event::trace;
 use crate::resources::{actor, deployment, image};
 
 /// The reconciler that will be called when either object change
-pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Ctx>) -> Result<Action> {
+pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
     tracing::info!("Reconciling Actor \"{}\"", actor.name_any());
 
     let ns = actor.namespace().unwrap(); // actor is namespace scoped
-    let api: Api<Actor> = Api::namespaced(ctx.client.clone(), &ns);
+    let api: Api<Actor> = Api::namespaced(ctx.k8s.clone(), &ns);
 
     // Reconcile the actor custom resource.
     let finalizer_name = "actors.amphitheatre.app/finalizer";
@@ -46,13 +46,13 @@ pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Ctx>) -> Result<Action> {
 }
 /// an error handler that will be called when the reconciler fails with access to both the
 /// object that caused the failure and the actual error
-pub fn error_policy(actor: Arc<Actor>, error: &Error, ctx: Arc<Ctx>) -> Action {
+pub fn error_policy(_actor: Arc<Actor>, error: &Error, _ctx: Arc<Context>) -> Action {
     tracing::error!("reconcile failed: {:?}", error);
     Action::requeue(Duration::from_secs(60))
 }
 
 impl Actor {
-    pub async fn reconcile(&self, ctx: Arc<Ctx>) -> Result<Action> {
+    pub async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
         if let Some(ref status) = self.status {
             if status.pending() {
                 self.init(ctx).await?
@@ -67,7 +67,7 @@ impl Actor {
         Ok(Action::requeue(Duration::from_secs(2 * 60)))
     }
 
-    async fn init(&self, ctx: Arc<Ctx>) -> Result<()> {
+    async fn init(&self, ctx: Arc<Context>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
         trace(
             &recorder,
@@ -75,14 +75,14 @@ impl Actor {
         )
         .await?;
 
-        actor::patch_status(ctx.client.clone(), self, ActorState::building()).await?;
+        actor::patch_status(ctx.k8s.clone(), self, ActorState::building()).await?;
         Ok(())
     }
 
-    async fn build(&self, ctx: Arc<Ctx>) -> Result<()> {
+    async fn build(&self, ctx: Arc<Context>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
 
-        match image::exists(ctx.client.clone(), self).await? {
+        match image::exists(ctx.k8s.clone(), self).await? {
             true => {
                 // Image already exists, update it if there are new changes
                 trace(
@@ -93,7 +93,7 @@ impl Actor {
                     ),
                 )
                 .await?;
-                image::update(ctx.client.clone(), self).await?;
+                image::update(ctx.k8s.clone(), self).await?;
             }
             false => {
                 // Create a new image
@@ -102,18 +102,18 @@ impl Actor {
                     format!("Create new image: {}", self.kpack_image_name()),
                 )
                 .await?;
-                image::create(ctx.client.clone(), self).await?;
+                image::create(ctx.k8s.clone(), self).await?;
             }
         }
 
         trace(&recorder, "The images builded, Running").await?;
         let condition = ActorState::running(true, "AutoRun", None);
-        actor::patch_status(ctx.client.clone(), self, condition).await?;
+        actor::patch_status(ctx.k8s.clone(), self, condition).await?;
 
         Ok(())
     }
 
-    async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
+    async fn run(&self, ctx: Arc<Context>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
         trace(
             &recorder,
@@ -124,7 +124,7 @@ impl Actor {
         )
         .await?;
 
-        match deployment::exists(ctx.client.clone(), self).await? {
+        match deployment::exists(ctx.k8s.clone(), self).await? {
             true => {
                 // Deployment already exists, update it if there are new changes
                 trace(
@@ -135,7 +135,7 @@ impl Actor {
                     ),
                 )
                 .await?;
-                deployment::update(ctx.client.clone(), self).await?;
+                deployment::update(ctx.k8s.clone(), self).await?;
             }
             false => {
                 // Create a new Deployment
@@ -144,18 +144,18 @@ impl Actor {
                     format!("Create new Deployment: {}", self.deployment_name()),
                 )
                 .await?;
-                deployment::create(ctx.client.clone(), self).await?;
+                deployment::create(ctx.k8s.clone(), self).await?;
             }
         }
 
         Ok(())
     }
 
-    pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
+    pub async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
         let namespace = self
             .namespace()
             .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-        let api: Api<Namespace> = Api::all(ctx.client.clone());
+        let api: Api<Namespace> = Api::all(ctx.k8s.clone());
 
         let ns = api
             .get(namespace.as_str())

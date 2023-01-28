@@ -31,7 +31,7 @@ use tokio_stream::StreamExt as _;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::app::Context;
+use crate::context::Context;
 use crate::response::{data, ApiError};
 use crate::services::playbook::PlaybookService;
 

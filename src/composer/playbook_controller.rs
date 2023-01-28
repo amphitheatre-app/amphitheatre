@@ -20,22 +20,24 @@ use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::controller::Action;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
+use url::Url;
 
-use super::Ctx;
-use crate::resources::crds::{ActorSpec, Partner, Playbook, PlaybookState};
+use crate::context::Context;
+use crate::resources::crds::{Partner, Playbook, PlaybookState};
 use crate::resources::error::{Error, Result};
 use crate::resources::event::trace;
 use crate::resources::secret::{self, Credential, Kind};
 use crate::resources::{actor, namespace, playbook, service_account};
+use crate::services::actor::ActorService;
 
 /// The reconciler that will be called when either object change
-pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Ctx>) -> Result<Action> {
+pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Action> {
     tracing::info!("Reconciling Playbook \"{}\"", playbook.name_any());
     if playbook.spec.actors.is_empty() {
         return Err(Error::EmptyActorsError);
     }
 
-    let api: Api<Playbook> = Api::all(ctx.client.clone());
+    let api: Api<Playbook> = Api::all(ctx.k8s.clone());
     let finalizer_name = "playbooks.amphitheatre.app/finalizer";
 
     // Reconcile the playbook custom resource.
@@ -50,13 +52,13 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Ctx>) -> Result<Action>
 }
 /// an error handler that will be called when the reconciler fails with access to both the
 /// object that caused the failure and the actual error
-pub fn error_policy(playbook: Arc<Playbook>, error: &Error, ctx: Arc<Ctx>) -> Action {
+pub fn error_policy(_playbook: Arc<Playbook>, error: &Error, _ctx: Arc<Context>) -> Action {
     tracing::error!("reconcile failed: {:?}", error);
     Action::requeue(Duration::from_secs(60))
 }
 
 impl Playbook {
-    pub async fn reconcile(&self, ctx: Arc<Ctx>) -> Result<Action> {
+    pub async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
         if let Some(ref status) = self.status {
             if status.pending() {
                 self.init(ctx).await?
@@ -72,29 +74,29 @@ impl Playbook {
     }
 
     /// Init create namespace, credentials and service accounts
-    async fn init(&self, ctx: Arc<Ctx>) -> Result<()> {
+    async fn init(&self, ctx: Arc<Context>) -> Result<()> {
         let namespace = &self.spec.namespace;
         let recorder = ctx.recorder(self.reference());
 
         // Create namespace for this playbook
-        namespace::create(ctx.client.clone(), self).await?;
+        namespace::create(ctx.k8s.clone(), self).await?;
         trace(&recorder, "Created namespace for this playbook").await?;
 
         // Docker registry Credential
         let credential = Credential::basic(
             Kind::Image,
-            "harbor.amp-system.svc.cluster.local".into(),
-            "admin".into(),
-            "Harbor12345".into(),
+            Url::parse(&ctx.config.registry_url).map_err(Error::UrlParseError)?,
+            ctx.config.registry_username.clone(),
+            ctx.config.registry_password.clone(),
         );
 
         trace(&recorder, "Creating Secret for Docker Registry Credential").await?;
-        secret::create(ctx.client.clone(), namespace.clone(), &credential).await?;
+        secret::create(ctx.k8s.clone(), namespace.clone(), &credential).await?;
 
         // Patch this credential to default service account
         trace(&recorder, "Patch the credential to default service account").await?;
         service_account::patch(
-            ctx.client.clone(),
+            ctx.k8s.clone(),
             namespace,
             "default",
             &credential,
@@ -104,12 +106,12 @@ impl Playbook {
         .await?;
 
         trace(&recorder, "Init successfully, Let's begin solve, now!").await?;
-        playbook::patch_status(ctx.client.clone(), self, PlaybookState::solving()).await?;
+        playbook::patch_status(ctx.k8s.clone(), self, PlaybookState::solving()).await?;
 
         Ok(())
     }
 
-    async fn solve(&self, ctx: Arc<Ctx>) -> Result<()> {
+    async fn solve(&self, ctx: Arc<Context>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
 
         let exists: HashSet<String> = self.spec.actors.iter().map(|actor| actor.url()).collect();
@@ -130,16 +132,19 @@ impl Playbook {
 
         for partner in fetches.iter() {
             tracing::info!("fetches url: {}", partner.url());
-            let actor = read_partner(partner);
+            let actor = ActorService::read(&ctx, partner)
+                .await
+                .map_err(Error::ApiError)?
+                .unwrap();
 
             trace(&recorder, "Fetch and add the actor to this playbook").await?;
-            playbook::add(ctx.client.clone(), self, actor).await?;
+            playbook::add(ctx.k8s.clone(), self, actor).await?;
         }
 
         if fetches.is_empty() {
             trace(&recorder, "Solved successfully, Running").await?;
             playbook::patch_status(
-                ctx.client.clone(),
+                ctx.k8s.clone(),
                 self,
                 PlaybookState::running(true, "AutoRun", None),
             )
@@ -149,11 +154,11 @@ impl Playbook {
         Ok(())
     }
 
-    async fn run(&self, ctx: Arc<Ctx>) -> Result<()> {
+    async fn run(&self, ctx: Arc<Context>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
 
         for spec in &self.spec.actors {
-            match actor::exists(ctx.client.clone(), self, spec).await? {
+            match actor::exists(ctx.k8s.clone(), self, spec).await? {
                 true => {
                     // Actor already exists, update it if there are new changes
                     trace(
@@ -164,19 +169,19 @@ impl Playbook {
                         ),
                     )
                     .await?;
-                    actor::update(ctx.client.clone(), self, spec).await?;
+                    actor::update(ctx.k8s.clone(), self, spec).await?;
                 }
                 false => {
                     // Create a new actor
                     trace(&recorder, format!("Create new Actor: {}", spec.name)).await?;
-                    actor::create(ctx.client.clone(), self, spec).await?;
+                    actor::create(ctx.k8s.clone(), self, spec).await?;
                 }
             }
         }
         Ok(())
     }
 
-    pub async fn cleanup(&self, ctx: Arc<Ctx>) -> Result<Action> {
+    pub async fn cleanup(&self, _ctx: Arc<Context>) -> Result<Action> {
         Ok(Action::await_change())
     }
 
@@ -184,18 +189,5 @@ impl Playbook {
         let mut reference = self.object_ref(&());
         reference.namespace = Some(self.spec.namespace.to_string());
         reference
-    }
-}
-
-fn read_partner(partner: &Partner) -> ActorSpec {
-    ActorSpec {
-        name: partner.name.clone(),
-        description: "A simple NodeJs example app".into(),
-        image: "amp-example-nodejs".into(),
-        repository: partner.repository.clone(),
-        reference: partner.reference.clone(),
-        path: partner.path.clone(),
-        commit: "285ef2bc98fb6b3db46a96b6a750fad2d0c566b5".into(),
-        ..ActorSpec::default()
     }
 }

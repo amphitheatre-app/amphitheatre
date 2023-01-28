@@ -18,9 +18,10 @@ use axum::extract::State;
 use tracing::error;
 use uuid::Uuid;
 
-use crate::app::Context;
+use crate::context::Context;
 use crate::models::playbook::Playbook;
 use crate::repositories::playbook::PlaybookRepository;
+use crate::resources::crds::{ActorSpec, Partner, PlaybookSpec};
 use crate::resources::playbook;
 use crate::response::ApiError;
 use crate::services::Result;
@@ -67,18 +68,15 @@ impl PlaybookService {
         let uuid = Uuid::new_v4();
         let namespace = format!("amp-{}", uuid);
 
-        let playbook = playbook::create(
-            ctx.k8s.clone(),
-            namespace,
-            uuid.to_string(),
-            title,
-            description,
-        )
-        .await
-        .map_err(|err| {
-            error!("{:?}", err);
-            ApiError::KubernetesError
-        })?;
+        let spec = Self::read(ctx, title, description, namespace)
+            .await?
+            .unwrap();
+        let _playbook = playbook::create(ctx.k8s.clone(), uuid.to_string(), spec)
+            .await
+            .map_err(|err| {
+                error!("{:?}", err);
+                ApiError::KubernetesError
+            })?;
 
         Ok(uuid)
         // PlaybookRepository::create(&ctx.db, title, description)
@@ -98,5 +96,34 @@ impl PlaybookService {
         PlaybookRepository::update(&ctx.db, id, title, description)
             .await
             .map_err(|_| ApiError::DatabaseError)
+    }
+
+    pub async fn read(
+        ctx: &Arc<Context>,
+        title: String,
+        description: String,
+        namespace: String,
+    ) -> Result<Option<PlaybookSpec>> {
+        let spec = PlaybookSpec {
+            title,
+            description,
+            namespace,
+            actors: vec![ActorSpec {
+                name: "amp-example-java".into(),
+                description: "A simple Java example app".into(),
+                image: format!("{}/{}", ctx.config.registry_namespace, "amp-example-java"),
+                repository: "https://github.com/amphitheatre-app/amp-example-java".into(),
+                commit: "875db185acc8bf7c7effc389a350cae7aa926e57".into(),
+                partners: Some(vec![Partner {
+                    name: "amp-example-nodejs".into(),
+                    repository: "https://github.com/amphitheatre-app/amp-example-nodejs.git".into(),
+                    ..Partner::default()
+                }]),
+                ..ActorSpec::default()
+            }],
+            ..PlaybookSpec::default()
+        };
+
+        Ok(Some(spec))
     }
 }
