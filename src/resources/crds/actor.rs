@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::fmt::Display;
 
 use convert_case::{Case, Casing};
+use k8s_openapi::api::core::v1::EnvVar;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
 use k8s_openapi::chrono::Utc;
 use kube::CustomResource;
@@ -98,6 +99,22 @@ impl ActorSpec {
     #[inline]
     pub fn url(&self) -> String {
         url(&self.repository, &self.reference, &self.path)
+    }
+
+    pub fn environments(&self) -> Option<Vec<EnvVar>> {
+        if let Some(vars) = &self.environments {
+            return Some(
+                vars.iter()
+                    .map(|(key, value)| EnvVar {
+                        name: key.to_string(),
+                        value: Some(value.to_string()),
+                        value_from: None,
+                    })
+                    .collect(),
+            );
+        }
+
+        None
     }
 }
 
