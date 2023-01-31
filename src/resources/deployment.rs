@@ -20,12 +20,10 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
-use serde::Serialize;
-use serde_json::to_string;
-use sha2::{Digest, Sha256};
 
 use super::crds::Actor;
 use super::error::Result;
+use super::{hash, LAST_APPLIED_HASH_KEY};
 use crate::resources::error::Error;
 
 pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
@@ -94,18 +92,6 @@ pub async fn update(client: Client, actor: &Actor) -> Result<Deployment> {
 
     Ok(deployment)
 }
-
-fn hash<T>(resource: &T) -> Result<String>
-where
-    T: Serialize,
-{
-    let data = to_string(resource).map_err(Error::SerializationError)?;
-    let hash = Sha256::digest(data);
-
-    Ok(format!("{:x}", hash))
-}
-
-const LAST_APPLIED_HASH_KEY: &str = "actors.amphitheatre.io/last-applied-hash";
 
 fn new(actor: &Actor) -> Result<Deployment> {
     let name = actor.deployment_name();
