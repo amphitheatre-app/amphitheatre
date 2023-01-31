@@ -27,6 +27,7 @@ pub mod image;
 pub mod namespace;
 pub mod playbook;
 pub mod secret;
+pub mod service;
 pub mod service_account;
 
 const LAST_APPLIED_HASH_KEY: &str = "actors.amphitheatre.io/last-applied-hash";
