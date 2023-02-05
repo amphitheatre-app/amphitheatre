@@ -141,7 +141,27 @@ impl ActorSpec {
     }
 
     pub fn service_ports(&self) -> Option<Vec<ServicePort>> {
-        todo!()
+        if let Some(services) = &self.services {
+            let mut ports: Vec<ServicePort> = vec![];
+
+            for service in services {
+                let mut items = service
+                    .ports
+                    .iter()
+                    .filter(|p| p.expose.unwrap_or_default())
+                    .map(|p| ServicePort {
+                        port: p.port,
+                        protocol: p.protocol.clone(),
+                        ..Default::default()
+                    })
+                    .collect();
+                ports.append(&mut items);
+            }
+
+            return Some(ports);
+        }
+
+        None
     }
 }
 
