@@ -29,7 +29,7 @@ pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Service> = Api::namespaced(client, namespace.as_str());
-    let name = actor.deployment_name();
+    let name = actor.name_any();
 
     Ok(api
         .get_opt(&name)

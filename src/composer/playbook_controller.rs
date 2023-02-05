@@ -69,8 +69,9 @@ impl Playbook {
             }
         }
 
+        Ok(Action::await_change())
         // If no events were received, check back every 2 minutes
-        Ok(Action::requeue(Duration::from_secs(2 * 60)))
+        // Ok(Action::requeue(Duration::from_secs(2 * 60)))
     }
 
     /// Init create namespace, credentials and service accounts

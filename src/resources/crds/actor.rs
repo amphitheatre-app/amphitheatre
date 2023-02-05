@@ -89,10 +89,6 @@ impl Actor {
     pub fn docker_tag(&self) -> String {
         format!("{}:{}", self.spec.image, self.spec.commit)
     }
-
-    pub fn deployment_name(&self) -> String {
-        self.spec.name.to_string()
-    }
 }
 
 impl ActorSpec {
@@ -118,50 +114,48 @@ impl ActorSpec {
     }
 
     pub fn container_ports(&self) -> Option<Vec<ContainerPort>> {
-        if let Some(services) = &self.services {
-            let mut ports: Vec<ContainerPort> = vec![];
+        let services = self.services.as_ref()?;
+        let mut ports: Vec<ContainerPort> = vec![];
 
-            for service in services {
-                let mut items = service
-                    .ports
-                    .iter()
-                    .map(|p| ContainerPort {
-                        container_port: p.port,
-                        protocol: p.protocol.clone(),
-                        ..Default::default()
-                    })
-                    .collect();
-                ports.append(&mut items);
-            }
-
-            return Some(ports);
+        for service in services {
+            let mut items = service
+                .ports
+                .iter()
+                .map(|p| ContainerPort {
+                    container_port: p.port,
+                    protocol: p.protocol.clone(),
+                    ..Default::default()
+                })
+                .collect();
+            ports.append(&mut items);
         }
 
-        None
+        Some(ports)
     }
 
     pub fn service_ports(&self) -> Option<Vec<ServicePort>> {
-        if let Some(services) = &self.services {
-            let mut ports: Vec<ServicePort> = vec![];
+        let services = self.services.as_ref()?;
+        let mut ports: Vec<ServicePort> = vec![];
 
-            for service in services {
-                let mut items = service
-                    .ports
-                    .iter()
-                    .filter(|p| p.expose.unwrap_or_default())
-                    .map(|p| ServicePort {
-                        port: p.port,
-                        protocol: p.protocol.clone(),
-                        ..Default::default()
-                    })
-                    .collect();
-                ports.append(&mut items);
-            }
-
-            return Some(ports);
+        for service in services {
+            let mut items = service
+                .ports
+                .iter()
+                .filter(|p| p.expose.unwrap_or_default())
+                .map(|p| ServicePort {
+                    port: p.port,
+                    protocol: p.protocol.clone(),
+                    ..Default::default()
+                })
+                .collect();
+            ports.append(&mut items);
         }
 
-        None
+        if ports.is_empty() {
+            None
+        } else {
+            Some(ports)
+        }
     }
 }
 

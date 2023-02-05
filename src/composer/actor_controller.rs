@@ -24,7 +24,7 @@ use crate::context::Context;
 use crate::resources::crds::{Actor, ActorState};
 use crate::resources::error::{Error, Result};
 use crate::resources::event::trace;
-use crate::resources::{actor, deployment, image};
+use crate::resources::{actor, deployment, image, service};
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
@@ -63,8 +63,9 @@ impl Actor {
             }
         }
 
+        Ok(Action::await_change())
         // If no events were received, check back every 2 minutes
-        Ok(Action::requeue(Duration::from_secs(2 * 60)))
+        // Ok(Action::requeue(Duration::from_secs(2 * 60)))
     }
 
     async fn init(&self, ctx: Arc<Context>) -> Result<()> {
@@ -131,7 +132,7 @@ impl Actor {
                     &recorder,
                     format!(
                         "Deployment {} already exists, update it if there are new changes",
-                        self.deployment_name()
+                        self.name_any()
                     ),
                 )
                 .await?;
@@ -141,10 +142,36 @@ impl Actor {
                 // Create a new Deployment
                 trace(
                     &recorder,
-                    format!("Create new Deployment: {}", self.deployment_name()),
+                    format!("Create new Deployment: {}", self.name_any()),
                 )
                 .await?;
                 deployment::create(ctx.k8s.clone(), self).await?;
+            }
+        }
+
+        if self.spec.service_ports().is_some() {
+            match service::exists(ctx.k8s.clone(), self).await? {
+                true => {
+                    // Service already exists, update it if there are new changes
+                    trace(
+                        &recorder,
+                        format!(
+                            "Service {} already exists, update it if there are new changes",
+                            self.name_any()
+                        ),
+                    )
+                    .await?;
+                    service::update(ctx.k8s.clone(), self).await?;
+                }
+                false => {
+                    // Create a new Service
+                    trace(
+                        &recorder,
+                        format!("Create new Service: {}", self.name_any()),
+                    )
+                    .await?;
+                    service::create(ctx.k8s.clone(), self).await?;
+                }
             }
         }
 

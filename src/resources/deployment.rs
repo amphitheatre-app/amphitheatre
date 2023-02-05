@@ -31,7 +31,7 @@ pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Deployment> = Api::namespaced(client, namespace.as_str());
-    let name = actor.deployment_name();
+    let name = actor.name_any();
 
     Ok(api
         .get_opt(&name)
@@ -63,7 +63,7 @@ pub async fn update(client: Client, actor: &Actor) -> Result<Deployment> {
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
-    let name = actor.deployment_name();
+    let name = actor.name_any();
 
     let mut deployment = api.get(&name).await.map_err(Error::KubeError)?;
     tracing::debug!("The Deployment {} already exists: {:#?}", &name, deployment);
@@ -94,7 +94,7 @@ pub async fn update(client: Client, actor: &Actor) -> Result<Deployment> {
 }
 
 fn new(actor: &Actor) -> Result<Deployment> {
-    let name = actor.deployment_name();
+    let name = actor.name_any();
 
     let owner_reference = actor.controller_owner_ref(&()).unwrap();
     let labels = BTreeMap::from([
