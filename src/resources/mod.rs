@@ -30,7 +30,7 @@ pub mod secret;
 pub mod service;
 pub mod service_account;
 
-const LAST_APPLIED_HASH_KEY: &str = "actors.amphitheatre.io/last-applied-hash";
+const LAST_APPLIED_HASH_KEY: &str = "actors.amphitheatre.app/last-applied-hash";
 
 pub fn hash<T>(resource: &T) -> Result<String>
 where
