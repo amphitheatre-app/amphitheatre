@@ -77,6 +77,9 @@ pub struct ActorSpec {
     /// control in real time via Webhook, etc. and then rebuilds and deploys it
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sync: Option<bool>,
+    /// Describes how images are built.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build: Option<Build>,
 }
 
 impl Actor {
@@ -198,6 +201,36 @@ pub struct Port {
     pub protocol: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expose: Option<bool>,
+}
+
+/// Describes how images are built.
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
+pub struct Build {
+    /// Global parameters
+    ///
+    /// Directory containing the artifact's sources.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context: Option<String>,
+    /// Environment variables, in the key=value form, passed to the build.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub env: Option<HashMap<String, String>>,
+
+    /// Builds images using kaniko.
+    ///
+    /// Locates the Dockerfile relative to workspace.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dockerfile: Option<String>,
+
+    /// Builds images using Cloud Native Buildpacks.
+    ///
+    /// Builder image used.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub builder: Option<String>,
+    /// A list of strings, where each string is a specific buildpack to use with the builder.
+    /// If you specify buildpacks the builder image automatic detection will be ignored.
+    /// These buildpacks will be used to build the Image from your source code. Order matters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub buildpacks: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
