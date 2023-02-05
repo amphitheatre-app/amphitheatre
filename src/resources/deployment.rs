@@ -108,6 +108,7 @@ fn new(actor: &Actor) -> Result<Deployment> {
         image: Some(actor.docker_tag()),
         image_pull_policy: Some("Always".into()),
         env: actor.spec.environments(),
+        ports: actor.spec.container_ports(),
         ..Default::default()
     };
 

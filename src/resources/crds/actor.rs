@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::fmt::Display;
 
 use convert_case::{Case, Casing};
-use k8s_openapi::api::core::v1::EnvVar;
+use k8s_openapi::api::core::v1::{ContainerPort, EnvVar, ServicePort};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
 use k8s_openapi::chrono::Utc;
 use kube::CustomResource;
@@ -116,6 +116,33 @@ impl ActorSpec {
 
         None
     }
+
+    pub fn container_ports(&self) -> Option<Vec<ContainerPort>> {
+        if let Some(services) = &self.services {
+            let mut ports: Vec<ContainerPort> = vec![];
+
+            for service in services {
+                let mut items = service
+                    .ports
+                    .iter()
+                    .map(|p| ContainerPort {
+                        container_port: p.port,
+                        protocol: p.protocol.clone(),
+                        ..Default::default()
+                    })
+                    .collect();
+                ports.append(&mut items);
+            }
+
+            return Some(ports);
+        }
+
+        None
+    }
+
+    pub fn service_ports(&self) -> Option<Vec<ServicePort>> {
+        todo!()
+    }
 }
 
 #[derive(Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Eq, Hash, PartialEq)]
@@ -152,7 +179,7 @@ pub struct Service {
 /// List of ports to expose from the container.
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub struct Port {
-    pub port: u32,
+    pub port: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub protocol: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -111,8 +111,7 @@ fn new(actor: &Actor) -> Result<Service> {
         },
         spec: Some(ServiceSpec {
             selector: Some(labels),
-            // TODO: Assign the ServicePorts
-            ports: None,
+            ports: actor.spec.service_ports(),
             ..Default::default()
         }),
         ..Default::default()
