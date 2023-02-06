@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
+
+use k8s_openapi::api::core::v1::EnvVar;
 use serde::Serialize;
 use serde_json::to_string;
 use sha2::{Digest, Sha256};
@@ -24,6 +27,7 @@ pub mod deployment;
 pub mod error;
 pub mod event;
 pub mod image;
+pub mod job;
 pub mod namespace;
 pub mod playbook;
 pub mod secret;
@@ -31,6 +35,8 @@ pub mod service;
 pub mod service_account;
 
 const LAST_APPLIED_HASH_KEY: &str = "actors.amphitheatre.app/last-applied-hash";
+const DEFAULT_KANIKO_IMAGE: &str = "gcr.io/kaniko-project/executor:latest";
+const DEFAULT_GITSYNC_IMAGE: &str = "k8s.gcr.io/git-sync:latest";
 
 pub fn hash<T>(resource: &T) -> Result<String>
 where
@@ -40,4 +46,14 @@ where
     let hash = Sha256::digest(data);
 
     Ok(format!("{:x}", hash))
+}
+
+pub fn to_env_var<T: ToString>(env: &HashMap<T, T>) -> Vec<EnvVar> {
+    env.iter()
+        .map(|(key, value)| EnvVar {
+            name: key.to_string(),
+            value: Some(value.to_string()),
+            value_from: None,
+        })
+        .collect()
 }

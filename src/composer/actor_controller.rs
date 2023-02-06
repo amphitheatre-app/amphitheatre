@@ -17,6 +17,7 @@ use std::time::Duration;
 
 use k8s_openapi::api::core::v1::{Namespace, ObjectReference};
 use kube::runtime::controller::Action;
+use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 
@@ -24,7 +25,7 @@ use crate::context::Context;
 use crate::resources::crds::{Actor, ActorState};
 use crate::resources::error::{Error, Result};
 use crate::resources::event::trace;
-use crate::resources::{actor, deployment, image, service};
+use crate::resources::{actor, deployment, image, job, service};
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
@@ -83,14 +84,60 @@ impl Actor {
     async fn build(&self, ctx: Arc<Context>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
 
+        // TODO: Return if the image already exists
+
+        if self.spec.has_dockerfile() {
+            // Prefer to use Kaniko to build images with Dockerfile
+            self.build_with_kaniko(&ctx, &recorder).await?;
+        } else {
+            // Finally, build the image with Cloud Native Buildpacks
+            self.build_with_buildpacks(&ctx, &recorder).await?;
+        }
+
+        trace(&recorder, "The images builded, Running").await?;
+        let condition = ActorState::running(true, "AutoRun", None);
+        actor::patch_status(ctx.k8s.clone(), self, condition).await?;
+
+        Ok(())
+    }
+
+    async fn build_with_kaniko(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+        match job::exists(ctx.k8s.clone(), self).await? {
+            true => {
+                // Kaniko build job already exists, update it if there are new changes
+                trace(
+                    recorder,
+                    format!(
+                        "Kaniko build job {} already exists, update it if there are new changes",
+                        self.build_name()
+                    ),
+                )
+                .await?;
+                job::update(ctx.k8s.clone(), self).await?;
+            }
+            false => {
+                // Create a new image
+                trace(
+                    recorder,
+                    format!("Create new kaniko build job: {}", self.build_name()),
+                )
+                .await?;
+                job::create(ctx.k8s.clone(), self).await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn build_with_buildpacks(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
         match image::exists(ctx.k8s.clone(), self).await? {
             true => {
                 // Image already exists, update it if there are new changes
                 trace(
-                    &recorder,
+                    recorder,
                     format!(
                         "Image {} already exists, update it if there are new changes",
-                        self.kpack_image_name()
+                        self.build_name()
                     ),
                 )
                 .await?;
@@ -98,18 +145,10 @@ impl Actor {
             }
             false => {
                 // Create a new image
-                trace(
-                    &recorder,
-                    format!("Create new image: {}", self.kpack_image_name()),
-                )
-                .await?;
+                trace(recorder, format!("Create new image: {}", self.build_name())).await?;
                 image::create(ctx.k8s.clone(), self).await?;
             }
         }
-
-        trace(&recorder, "The images builded, Running").await?;
-        let condition = ActorState::running(true, "AutoRun", None);
-        actor::patch_status(ctx.k8s.clone(), self, condition).await?;
 
         Ok(())
     }

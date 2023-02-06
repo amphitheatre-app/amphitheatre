@@ -26,7 +26,7 @@ pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
-    let name = actor.kpack_image_name();
+    let name = actor.build_name();
 
     Ok(api
         .get_opt(&name)
@@ -60,7 +60,7 @@ pub async fn update(client: Client, actor: &Actor) -> Result<DynamicObject> {
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
 
-    let name = actor.kpack_image_name();
+    let name = actor.build_name();
     let mut image = api.get(&name).await.map_err(Error::KubeError)?;
     tracing::debug!("The image \"{}\" already exists:\n {:#?}\n", name, image);
 
@@ -95,7 +95,7 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
         "apiVersion": "kpack.io/v1alpha2",
         "kind": "Image",
         "metadata": {
-            "name": actor.kpack_image_name(),
+            "name": actor.build_name(),
             "ownerReferences": vec![owner_reference]
         },
         "spec": {

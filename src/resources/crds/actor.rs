@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use super::url;
+use crate::resources::to_env_var;
 
 #[derive(
     CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate, PartialEq,
@@ -85,7 +86,7 @@ pub struct ActorSpec {
 impl Actor {
     // For kpack Image name
     #[inline]
-    pub fn kpack_image_name(&self) -> String {
+    pub fn build_name(&self) -> String {
         format!("{}-{}", self.spec.name, self.spec.commit)
     }
 
@@ -102,15 +103,7 @@ impl ActorSpec {
 
     pub fn environments(&self) -> Option<Vec<EnvVar>> {
         if let Some(vars) = &self.environments {
-            return Some(
-                vars.iter()
-                    .map(|(key, value)| EnvVar {
-                        name: key.to_string(),
-                        value: Some(value.to_string()),
-                        value_from: None,
-                    })
-                    .collect(),
-            );
+            return Some(to_env_var(vars));
         }
 
         None
@@ -159,6 +152,11 @@ impl ActorSpec {
         } else {
             Some(ports)
         }
+    }
+
+    #[inline]
+    pub fn has_dockerfile(&self) -> bool {
+        self.build.is_some() && self.build.as_ref().unwrap().dockerfile.is_some()
     }
 }
 
@@ -230,7 +228,7 @@ pub struct Build {
     /// If you specify buildpacks the builder image automatic detection will be ignored.
     /// These buildpacks will be used to build the Image from your source code. Order matters.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub buildpacks: Option<String>,
+    pub buildpacks: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
