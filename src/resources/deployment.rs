@@ -105,7 +105,7 @@ fn new(actor: &Actor) -> Result<Deployment> {
 
     let container = Container {
         name: name.clone(),
-        image: Some(actor.docker_tag()),
+        image: Some(actor.spec.docker_tag()),
         image_pull_policy: Some("Always".into()),
         env: actor.spec.environments(),
         ports: actor.spec.container_ports(),

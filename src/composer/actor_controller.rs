@@ -86,12 +86,28 @@ impl Actor {
 
         // TODO: Return if the image already exists
 
-        if self.spec.has_dockerfile() {
-            // Prefer to use Kaniko to build images with Dockerfile
-            self.build_with_kaniko(&ctx, &recorder).await?;
-        } else {
-            // Finally, build the image with Cloud Native Buildpacks
-            self.build_with_buildpacks(&ctx, &recorder).await?;
+        match job::exists(ctx.k8s.clone(), self).await? {
+            true => {
+                // Build job already exists, update it if there are new changes
+                trace(
+                    &recorder,
+                    format!(
+                        "Build job {} already exists, update it if there are new changes",
+                        self.spec.build_name()
+                    ),
+                )
+                .await?;
+                job::update(ctx.k8s.clone(), self).await?;
+            }
+            false => {
+                // Create a new image
+                trace(
+                    &recorder,
+                    format!("Create new build Job: {}", self.spec.build_name()),
+                )
+                .await?;
+                job::create(ctx.k8s.clone(), self).await?;
+            }
         }
 
         trace(&recorder, "The images builded, Running").await?;
@@ -101,35 +117,8 @@ impl Actor {
         Ok(())
     }
 
-    async fn build_with_kaniko(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-        match job::exists(ctx.k8s.clone(), self).await? {
-            true => {
-                // Kaniko build job already exists, update it if there are new changes
-                trace(
-                    recorder,
-                    format!(
-                        "Kaniko build job {} already exists, update it if there are new changes",
-                        self.build_name()
-                    ),
-                )
-                .await?;
-                job::update(ctx.k8s.clone(), self).await?;
-            }
-            false => {
-                // Create a new image
-                trace(
-                    recorder,
-                    format!("Create new kaniko build job: {}", self.build_name()),
-                )
-                .await?;
-                job::create(ctx.k8s.clone(), self).await?;
-            }
-        }
-
-        Ok(())
-    }
-
-    async fn build_with_buildpacks(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+    #[allow(dead_code)]
+    async fn build_with_kpack(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
         match image::exists(ctx.k8s.clone(), self).await? {
             true => {
                 // Image already exists, update it if there are new changes
@@ -137,7 +126,7 @@ impl Actor {
                     recorder,
                     format!(
                         "Image {} already exists, update it if there are new changes",
-                        self.build_name()
+                        self.spec.build_name()
                     ),
                 )
                 .await?;
@@ -145,7 +134,11 @@ impl Actor {
             }
             false => {
                 // Create a new image
-                trace(recorder, format!("Create new image: {}", self.build_name())).await?;
+                trace(
+                    recorder,
+                    format!("Create new image: {}", self.spec.build_name()),
+                )
+                .await?;
                 image::create(ctx.k8s.clone(), self).await?;
             }
         }

@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use super::url;
-use crate::resources::to_env_var;
+use crate::resources::{to_env_var, DEFAULT_BP_BUILDER};
 
 #[derive(
     CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate, PartialEq,
@@ -83,30 +83,24 @@ pub struct ActorSpec {
     pub build: Option<Build>,
 }
 
-impl Actor {
-    // For kpack Image name
-    #[inline]
-    pub fn build_name(&self) -> String {
-        format!("{}-{}", self.spec.name, self.spec.commit)
-    }
-
-    pub fn docker_tag(&self) -> String {
-        format!("{}:{}", self.spec.image, self.spec.commit)
-    }
-}
-
 impl ActorSpec {
     #[inline]
     pub fn url(&self) -> String {
         url(&self.repository, &self.reference, &self.path)
     }
 
-    pub fn environments(&self) -> Option<Vec<EnvVar>> {
-        if let Some(vars) = &self.environments {
-            return Some(to_env_var(vars));
-        }
+    #[inline]
+    pub fn build_name(&self) -> String {
+        format!("{}-{}", self.name, self.commit)
+    }
 
-        None
+    #[inline]
+    pub fn docker_tag(&self) -> String {
+        format!("{}:{}", self.image, self.commit)
+    }
+
+    pub fn environments(&self) -> Option<Vec<EnvVar>> {
+        self.environments.as_ref().map(to_env_var)
     }
 
     pub fn container_ports(&self) -> Option<Vec<ContainerPort>> {
@@ -157,6 +151,54 @@ impl ActorSpec {
     #[inline]
     pub fn has_dockerfile(&self) -> bool {
         self.build.is_some() && self.build.as_ref().unwrap().dockerfile.is_some()
+    }
+
+    pub fn dockerfile(&self) -> String {
+        if let Some(build) = &self.build {
+            if let Some(dockerfile) = &build.dockerfile {
+                return dockerfile.clone();
+            }
+        }
+
+        String::from("Dockerfile")
+    }
+
+    pub fn builder(&self) -> String {
+        if let Some(build) = &self.build {
+            if let Some(builder) = &build.builder {
+                return builder.clone();
+            }
+        }
+
+        String::from(DEFAULT_BP_BUILDER)
+    }
+
+    pub fn buildpacks(&self) -> Vec<String> {
+        if let Some(build) = &self.build {
+            if let Some(buildpacks) = &build.buildpacks {
+                return buildpacks.clone();
+            }
+        }
+
+        Vec::new()
+    }
+
+    pub fn context(&self) -> String {
+        if let Some(build) = &self.build {
+            if let Some(context) = &build.context {
+                return context.clone();
+            }
+        }
+
+        String::from(".")
+    }
+
+    pub fn build_env(&self) -> Option<Vec<EnvVar>> {
+        if let Some(build) = &self.build {
+            return build.env.as_ref().map(to_env_var);
+        }
+
+        None
     }
 }
 

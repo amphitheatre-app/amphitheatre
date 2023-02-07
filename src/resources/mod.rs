@@ -35,8 +35,10 @@ pub mod service;
 pub mod service_account;
 
 const LAST_APPLIED_HASH_KEY: &str = "actors.amphitheatre.app/last-applied-hash";
-const DEFAULT_KANIKO_IMAGE: &str = "gcr.io/kaniko-project/executor:latest";
 const DEFAULT_GITSYNC_IMAGE: &str = "k8s.gcr.io/git-sync:latest";
+const DEFAULT_KANIKO_IMAGE: &str = "gcr.io/kaniko-project/executor:latest";
+const DEFAULT_PACK_IMAGE: &str = "buildpacksio/pack:latest";
+const DEFAULT_BP_BUILDER: &str = "gcr.io/buildpacks/builder:v1";
 
 pub fn hash<T>(resource: &T) -> Result<String>
 where

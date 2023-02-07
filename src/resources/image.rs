@@ -26,7 +26,7 @@ pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
-    let name = actor.build_name();
+    let name = actor.spec.build_name();
 
     Ok(api
         .get_opt(&name)
@@ -60,7 +60,7 @@ pub async fn update(client: Client, actor: &Actor) -> Result<DynamicObject> {
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
 
-    let name = actor.build_name();
+    let name = actor.spec.build_name();
     let mut image = api.get(&name).await.map_err(Error::KubeError)?;
     tracing::debug!("The image \"{}\" already exists:\n {:#?}\n", name, image);
 
@@ -95,11 +95,11 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
         "apiVersion": "kpack.io/v1alpha2",
         "kind": "Image",
         "metadata": {
-            "name": actor.build_name(),
+            "name": actor.spec.build_name(),
             "ownerReferences": vec![owner_reference]
         },
         "spec": {
-            "tag": actor.docker_tag(),
+            "tag": actor.spec.docker_tag(),
             "serviceAccountName": "default",
             "builder": {
                 "name": "amp-default-cluster-builder",
