@@ -117,34 +117,34 @@ impl Actor {
         Ok(())
     }
 
-    #[allow(dead_code)]
-    async fn build_with_kpack(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-        match image::exists(ctx.k8s.clone(), self).await? {
-            true => {
-                // Image already exists, update it if there are new changes
-                trace(
-                    recorder,
-                    format!(
-                        "Image {} already exists, update it if there are new changes",
-                        self.spec.build_name()
-                    ),
-                )
-                .await?;
-                image::update(ctx.k8s.clone(), self).await?;
-            }
-            false => {
-                // Create a new image
-                trace(
-                    recorder,
-                    format!("Create new image: {}", self.spec.build_name()),
-                )
-                .await?;
-                image::create(ctx.k8s.clone(), self).await?;
-            }
-        }
+    // #[allow(dead_code)]
+    // async fn build_with_kpack(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+    //     match image::exists(ctx.k8s.clone(), self).await? {
+    //         true => {
+    //             // Image already exists, update it if there are new changes
+    //             trace(
+    //                 recorder,
+    //                 format!(
+    //                     "Image {} already exists, update it if there are new changes",
+    //                     self.spec.build_name()
+    //                 ),
+    //             )
+    //             .await?;
+    //             image::update(ctx.k8s.clone(), self).await?;
+    //         }
+    //         false => {
+    //             // Create a new image
+    //             trace(
+    //                 recorder,
+    //                 format!("Create new image: {}", self.spec.build_name()),
+    //             )
+    //             .await?;
+    //             image::create(ctx.k8s.clone(), self).await?;
+    //         }
+    //     }
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     async fn run(&self, ctx: Arc<Context>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
