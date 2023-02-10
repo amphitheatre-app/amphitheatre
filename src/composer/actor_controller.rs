@@ -17,7 +17,6 @@ use std::time::Duration;
 
 use k8s_openapi::api::core::v1::{Namespace, ObjectReference};
 use kube::runtime::controller::Action;
-use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 
@@ -25,7 +24,7 @@ use crate::context::Context;
 use crate::resources::crds::{Actor, ActorState};
 use crate::resources::error::{Error, Result};
 use crate::resources::event::trace;
-use crate::resources::{actor, deployment, image, job, service};
+use crate::resources::{actor, deployment, job, service};
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
