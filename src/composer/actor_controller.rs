@@ -83,7 +83,14 @@ impl Actor {
     async fn build(&self, ctx: Arc<Context>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
 
-        // TODO: Return if the image already exists
+        // Return if the image already exists
+        if exists(&self.spec.image) {
+            trace(&recorder, "The images already exists, Running").await?;
+            let condition = ActorState::running(true, "AutoRun", None);
+            actor::patch_status(ctx.k8s.clone(), self, condition).await?;
+
+            return Ok(());
+        }
 
         match job::exists(ctx.k8s.clone(), self).await? {
             true => {
@@ -234,4 +241,9 @@ impl Actor {
     fn reference(&self) -> ObjectReference {
         self.object_ref(&())
     }
+}
+
+/// TODO: Check if the docker image exists
+fn exists(_image: &str) -> bool {
+    false
 }
