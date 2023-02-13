@@ -191,7 +191,7 @@ fn new_git_sync_container(spec: &ActorSpec) -> Result<Container> {
         // Change permissions on the checked-out files to the specified mode.
         ("GIT_SYNC_PERMISSIONS".into(), "0777".into()),
         // Use SSH for git authentication and operations.
-        ("GIT_SYNC_SSH".into(), "true".into()),
+        ("GIT_SYNC_SSH".into(), "false".into()),
         // Enable SSH known_hosts verification when using --ssh.  If not
         // specified, this defaults to true.
         ("GIT_KNOWN_HOSTS".into(), "true".into()),

@@ -106,7 +106,7 @@ impl Actor {
                 job::update(ctx.k8s.clone(), self).await?;
             }
             false => {
-                // Create a new image
+                // Create a new build job
                 trace(
                     &recorder,
                     format!("Create new build Job: {}", self.spec.build_name()),
