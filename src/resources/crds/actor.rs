@@ -190,7 +190,7 @@ impl ActorSpec {
             }
         }
 
-        String::from(".")
+        String::from("")
     }
 
     pub fn build_env(&self) -> Option<Vec<EnvVar>> {

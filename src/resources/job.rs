@@ -25,7 +25,7 @@ use kube::{Api, Client, Resource, ResourceExt};
 use super::crds::{Actor, ActorSpec};
 use super::error::Result;
 use super::{
-    hash, to_env_var, DEFAULT_GITSYNC_IMAGE, DEFAULT_KANIKO_IMAGE, DEFAULT_PACK_IMAGE,
+    hash, to_env_var, DEFAULT_BP_IMAGE, DEFAULT_GITSYNC_IMAGE, DEFAULT_KANIKO_IMAGE,
     LAST_APPLIED_HASH_KEY,
 };
 use crate::resources::error::Error;
@@ -240,38 +240,29 @@ fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
 }
 
 fn new_buildpacks_container(spec: &ActorSpec) -> Result<Container> {
-    let args: HashMap<String, String> = HashMap::from([
-        // Builder image (default "gcr.io/buildpacks/builder:v1")
-        ("builder".into(), spec.builder()),
-        // Buildpack to use. a packaged buildpack image name in the form of '<hostname>/<repo>[:<tag>]'
-        // Repeat for each buildpack in order, and supply once by comma-separated list.
-        ("buildpack".into(), spec.buildpacks().join(",")),
-        // Path to app dir (defaults to current working directory)
-        ("path".into(), spec.context()),
-        // Publish to registry
-        ("publish".into(), "true".into()),
-        // Location at which to mount the app dir in the build image
-        ("workspace".into(), "/workspace".into()),
-        // Enable timestamps in output
-        ("timestamps".into(), "true".into()),
-        // Show more output
-        ("verbose".into(), "true".into()),
-    ]);
+    let args: Vec<String> = vec![
+        // Path to application directory
+        format!("-app=/workspace/{}", spec.context()),
+        // Log Level
+        "-log-level=info".to_string(),
+        // Primary GID of the build image User
+        "-gid=1000".to_string(),
+        // UID of the build image User
+        "-uid=1000".to_string(),
+    ];
 
     let container = Container {
         name: spec.build_name(),
-        image: Some(DEFAULT_PACK_IMAGE.to_string()),
+        image: Some(DEFAULT_BP_IMAGE.to_string()),
         image_pull_policy: Some("Always".into()),
         command: Some(vec![
-            "pack".to_string(),
-            "build".to_string(),
+            // Running creator SHALL be equivalent to running detector, analyzer, restorer, builder
+            // and exporter in order with identical inputs where they are accepted
+            "/cnb/lifecycle/creator".to_string(),
+            // Tag reference to which the app image will be written
             spec.docker_tag(),
         ]),
-        args: Some(
-            args.iter()
-                .map(|(key, value)| format!("--{}={}", key, value))
-                .collect(),
-        ),
+        args: Some(args),
         env: spec.build_env(),
         volume_mounts: Some(vec![workspace()]),
         ..Default::default()
