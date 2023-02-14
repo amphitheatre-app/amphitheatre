@@ -25,7 +25,7 @@ use kube::{Api, Client, Resource, ResourceExt};
 use super::crds::{Actor, ActorSpec};
 use super::error::Result;
 use super::{
-    hash, to_env_var, DEFAULT_BP_IMAGE, DEFAULT_GITSYNC_IMAGE, DEFAULT_KANIKO_IMAGE,
+    hash, to_env_var, DEFAULT_BP_LIFECYCLE_IMAGE, DEFAULT_GITSYNC_IMAGE, DEFAULT_KANIKO_IMAGE,
     LAST_APPLIED_HASH_KEY,
 };
 use crate::resources::error::Error;
@@ -148,9 +148,7 @@ fn new(actor: &Actor) -> Result<Job> {
         },
         spec: Some(JobSpec {
             template,
-            backoff_limit: Some(1),
-            completions: Some(1),
-            parallelism: Some(1),
+            backoff_limit: Some(0),
             ..Default::default()
         }),
         ..Default::default()
@@ -245,25 +243,30 @@ fn new_buildpacks_container(spec: &ActorSpec) -> Result<Container> {
         format!("-app=/workspace/{}", spec.context()),
         // Log Level
         "-log-level=info".to_string(),
-        // Primary GID of the build image User
-        "-gid=1000".to_string(),
-        // UID of the build image User
-        "-uid=1000".to_string(),
+        // Run image reference
+        format!("-run-image={}", spec.builder()),
+        // Tag reference to which the app image will be written
+        spec.docker_tag(),
     ];
+
+    let mut env = HashMap::from([("CNB_PLATFORM_API".into(), "0.10".into())]);
+    if let Some(build) = &spec.build {
+        if let Some(e) = &build.env {
+            env.extend(e.clone());
+        }
+    }
 
     let container = Container {
         name: spec.build_name(),
-        image: Some(DEFAULT_BP_IMAGE.to_string()),
+        image: Some(DEFAULT_BP_LIFECYCLE_IMAGE.to_string()),
         image_pull_policy: Some("Always".into()),
         command: Some(vec![
             // Running creator SHALL be equivalent to running detector, analyzer, restorer, builder
             // and exporter in order with identical inputs where they are accepted
             "/cnb/lifecycle/creator".to_string(),
-            // Tag reference to which the app image will be written
-            spec.docker_tag(),
         ]),
         args: Some(args),
-        env: spec.build_env(),
+        env: Some(to_env_var(&env)),
         volume_mounts: Some(vec![workspace()]),
         ..Default::default()
     };

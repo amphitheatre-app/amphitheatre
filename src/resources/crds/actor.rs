@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use super::url;
-use crate::resources::{to_env_var, DEFAULT_BP_BUILDER};
+use crate::resources::{to_env_var, DEFAULT_BP_BUILDER_IMAGE};
 
 #[derive(
     CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate, PartialEq,
@@ -170,7 +170,7 @@ impl ActorSpec {
             }
         }
 
-        String::from(DEFAULT_BP_BUILDER)
+        String::from(DEFAULT_BP_BUILDER_IMAGE)
     }
 
     pub fn buildpacks(&self) -> Vec<String> {
