@@ -20,10 +20,11 @@ use amphitheatre::config::Config;
 use amphitheatre::context::Context;
 use amphitheatre::{app, composer};
 use clap::Parser;
+use tracing::Level;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     // This returns an error if the `.env` file doesn't exist, but that's not what we want
     // since we're not going to use a `.env` file if we deploy this application.
