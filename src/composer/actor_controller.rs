@@ -17,6 +17,7 @@ use std::time::Duration;
 
 use k8s_openapi::api::core::v1::{Namespace, ObjectReference};
 use kube::runtime::controller::Action;
+use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 
@@ -24,7 +25,7 @@ use crate::context::Context;
 use crate::resources::crds::{Actor, ActorState};
 use crate::resources::error::{Error, Result};
 use crate::resources::event::trace;
-use crate::resources::{actor, deployment, job, service};
+use crate::resources::{actor, deployment, image, job, service};
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
@@ -92,11 +93,27 @@ impl Actor {
             return Ok(());
         }
 
+        // Prefer to use Kaniko to build images with Dockerfile,
+        // else, build the image with Cloud Native Buildpacks
+        if self.spec.has_dockerfile() {
+            self.build_with_kaniko(&ctx, &recorder).await?;
+        } else {
+            self.build_with_kpack(&ctx, &recorder).await?;
+        }
+
+        trace(&recorder, "The images builded, Running").await?;
+        let condition = ActorState::running(true, "AutoRun", None);
+        actor::patch_status(ctx.k8s.clone(), self, condition).await?;
+
+        Ok(())
+    }
+
+    async fn build_with_kaniko(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
         match job::exists(ctx.k8s.clone(), self).await? {
             true => {
                 // Build job already exists, update it if there are new changes
                 trace(
-                    &recorder,
+                    recorder,
                     format!(
                         "Build job {} already exists, update it if there are new changes",
                         self.spec.build_name()
@@ -108,7 +125,7 @@ impl Actor {
             false => {
                 // Create a new build job
                 trace(
-                    &recorder,
+                    recorder,
                     format!("Create new build Job: {}", self.spec.build_name()),
                 )
                 .await?;
@@ -116,41 +133,36 @@ impl Actor {
             }
         }
 
-        trace(&recorder, "The images builded, Running").await?;
-        let condition = ActorState::running(true, "AutoRun", None);
-        actor::patch_status(ctx.k8s.clone(), self, condition).await?;
-
         Ok(())
     }
 
-    // #[allow(dead_code)]
-    // async fn build_with_kpack(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    //     match image::exists(ctx.k8s.clone(), self).await? {
-    //         true => {
-    //             // Image already exists, update it if there are new changes
-    //             trace(
-    //                 recorder,
-    //                 format!(
-    //                     "Image {} already exists, update it if there are new changes",
-    //                     self.spec.build_name()
-    //                 ),
-    //             )
-    //             .await?;
-    //             image::update(ctx.k8s.clone(), self).await?;
-    //         }
-    //         false => {
-    //             // Create a new image
-    //             trace(
-    //                 recorder,
-    //                 format!("Create new image: {}", self.spec.build_name()),
-    //             )
-    //             .await?;
-    //             image::create(ctx.k8s.clone(), self).await?;
-    //         }
-    //     }
+    async fn build_with_kpack(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+        match image::exists(ctx.k8s.clone(), self).await? {
+            true => {
+                // Image already exists, update it if there are new changes
+                trace(
+                    recorder,
+                    format!(
+                        "Image {} already exists, update it if there are new changes",
+                        self.spec.build_name()
+                    ),
+                )
+                .await?;
+                image::update(ctx.k8s.clone(), self).await?;
+            }
+            false => {
+                // Create a new image
+                trace(
+                    recorder,
+                    format!("Create new image: {}", self.spec.build_name()),
+                )
+                .await?;
+                image::create(ctx.k8s.clone(), self).await?;
+            }
+        }
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
     async fn run(&self, ctx: Arc<Context>) -> Result<()> {
         let recorder = ctx.recorder(self.reference());
