@@ -33,13 +33,14 @@ pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
 
     let ns = actor.namespace().unwrap(); // actor is namespace scoped
     let api: Api<Actor> = Api::namespaced(ctx.k8s.clone(), &ns);
+    let recorder = ctx.recorder(actor.reference());
 
     // Reconcile the actor custom resource.
     let finalizer_name = "actors.amphitheatre.app/finalizer";
     finalizer(&api, finalizer_name, actor, |event| async {
         match event {
-            FinalizerEvent::Apply(actor) => actor.reconcile(ctx.clone()).await,
-            FinalizerEvent::Cleanup(actor) => actor.cleanup(ctx.clone()).await,
+            FinalizerEvent::Apply(actor) => actor.reconcile(ctx.clone(), &recorder).await,
+            FinalizerEvent::Cleanup(actor) => actor.cleanup(ctx.clone(), &recorder).await,
         }
     })
     .await
@@ -53,14 +54,14 @@ pub fn error_policy(_actor: Arc<Actor>, error: &Error, _ctx: Arc<Context>) -> Ac
 }
 
 impl Actor {
-    pub async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
+    pub async fn reconcile(&self, ctx: Arc<Context>, reporter: &Recorder) -> Result<Action> {
         if let Some(ref status) = self.status {
             if status.pending() {
-                self.init(ctx).await?
+                self.init(ctx, reporter).await?
             } else if status.building() {
-                self.build(ctx).await?
+                self.build(ctx, reporter).await?
             } else if status.running() {
-                self.run(ctx).await?
+                self.run(ctx, reporter).await?
             }
         }
 
@@ -69,10 +70,9 @@ impl Actor {
         // Ok(Action::requeue(Duration::from_secs(2 * 60)))
     }
 
-    async fn init(&self, ctx: Arc<Context>) -> Result<()> {
-        let recorder = ctx.recorder(self.reference());
+    async fn init(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<()> {
         trace(
-            &recorder,
+            recorder,
             format!("Building the image for Actor {}", self.name_any()),
         )
         .await?;
@@ -81,12 +81,10 @@ impl Actor {
         Ok(())
     }
 
-    async fn build(&self, ctx: Arc<Context>) -> Result<()> {
-        let recorder = ctx.recorder(self.reference());
-
+    async fn build(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<()> {
         // Return if the image already exists
         if exists(&self.spec.image) {
-            trace(&recorder, "The images already exists, Running").await?;
+            trace(recorder, "The images already exists, Running").await?;
             let condition = ActorState::running(true, "AutoRun", None);
             actor::patch_status(ctx.k8s.clone(), self, condition).await?;
 
@@ -96,12 +94,12 @@ impl Actor {
         // Prefer to use Kaniko to build images with Dockerfile,
         // else, build the image with Cloud Native Buildpacks
         if self.spec.has_dockerfile() {
-            self.build_with_kaniko(&ctx, &recorder).await?;
+            self.build_with_kaniko(&ctx, recorder).await?;
         } else {
-            self.build_with_kpack(&ctx, &recorder).await?;
+            self.build_with_kpack(&ctx, recorder).await?;
         }
 
-        trace(&recorder, "The images builded, Running").await?;
+        trace(recorder, "The images builded, Running").await?;
         let condition = ActorState::running(true, "AutoRun", None);
         actor::patch_status(ctx.k8s.clone(), self, condition).await?;
 
@@ -164,10 +162,9 @@ impl Actor {
         Ok(())
     }
 
-    async fn run(&self, ctx: Arc<Context>) -> Result<()> {
-        let recorder = ctx.recorder(self.reference());
+    async fn run(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<()> {
         trace(
-            &recorder,
+            recorder,
             format!(
                 "Try to deploying the resources for Actor {}",
                 self.name_any()
@@ -179,7 +176,7 @@ impl Actor {
             true => {
                 // Deployment already exists, update it if there are new changes
                 trace(
-                    &recorder,
+                    recorder,
                     format!(
                         "Deployment {} already exists, update it if there are new changes",
                         self.name_any()
@@ -191,7 +188,7 @@ impl Actor {
             false => {
                 // Create a new Deployment
                 trace(
-                    &recorder,
+                    recorder,
                     format!("Create new Deployment: {}", self.name_any()),
                 )
                 .await?;
@@ -204,7 +201,7 @@ impl Actor {
                 true => {
                     // Service already exists, update it if there are new changes
                     trace(
-                        &recorder,
+                        recorder,
                         format!(
                             "Service {} already exists, update it if there are new changes",
                             self.name_any()
@@ -215,11 +212,7 @@ impl Actor {
                 }
                 false => {
                     // Create a new Service
-                    trace(
-                        &recorder,
-                        format!("Create new Service: {}", self.name_any()),
-                    )
-                    .await?;
+                    trace(recorder, format!("Create new Service: {}", self.name_any())).await?;
                     service::create(ctx.k8s.clone(), self).await?;
                 }
             }
@@ -228,7 +221,7 @@ impl Actor {
         Ok(())
     }
 
-    pub async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action> {
+    pub async fn cleanup(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<Action> {
         let namespace = self
             .namespace()
             .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
@@ -244,8 +237,7 @@ impl Actor {
             }
         }
 
-        let recorder = ctx.recorder(self.reference());
-        trace(&recorder, format!("Delete Actor `{}`", self.name_any())).await?;
+        trace(recorder, format!("Delete Actor `{}`", self.name_any())).await?;
 
         Ok(Action::await_change())
     }
