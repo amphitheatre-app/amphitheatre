@@ -102,7 +102,7 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
             "tag": actor.spec.docker_tag(),
             "serviceAccountName": "default",
             "builder": {
-                "name": "amp-default-cluster-builder",
+                "name": actor.spec.builder(),
                 "kind": "ClusterBuilder",
             },
             "source": {

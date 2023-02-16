@@ -170,17 +170,7 @@ impl ActorSpec {
             }
         }
 
-        String::from("default")
-    }
-
-    pub fn buildpacks(&self) -> Vec<String> {
-        if let Some(build) = &self.build {
-            if let Some(buildpacks) = &build.buildpacks {
-                return buildpacks.clone();
-            }
-        }
-
-        Vec::new()
+        String::from("amp-default-cluster-builder")
     }
 
     pub fn context(&self) -> String {
@@ -246,8 +236,6 @@ pub struct Port {
 /// Describes how images are built.
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub struct Build {
-    /// Global parameters
-    ///
     /// Directory containing the artifact's sources.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context: Option<String>,
@@ -256,21 +244,14 @@ pub struct Build {
     pub env: Option<HashMap<String, String>>,
 
     /// Builds images using kaniko.
-    ///
     /// Locates the Dockerfile relative to workspace.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dockerfile: Option<String>,
 
-    /// Builds images using Cloud Native Buildpacks.
-    ///
-    /// Builder image used.
+    /// Builds images using Cloud Native Buildpacks,
+    /// which Cluster Builder image used.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub builder: Option<String>,
-    /// A list of strings, where each string is a specific buildpack to use with the builder.
-    /// If you specify buildpacks the builder image automatic detection will be ignored.
-    /// These buildpacks will be used to build the Image from your source code. Order matters.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub buildpacks: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
