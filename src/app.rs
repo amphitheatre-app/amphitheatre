@@ -39,9 +39,9 @@ pub async fn run(ctx: Arc<Context>) {
         .merge(swagger::build())
         .layer(
             ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(|e: BoxError| async move {
-                    display_error(e)
-                }))
+                .layer(HandleErrorLayer::new(
+                    |e: BoxError| async move { display_error(e) },
+                ))
                 .layer(GovernorLayer {
                     config: Box::leak(governor_conf),
                 }),

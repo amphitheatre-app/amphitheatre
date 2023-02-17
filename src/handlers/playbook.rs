@@ -93,10 +93,7 @@ pub async fn create(
     ),
     tag = "Playbooks"
 )]
-pub async fn detail(
-    Path(id): Path<Uuid>,
-    ctx: State<Arc<Context>>,
-) -> Result<impl IntoResponse, ApiError> {
+pub async fn detail(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx, id).await?;
 
     match playbook {
@@ -149,10 +146,7 @@ pub async fn update(
     ),
     tag = "Playbooks"
 )]
-pub async fn delete(
-    Path(id): Path<Uuid>,
-    ctx: State<Arc<Context>>,
-) -> Result<impl IntoResponse, ApiError> {
+pub async fn delete(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx, id).await?;
 
     if playbook.is_none() {
@@ -209,10 +203,7 @@ pub async fn events(
     ),
     tag = "Playbooks"
 )]
-pub async fn start(
-    Path(id): Path<Uuid>,
-    ctx: State<Arc<Context>>,
-) -> Result<impl IntoResponse, ApiError> {
+pub async fn start(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx, id).await?;
 
     if playbook.is_none() {
@@ -236,10 +227,7 @@ pub async fn start(
     ),
     tag = "Playbooks",
 )]
-pub async fn stop(
-    Path(id): Path<Uuid>,
-    ctx: State<Arc<Context>>,
-) -> Result<impl IntoResponse, ApiError> {
+pub async fn stop(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx, id).await?;
 
     if playbook.is_none() {

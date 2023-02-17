@@ -47,10 +47,7 @@ use crate::services::playbook::PlaybookService;
     ),
     tag = "Actors"
 )]
-pub async fn list(
-    Path(pid): Path<Uuid>,
-    ctx: State<Arc<Context>>,
-) -> Result<impl IntoResponse, ApiError> {
+pub async fn list(Path(pid): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
     let playbook = PlaybookService::get(&ctx, pid).await?;
 
     if playbook.is_none() {
@@ -74,10 +71,7 @@ pub async fn list(
     ),
     tag = "Actors"
 )]
-pub async fn detail(
-    Path(id): Path<Uuid>,
-    ctx: State<Arc<Context>>,
-) -> Result<impl IntoResponse, ApiError> {
+pub async fn detail(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
     let actor = ActorService::get(&ctx, id).await?;
 
     match actor {
@@ -142,23 +136,30 @@ pub async fn info(Path(_id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> 
                     "PATH",
                     "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/bin/aux",
                 ),
+                ("CRI_CONFIG_FILE", "/var/lib/rancher/k3s/agent/etc/crictl.yaml"),
+            ]),
+        ),
+        (
+            "mounts",
+            HashMap::from([
                 (
-                    "CRI_CONFIG_FILE",
-                    "/var/lib/rancher/k3s/agent/etc/crictl.yaml",
+                    "/VAR/LIB/CNI",
+                    "/var/lib/docker/volumes/00f49631b07ccd74de44d3047d5f889395ac871e05b622890b6dd788d34a59f4/_data",
+                ),
+                (
+                    "/VAR/LIB/KUBELET",
+                    "/var/lib/docker/volumes/bc1b16d39a0e204841695de857122412cfdefd0f672af185b1fa43e635397848/_data",
+                ),
+                (
+                    "/VAR/LIB/RANCHER/K3S",
+                    "/var/lib/docker/volumes/a78bcb9f7654701e0cfaef4447ef61ced4864e5b93dee7102ec639afb5cf2e1d/_data",
+                ),
+                (
+                    "/VAR/LOG",
+                    "/var/lib/docker/volumes/f64c2f2cf81cfde89879f2a17924b31bd2f2e6a6a738f7df949bf6bd57102d25/_data",
                 ),
             ]),
         ),
-        ("mounts", HashMap::from([
-            ("/VAR/LIB/CNI",
-             "/var/lib/docker/volumes/00f49631b07ccd74de44d3047d5f889395ac871e05b622890b6dd788d34a59f4/_data"),
-            ("/VAR/LIB/KUBELET",
-             "/var/lib/docker/volumes/bc1b16d39a0e204841695de857122412cfdefd0f672af185b1fa43e635397848/_data"),
-            ("/VAR/LIB/RANCHER/K3S",
-             "/var/lib/docker/volumes/a78bcb9f7654701e0cfaef4447ef61ced4864e5b93dee7102ec639afb5cf2e1d/_data"),
-            ("/VAR/LOG",
-             "/var/lib/docker/volumes/f64c2f2cf81cfde89879f2a17924b31bd2f2e6a6a738f7df949bf6bd57102d25/_data"),
-        ]
-        )),
         ("port", HashMap::from([("6443/tcp", "0.0.0.0:42397")])),
     ])))
 }

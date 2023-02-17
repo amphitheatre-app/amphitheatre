@@ -96,15 +96,7 @@ impl Playbook {
 
         // Patch this credential to default service account
         trace(&recorder, "Patch the credential to default service account").await?;
-        service_account::patch(
-            ctx.k8s.clone(),
-            namespace,
-            "default",
-            &credential,
-            true,
-            true,
-        )
-        .await?;
+        service_account::patch(ctx.k8s.clone(), namespace, "default", &credential, true, true).await?;
 
         trace(&recorder, "Init successfully, Let's begin solve, now!").await?;
         playbook::patch_status(ctx.k8s.clone(), self, PlaybookState::solving()).await?;

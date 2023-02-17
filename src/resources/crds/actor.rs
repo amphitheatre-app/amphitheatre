@@ -27,9 +27,7 @@ use validator::Validate;
 use super::url;
 use crate::resources::to_env_var;
 
-#[derive(
-    CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate, PartialEq,
-)]
+#[derive(CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate, PartialEq)]
 #[kube(
     group = "amphitheatre.app",
     version = "v1",
@@ -279,8 +277,7 @@ impl ActorStatus {
 
     fn state(&self, s: ActorState, status: bool) -> bool {
         self.conditions.iter().any(|condition| {
-            condition.type_ == s.to_string()
-                && condition.status == status.to_string().to_case(Case::Pascal)
+            condition.type_ == s.to_string() && condition.status == status.to_string().to_case(Case::Pascal)
         })
     }
 }

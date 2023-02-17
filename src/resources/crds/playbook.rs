@@ -80,8 +80,7 @@ impl PlaybookStatus {
 
     fn state(&self, s: PlaybookState, status: bool) -> bool {
         self.conditions.iter().any(|condition| {
-            condition.type_ == s.to_string()
-                && condition.status == status.to_string().to_case(Case::Pascal)
+            condition.type_ == s.to_string() && condition.status == status.to_string().to_case(Case::Pascal)
         })
     }
 }
@@ -121,12 +120,7 @@ impl PlaybookState {
     }
 
     #[inline]
-    fn create(
-        state: PlaybookState,
-        status: bool,
-        reason: &str,
-        message: Option<String>,
-    ) -> Condition {
+    fn create(state: PlaybookState, status: bool, reason: &str, message: Option<String>) -> Condition {
         Condition {
             type_: state.to_string(),
             status: status.to_string().to_case(Case::Pascal),

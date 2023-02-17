@@ -121,20 +121,12 @@ pub async fn patch_status(client: Client, playbook: &Playbook, condition: Condit
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!(
-        "Patched status {:?} for {}",
-        playbook.status,
-        playbook.name_any()
-    );
+    tracing::info!("Patched status {:?} for {}", playbook.status, playbook.name_any());
 
     Ok(())
 }
 
-pub async fn replace_status(
-    _client: Client,
-    _playbook: &Playbook,
-    _condition: Condition,
-) -> Result<()> {
+pub async fn replace_status(_client: Client, _playbook: &Playbook, _condition: Condition) -> Result<()> {
     todo!()
 }
 

@@ -26,11 +26,7 @@ pub async fn exists(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Re
     let name = spec.name.clone();
 
     let api: Api<Actor> = Api::namespaced(client, namespace.as_str());
-    Ok(api
-        .get_opt(&name)
-        .await
-        .map_err(Error::KubeError)?
-        .is_some())
+    Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
 }
 
 pub async fn create(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Result<Actor> {

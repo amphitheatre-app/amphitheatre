@@ -35,14 +35,8 @@ pub fn build() -> Router<Arc<Context>> {
         .route("/v1/playbooks/:id", patch(handlers::playbook::update))
         .route("/v1/playbooks/:id", delete(handlers::playbook::delete))
         //
-        .route(
-            "/v1/playbooks/:id/actions/start",
-            post(handlers::playbook::start),
-        )
-        .route(
-            "/v1/playbooks/:id/actions/stop",
-            post(handlers::playbook::stop),
-        )
+        .route("/v1/playbooks/:id/actions/start", post(handlers::playbook::start))
+        .route("/v1/playbooks/:id/actions/stop", post(handlers::playbook::stop))
         .route("/v1/playbooks/:id/events", get(handlers::playbook::events))
         .route("/v1/playbooks/:id/actors", get(handlers::actor::list))
 }

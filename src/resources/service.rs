@@ -31,11 +31,7 @@ pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
     let api: Api<Service> = Api::namespaced(client, namespace.as_str());
     let name = actor.name_any();
 
-    Ok(api
-        .get_opt(&name)
-        .await
-        .map_err(Error::KubeError)?
-        .is_some())
+    Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
 }
 
 pub async fn create(client: Client, actor: &Actor) -> Result<Service> {

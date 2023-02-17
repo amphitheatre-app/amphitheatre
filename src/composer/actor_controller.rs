@@ -76,7 +76,6 @@ impl Actor {
             format!("Building the image for Actor {}", self.name_any()),
         )
         .await?;
-
         actor::patch_status(ctx.k8s.clone(), self, ActorState::building()).await?;
         Ok(())
     }
@@ -99,6 +98,10 @@ impl Actor {
             self.build_with_kpack(&ctx, recorder).await?;
         }
 
+        // TODO: Check if the build Job has completed.
+
+        // Once the image is built, it is deployed to the cluster with the
+        // appropriate resource type (e.g. Deployment or StatefulSet).
         trace(recorder, "The images builded, Running").await?;
         let condition = ActorState::running(true, "AutoRun", None);
         actor::patch_status(ctx.k8s.clone(), self, condition).await?;
@@ -150,11 +153,7 @@ impl Actor {
             }
             false => {
                 // Create a new image
-                trace(
-                    recorder,
-                    format!("Create new image: {}", self.spec.build_name()),
-                )
-                .await?;
+                trace(recorder, format!("Create new image: {}", self.spec.build_name())).await?;
                 image::create(ctx.k8s.clone(), self).await?;
             }
         }
@@ -165,10 +164,7 @@ impl Actor {
     async fn run(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<()> {
         trace(
             recorder,
-            format!(
-                "Try to deploying the resources for Actor {}",
-                self.name_any()
-            ),
+            format!("Try to deploying the resources for Actor {}", self.name_any()),
         )
         .await?;
 
@@ -187,11 +183,7 @@ impl Actor {
             }
             false => {
                 // Create a new Deployment
-                trace(
-                    recorder,
-                    format!("Create new Deployment: {}", self.name_any()),
-                )
-                .await?;
+                trace(recorder, format!("Create new Deployment: {}", self.name_any())).await?;
                 deployment::create(ctx.k8s.clone(), self).await?;
             }
         }
@@ -227,10 +219,7 @@ impl Actor {
             .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
         let api: Api<Namespace> = Api::all(ctx.k8s.clone());
 
-        let ns = api
-            .get(namespace.as_str())
-            .await
-            .map_err(Error::KubeError)?;
+        let ns = api.get(namespace.as_str()).await.map_err(Error::KubeError)?;
         if let Some(status) = ns.status {
             if status.phase == Some("Terminating".into()) {
                 return Ok(Action::await_change());
@@ -238,7 +227,6 @@ impl Actor {
         }
 
         trace(recorder, format!("Delete Actor `{}`", self.name_any())).await?;
-
         Ok(Action::await_change())
     }
 

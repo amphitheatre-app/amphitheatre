@@ -26,9 +26,6 @@ impl ActorRepository {
     }
 
     pub async fn list(db: &Database, pid: Uuid) -> Result<Vec<Actor>> {
-        Entity::find()
-            .filter(Column::PlaybookId.eq(pid))
-            .all(db)
-            .await
+        Entity::find().filter(Column::PlaybookId.eq(pid)).all(db).await
     }
 }

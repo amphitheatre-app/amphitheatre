@@ -122,19 +122,14 @@ impl Credential {
 pub async fn create(client: Client, namespace: String, credential: &Credential) -> Result<Secret> {
     let api: Api<Secret> = Api::namespaced(client, &namespace);
 
-    let annotations = BTreeMap::from([(
-        credential.kind.schema_name(),
-        credential.location.to_string(),
-    )]);
+    let annotations = BTreeMap::from([(credential.kind.schema_name(), credential.location.to_string())]);
 
     let data = match credential.auth {
         Authorization::Basic => BTreeMap::from([
             ("username".to_string(), credential.username_any()),
             ("password".to_string(), credential.password_any()),
         ]),
-        Authorization::Token => {
-            BTreeMap::from([("ssh-privatekey".to_string(), credential.token_any())])
-        }
+        Authorization::Token => BTreeMap::from([("ssh-privatekey".to_string(), credential.token_any())]),
     };
 
     let resource = Secret {

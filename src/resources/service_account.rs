@@ -30,10 +30,7 @@ pub async fn patch(
     image_pull_secret: bool,
 ) -> Result<ServiceAccount> {
     let api: Api<ServiceAccount> = Api::namespaced(client, namespace);
-    let mut service_account = api
-        .get(service_account_name)
-        .await
-        .map_err(Error::KubeError)?;
+    let mut service_account = api.get(service_account_name).await.map_err(Error::KubeError)?;
 
     tracing::debug!(
         "The current {} ServiceAccount is: {:#?}",

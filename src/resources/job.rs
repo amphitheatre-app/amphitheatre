@@ -34,11 +34,7 @@ pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
     let api: Api<Job> = Api::namespaced(client, namespace.as_str());
     let name = actor.spec.build_name();
 
-    Ok(api
-        .get_opt(&name)
-        .await
-        .map_err(Error::KubeError)?
-        .is_some())
+    Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
 }
 
 pub async fn create(client: Client, actor: &Actor) -> Result<Job> {
@@ -119,9 +115,7 @@ fn new(actor: &Actor) -> Result<Job> {
             containers: vec![container],
             volumes: Some(vec![Volume {
                 name: "build-context".to_string(),
-                empty_dir: Some(EmptyDirVolumeSource {
-                    ..Default::default()
-                }),
+                empty_dir: Some(EmptyDirVolumeSource { ..Default::default() }),
                 ..Default::default()
             }]),
             ..Default::default()

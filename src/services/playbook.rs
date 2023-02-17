@@ -60,17 +60,11 @@ impl PlaybookService {
             .map_err(|_| ApiError::DatabaseError)
     }
 
-    pub async fn create(
-        ctx: &State<Arc<Context>>,
-        title: String,
-        description: String,
-    ) -> Result<Uuid> {
+    pub async fn create(ctx: &State<Arc<Context>>, title: String, description: String) -> Result<Uuid> {
         let uuid = Uuid::new_v4();
         let namespace = format!("amp-{}", uuid);
 
-        let spec = Self::read(ctx, title, description, namespace)
-            .await?
-            .unwrap();
+        let spec = Self::read(ctx, title, description, namespace).await?.unwrap();
         let _playbook = playbook::create(ctx.k8s.clone(), uuid.to_string(), spec)
             .await
             .map_err(|err| {

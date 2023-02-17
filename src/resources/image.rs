@@ -28,11 +28,7 @@ pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
     let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
     let name = actor.spec.build_name();
 
-    Ok(api
-        .get_opt(&name)
-        .await
-        .map_err(Error::KubeError)?
-        .is_some())
+    Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
 }
 
 pub async fn create(client: Client, actor: &Actor) -> Result<DynamicObject> {
