@@ -18,6 +18,7 @@ use std::time::Duration;
 
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::controller::Action;
+use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::{Api, Resource, ResourceExt};
 use url::Url;
@@ -38,13 +39,14 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Act
     }
 
     let api: Api<Playbook> = Api::all(ctx.k8s.clone());
-    let finalizer_name = "playbooks.amphitheatre.app/finalizer";
+    let recorder = ctx.recorder(playbook.reference());
 
     // Reconcile the playbook custom resource.
+    let finalizer_name = "playbooks.amphitheatre.app/finalizer";
     finalizer(&api, finalizer_name, playbook, |event| async {
         match event {
-            FinalizerEvent::Apply(playbook) => playbook.reconcile(ctx.clone()).await,
-            FinalizerEvent::Cleanup(playbook) => playbook.cleanup(ctx.clone()).await,
+            FinalizerEvent::Apply(playbook) => playbook.reconcile(ctx.clone(), &recorder).await,
+            FinalizerEvent::Cleanup(playbook) => playbook.cleanup(ctx.clone(), &recorder).await,
         }
     })
     .await
@@ -58,14 +60,14 @@ pub fn error_policy(_playbook: Arc<Playbook>, error: &Error, _ctx: Arc<Context>)
 }
 
 impl Playbook {
-    pub async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action> {
+    pub async fn reconcile(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<Action> {
         if let Some(ref status) = self.status {
             if status.pending() {
-                self.init(ctx).await?
+                self.init(ctx, recorder).await?
             } else if status.solving() {
-                self.solve(ctx).await?
+                self.solve(ctx, recorder).await?
             } else if status.running() {
-                self.run(ctx).await?
+                self.run(ctx, recorder).await?
             }
         }
 
@@ -75,13 +77,12 @@ impl Playbook {
     }
 
     /// Init create namespace, credentials and service accounts
-    async fn init(&self, ctx: Arc<Context>) -> Result<()> {
+    async fn init(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<()> {
         let namespace = &self.spec.namespace;
-        let recorder = ctx.recorder(self.reference());
 
         // Create namespace for this playbook
         namespace::create(ctx.k8s.clone(), self).await?;
-        trace(&recorder, "Created namespace for this playbook").await?;
+        trace(recorder, "Created namespace for this playbook").await?;
 
         // Docker registry Credential
         let credential = Credential::basic(
@@ -91,22 +92,20 @@ impl Playbook {
             ctx.config.registry_password.clone(),
         );
 
-        trace(&recorder, "Creating Secret for Docker Registry Credential").await?;
+        trace(recorder, "Creating Secret for Docker Registry Credential").await?;
         secret::create(ctx.k8s.clone(), namespace.clone(), &credential).await?;
 
         // Patch this credential to default service account
-        trace(&recorder, "Patch the credential to default service account").await?;
+        trace(recorder, "Patch the credential to default service account").await?;
         service_account::patch(ctx.k8s.clone(), namespace, "default", &credential, true, true).await?;
 
-        trace(&recorder, "Init successfully, Let's begin solve, now!").await?;
+        trace(recorder, "Init successfully, Let's begin solve, now!").await?;
         playbook::patch_status(ctx.k8s.clone(), self, PlaybookState::solving()).await?;
 
         Ok(())
     }
 
-    async fn solve(&self, ctx: Arc<Context>) -> Result<()> {
-        let recorder = ctx.recorder(self.reference());
-
+    async fn solve(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<()> {
         let exists: HashSet<String> = self.spec.actors.iter().map(|actor| actor.url()).collect();
 
         let mut fetches: HashSet<Partner> = HashSet::new();
@@ -130,12 +129,12 @@ impl Playbook {
                 .map_err(Error::ApiError)?
                 .unwrap();
 
-            trace(&recorder, "Fetch and add the actor to this playbook").await?;
+            trace(recorder, "Fetch and add the actor to this playbook").await?;
             playbook::add(ctx.k8s.clone(), self, actor).await?;
         }
 
         if fetches.is_empty() {
-            trace(&recorder, "Solved successfully, Running").await?;
+            trace(recorder, "Solved successfully, Running").await?;
             playbook::patch_status(
                 ctx.k8s.clone(),
                 self,
@@ -147,15 +146,13 @@ impl Playbook {
         Ok(())
     }
 
-    async fn run(&self, ctx: Arc<Context>) -> Result<()> {
-        let recorder = ctx.recorder(self.reference());
-
+    async fn run(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<()> {
         for spec in &self.spec.actors {
             match actor::exists(ctx.k8s.clone(), self, spec).await? {
                 true => {
                     // Actor already exists, update it if there are new changes
                     trace(
-                        &recorder,
+                        recorder,
                         format!(
                             "Actor {} already exists, update it if there are new changes",
                             spec.name
@@ -166,7 +163,7 @@ impl Playbook {
                 }
                 false => {
                     // Create a new actor
-                    trace(&recorder, format!("Create new Actor: {}", spec.name)).await?;
+                    trace(recorder, format!("Create new Actor: {}", spec.name)).await?;
                     actor::create(ctx.k8s.clone(), self, spec).await?;
                 }
             }
@@ -174,7 +171,7 @@ impl Playbook {
         Ok(())
     }
 
-    pub async fn cleanup(&self, _ctx: Arc<Context>) -> Result<Action> {
+    pub async fn cleanup(&self, _ctx: Arc<Context>, _recorder: &Recorder) -> Result<Action> {
         Ok(Action::await_change())
     }
 

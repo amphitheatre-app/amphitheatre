@@ -54,14 +54,14 @@ pub fn error_policy(_actor: Arc<Actor>, error: &Error, _ctx: Arc<Context>) -> Ac
 }
 
 impl Actor {
-    pub async fn reconcile(&self, ctx: Arc<Context>, reporter: &Recorder) -> Result<Action> {
+    pub async fn reconcile(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<Action> {
         if let Some(ref status) = self.status {
             if status.pending() {
-                self.init(ctx, reporter).await?
+                self.init(ctx, recorder).await?
             } else if status.building() {
-                self.build(ctx, reporter).await?
+                self.build(ctx, recorder).await?
             } else if status.running() {
-                self.run(ctx, reporter).await?
+                self.run(ctx, recorder).await?
             }
         }
 
