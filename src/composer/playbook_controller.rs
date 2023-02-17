@@ -45,8 +45,8 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Act
     let finalizer_name = "playbooks.amphitheatre.app/finalizer";
     finalizer(&api, finalizer_name, playbook, |event| async {
         match event {
-            FinalizerEvent::Apply(playbook) => playbook.reconcile(ctx.clone(), &recorder).await,
-            FinalizerEvent::Cleanup(playbook) => playbook.cleanup(ctx.clone(), &recorder).await,
+            FinalizerEvent::Apply(playbook) => playbook.reconcile(&ctx, &recorder).await,
+            FinalizerEvent::Cleanup(playbook) => playbook.cleanup(&ctx, &recorder).await,
         }
     })
     .await
@@ -60,7 +60,7 @@ pub fn error_policy(_playbook: Arc<Playbook>, error: &Error, _ctx: Arc<Context>)
 }
 
 impl Playbook {
-    pub async fn reconcile(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<Action> {
+    pub async fn reconcile(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
         if let Some(ref status) = self.status {
             if status.pending() {
                 self.init(ctx, recorder).await?
@@ -77,7 +77,7 @@ impl Playbook {
     }
 
     /// Init create namespace, credentials and service accounts
-    async fn init(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<()> {
+    async fn init(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
         let namespace = &self.spec.namespace;
 
         // Create namespace for this playbook
@@ -105,7 +105,7 @@ impl Playbook {
         Ok(())
     }
 
-    async fn solve(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<()> {
+    async fn solve(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
         let exists: HashSet<String> = self.spec.actors.iter().map(|actor| actor.url()).collect();
 
         let mut fetches: HashSet<Partner> = HashSet::new();
@@ -124,7 +124,7 @@ impl Playbook {
 
         for partner in fetches.iter() {
             tracing::info!("fetches url: {}", partner.url());
-            let actor = ActorService::read(&ctx, partner)
+            let actor = ActorService::read(ctx, partner)
                 .await
                 .map_err(Error::ApiError)?
                 .unwrap();
@@ -146,7 +146,7 @@ impl Playbook {
         Ok(())
     }
 
-    async fn run(&self, ctx: Arc<Context>, recorder: &Recorder) -> Result<()> {
+    async fn run(&self, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
         for spec in &self.spec.actors {
             match actor::exists(ctx.k8s.clone(), self, spec).await? {
                 true => {
@@ -171,7 +171,7 @@ impl Playbook {
         Ok(())
     }
 
-    pub async fn cleanup(&self, _ctx: Arc<Context>, _recorder: &Recorder) -> Result<Action> {
+    pub async fn cleanup(&self, _ctx: &Arc<Context>, _recorder: &Recorder) -> Result<Action> {
         Ok(Action::await_change())
     }
 
