@@ -20,7 +20,7 @@ use uuid::Uuid;
 use crate::context::Context;
 use crate::models::actor::Actor;
 use crate::repositories::actor::ActorRepository;
-use crate::resources::crds::{ActorSpec, Partner};
+use crate::resources::crds::{ActorSpec, Build, Partner};
 use crate::response::ApiError;
 use crate::services::Result;
 
@@ -43,12 +43,16 @@ impl ActorService {
     pub async fn read(ctx: &Arc<Context>, partner: &Partner) -> Result<Option<ActorSpec>> {
         let spec = ActorSpec {
             name: partner.name.clone(),
-            description: "A simple NodeJs example app".into(),
-            image: format!("{}/{}", ctx.config.registry_namespace, "amp-example-nodejs"),
+            description: "A simple Golang example app".into(),
+            image: format!("{}/{}", ctx.config.registry_namespace, "amp-example-go"),
             repository: partner.repository.clone(),
             reference: partner.reference.clone(),
             path: partner.path.clone(),
-            commit: "285ef2bc98fb6b3db46a96b6a750fad2d0c566b5".into(),
+            commit: "2ebf3c7954f34e4a59976fdff985ea12a2009a52".into(),
+            build: Some(Build {
+                dockerfile: Some("Dockerfile".to_string()),
+                ..Default::default()
+            }),
             ..ActorSpec::default()
         };
 

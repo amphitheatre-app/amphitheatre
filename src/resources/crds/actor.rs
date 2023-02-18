@@ -232,7 +232,7 @@ pub struct Port {
 }
 
 /// Describes how images are built.
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
+#[derive(Default, Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub struct Build {
     /// Directory containing the artifact's sources.
     #[serde(skip_serializing_if = "Option::is_none")]

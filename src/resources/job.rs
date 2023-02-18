@@ -101,7 +101,7 @@ fn new(actor: &Actor) -> Result<Job> {
     ]);
 
     // Create a init container for clones the git repo to workspace
-    let git_sync_container = new_git_sync_container(&actor.spec)?;
+    //let git_sync_container = new_git_sync_container(&actor.spec)?;
     let container = new_kaniko_container(&actor.spec)?;
 
     let template = PodTemplateSpec {
@@ -111,13 +111,13 @@ fn new(actor: &Actor) -> Result<Job> {
         }),
         spec: Some(PodSpec {
             restart_policy: Some("Never".into()),
-            init_containers: Some(vec![git_sync_container]),
+            //init_containers: Some(vec![git_sync_container]),
             containers: vec![container],
-            volumes: Some(vec![Volume {
-                name: "build-context".to_string(),
-                empty_dir: Some(EmptyDirVolumeSource { ..Default::default() }),
-                ..Default::default()
-            }]),
+            // volumes: Some(vec![Volume {
+            //     name: "build-context".to_string(),
+            //     empty_dir: Some(EmptyDirVolumeSource { ..Default::default() }),
+            //     ..Default::default()
+            // }]),
             ..Default::default()
         }),
     };
@@ -197,15 +197,19 @@ fn new_git_sync_container(spec: &ActorSpec) -> Result<Container> {
 
 fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
     let args: HashMap<String, String> = HashMap::from([
-        ("dockerfile".into(), spec.dockerfile()),
-        ("context".into(), "dir://workspace".into()),
+        // ("dockerfile".into(), format!("{}", spec.dockerfile())),
+        // ("context".into(), "dir:///workspace/".into()),
+        (
+            "context".into(),
+            format!("{}#{}", spec.repository.replace("https", "git"), spec.commit),
+        ),
         ("destination".into(), spec.docker_tag()),
-        ("verbosity".into(), "debug".into()),
+        ("verbosity".into(), "trace".into()),
         ("cache".into(), "false".into()),
     ]);
 
     let container = Container {
-        name: spec.build_name(),
+        name: "build".to_string(),
         image: Some(DEFAULT_KANIKO_IMAGE.to_string()),
         image_pull_policy: Some("Always".into()),
         args: Some(
@@ -214,7 +218,11 @@ fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
                 .collect(),
         ),
         env: spec.build_env(),
-        volume_mounts: Some(vec![workspace()]),
+        // volume_mounts: Some(vec![workspace()]),
+        // security_context: Some(SecurityContext {
+        //     run_as_user: Some(0),
+        //     ..Default::default()
+        // }),
         ..Default::default()
     };
 

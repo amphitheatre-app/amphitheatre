@@ -106,11 +106,11 @@ impl PlaybookService {
                 name: "amp-example-java".into(),
                 description: "A simple Java example app".into(),
                 image: format!("{}/{}", ctx.config.registry_namespace, "amp-example-java"),
-                repository: "https://github.com/amphitheatre-app/amp-example-java".into(),
+                repository: "https://github.com/amphitheatre-app/amp-example-java.git".into(),
                 commit: "875db185acc8bf7c7effc389a350cae7aa926e57".into(),
                 partners: Some(vec![Partner {
-                    name: "amp-example-nodejs".into(),
-                    repository: "https://github.com/amphitheatre-app/amp-example-nodejs.git".into(),
+                    name: "amp-example-go".into(),
+                    repository: "https://github.com/amphitheatre-app/amp-example-go.git".into(),
                     ..Partner::default()
                 }]),
                 ..ActorSpec::default()
