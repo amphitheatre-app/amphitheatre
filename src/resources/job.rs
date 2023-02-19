@@ -15,16 +15,14 @@
 use std::collections::{BTreeMap, HashMap};
 
 use k8s_openapi::api::batch::v1::{Job, JobSpec};
-use k8s_openapi::api::core::v1::{
-    Container, EmptyDirVolumeSource, PodSpec, PodTemplateSpec, SecurityContext, Volume, VolumeMount,
-};
+use k8s_openapi::api::core::v1::{Container, PodSpec, PodTemplateSpec};
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
 
 use super::crds::{Actor, ActorSpec};
 use super::error::Result;
-use super::{hash, to_env_var, DEFAULT_GITSYNC_IMAGE, DEFAULT_KANIKO_IMAGE, LAST_APPLIED_HASH_KEY};
+use super::{hash, DEFAULT_KANIKO_IMAGE, LAST_APPLIED_HASH_KEY};
 use crate::resources::error::Error;
 
 pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
@@ -100,10 +98,7 @@ fn new(actor: &Actor) -> Result<Job> {
         ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),
     ]);
 
-    // Create a init container for clones the git repo to workspace
-    //let git_sync_container = new_git_sync_container(&actor.spec)?;
     let container = new_kaniko_container(&actor.spec)?;
-
     let template = PodTemplateSpec {
         metadata: Some(ObjectMeta {
             labels: Some(labels.clone()),
@@ -111,13 +106,7 @@ fn new(actor: &Actor) -> Result<Job> {
         }),
         spec: Some(PodSpec {
             restart_policy: Some("Never".into()),
-            //init_containers: Some(vec![git_sync_container]),
             containers: vec![container],
-            // volumes: Some(vec![Volume {
-            //     name: "build-context".to_string(),
-            //     empty_dir: Some(EmptyDirVolumeSource { ..Default::default() }),
-            //     ..Default::default()
-            // }]),
             ..Default::default()
         }),
     };
@@ -141,64 +130,8 @@ fn new(actor: &Actor) -> Result<Job> {
     Ok(resource)
 }
 
-/// A sidecar app which clones a git repo and keeps it in sync with the upstream.
-///
-/// Many options can be specified as an environment variable.
-/// See https://github.com/kubernetes/git-sync#manual
-fn new_git_sync_container(spec: &ActorSpec) -> Result<Container> {
-    let env: HashMap<String, String> = HashMap::from([
-        // The git repository to sync.  This flag is required.
-        ("GIT_SYNC_REPO".into(), spec.repository.clone()),
-        // The git branch to check out. If not specified, this defaults to
-        // the default branch of --repo.
-        (
-            "GIT_SYNC_BRANCH".into(),
-            spec.reference.clone().unwrap_or_default(),
-        ),
-        // The git revision (tag or hash) to check out.  If not specified,
-        // this defaults to "HEAD".
-        ("GIT_SYNC_REV".into(), spec.commit.clone()),
-        // Create a shallow clone with history truncated to the specified
-        // number of commits.  If not specified, this defaults to cloning the
-        // full history of the repo.
-        ("GIT_SYNC_DEPTH".into(), "1".into()),
-        // Exit after one sync.
-        ("GIT_SYNC_ONE_TIME".into(), "true".into()),
-        // The root directory for git-sync operations, under which --link will
-        // be created.  This must be a path that either a) does not exist (it
-        // will be created); b) is an empty directory; or c) is a directory
-        // which can be emptied by removing all of the contents.  This flag is
-        // required.
-        ("GIT_SYNC_ROOT".into(), "/workspace".into()),
-        // Change permissions on the checked-out files to the specified mode.
-        ("GIT_SYNC_PERMISSIONS".into(), "0777".into()),
-        // Use SSH for git authentication and operations.
-        ("GIT_SYNC_SSH".into(), "false".into()),
-        // Enable SSH known_hosts verification when using --ssh.  If not
-        // specified, this defaults to true.
-        ("GIT_KNOWN_HOSTS".into(), "true".into()),
-    ]);
-
-    let container = Container {
-        name: "git-sync".to_string(),
-        image: Some(DEFAULT_GITSYNC_IMAGE.to_string()),
-        image_pull_policy: Some("Always".into()),
-        env: Some(to_env_var(&env)),
-        volume_mounts: Some(vec![workspace()]),
-        security_context: Some(SecurityContext {
-            run_as_user: Some(0),
-            ..Default::default()
-        }),
-        ..Default::default()
-    };
-
-    Ok(container)
-}
-
 fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
     let args: HashMap<String, String> = HashMap::from([
-        // ("dockerfile".into(), format!("{}", spec.dockerfile())),
-        // ("context".into(), "dir:///workspace/".into()),
         (
             "context".into(),
             format!("{}#{}", spec.repository.replace("https", "git"), spec.commit),
@@ -218,21 +151,8 @@ fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
                 .collect(),
         ),
         env: spec.build_env(),
-        // volume_mounts: Some(vec![workspace()]),
-        // security_context: Some(SecurityContext {
-        //     run_as_user: Some(0),
-        //     ..Default::default()
-        // }),
         ..Default::default()
     };
 
     Ok(container)
-}
-
-fn workspace() -> VolumeMount {
-    VolumeMount {
-        name: "build-context".to_string(),
-        mount_path: "/workspace".to_string(),
-        ..Default::default()
-    }
 }

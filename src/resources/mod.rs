@@ -35,7 +35,6 @@ pub mod service;
 pub mod service_account;
 
 const LAST_APPLIED_HASH_KEY: &str = "amphitheatre.app/last-applied-hash";
-const DEFAULT_GITSYNC_IMAGE: &str = "registry.k8s.io/git-sync/git-sync:v3.6.4";
 const DEFAULT_KANIKO_IMAGE: &str = "gcr.io/kaniko-project/executor:v1.9.1";
 
 pub fn hash<T>(resource: &T) -> Result<String>
