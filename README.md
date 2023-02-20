@@ -1,4 +1,4 @@
-# Amphitheatre API Server
+# Amphitheatre Server
 
 Amphitheatre is an open source developer platform that facilitates continuous
 development of applications and microservices. You can iterate your application
