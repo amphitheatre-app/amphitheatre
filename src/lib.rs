@@ -20,7 +20,6 @@ pub mod database;
 pub mod handlers;
 pub mod models;
 pub mod repositories;
-pub mod resources;
 pub mod response;
 pub mod routes;
 pub mod services;

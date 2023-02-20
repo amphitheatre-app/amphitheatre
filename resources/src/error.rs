@@ -14,7 +14,7 @@
 
 use thiserror::Error;
 
-use crate::response::ApiError;
+// use crate::response::ApiError;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -37,9 +37,8 @@ pub enum Error {
 
     #[error("UrlParseError: {0}")]
     UrlParseError(#[source] url::ParseError),
-
-    #[error("ApiError: {0}")]
-    ApiError(#[source] ApiError),
+    // #[error("ApiError: {0}")]
+    // ApiError(#[source] ApiError),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

@@ -17,9 +17,8 @@ use kube::api::{Patch, PatchParams};
 use kube::{Api, Client};
 use serde_json::json;
 
-use super::error::Result;
+use super::error::{Error, Result};
 use super::secret::Credential;
-use crate::resources::error::Error;
 
 pub async fn patch(
     client: Client,

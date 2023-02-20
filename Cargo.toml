@@ -12,17 +12,24 @@ members = [
     ".",
     "common",
     "crds",
+    "resources",
 ]
 
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
 [workspace.dependencies]
 anyhow = "1.0"
 amp-common = { path = "common", version = "0.1.0" }
+amp-crds = { path = "crds", version = "0.1.0" }
+amp-resources = { path = "resources", version = "0.1.0" }
 kube = { version = "0.77.0", features = ["runtime", "derive"] }
 k8s-openapi = { version = "0.16.0", features = ["schemars", "v1_24"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.89"
 serde_yaml = "0.9.14"
+thiserror = "1.0"
+tokio = { version = "1.22.0", features = ["full"] }
+tracing = "0.1.37"
+url = "2.3.1"
 
 [package]
 name = "amphitheatre"
@@ -47,8 +54,9 @@ name = "amphitheatre"
 path = "src/lib.rs"
 
 [dependencies]
+amp-crds = { workspace = true, optional = false }
+amp-resources = { workspace = true, optional = false }
 anyhow = { workspace = true, optional = false }
-amp-crds = { path = "crds", version = "0.1.0" }
 axum = { version = "0.6", features = ["headers"] }
 clap = { version = "4.0.29", features = ["derive", "env"] }
 dotenv = "0.15.0"
@@ -62,17 +70,15 @@ sea-orm = { version = "0.10.5", features=["runtime-tokio-rustls", "sqlx-mysql"] 
 serde = { workspace = true, optional = false }
 serde_json = { workspace = true, optional = false }
 serde_yaml = { workspace = true, optional = false }
-thiserror = "1.0"
-tokio = { version = "1.22.0", features = ["full"] }
+thiserror = { workspace = true, optional = false }
+tokio = { workspace = true, optional = false }
 tokio-stream = "0.1"
 tower = { version = "0.4.13", features = ["full"] }
 tower-http = { version = "0.3.5", features = ["full"] }
 tower_governor = { git = "https://github.com/benwis/tower-governor", rev="01e1a107" }
+tracing = { workspace = true, optional = false }
 tracing-subscriber = "0.3.16"
-url = "2.3.1"
 utoipa = { version = "2", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "3", features = ["axum"] }
 uuid = { version = "1.2.2", features = ["v4", "fast-rng", "macro-diagnostics"] }
-schemars = "0.8.11"
-sha2 = "0.10.6"
-tracing = "0.1.37"
+url = { workspace = true, optional = false }

@@ -1,0 +1,22 @@
+[package]
+name = "amp-resources"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "K8s resources manager for the Amphitheatre platform"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+amp-crds = { workspace = true, optional = false }
+kube = { workspace = true, optional = false }
+k8s-openapi = { workspace = true, optional = false }
+serde = { workspace = true, optional = false }
+serde_json = { workspace = true, optional = false }
+serde_yaml = { workspace = true, optional = false }
+sha2 = "0.10.6"
+thiserror = { workspace = true, optional = false }
+tracing = { workspace = true, optional = false }
+tokio = { workspace = true, optional = false }
+url = { workspace = true, optional = false }

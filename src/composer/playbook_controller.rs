@@ -16,8 +16,12 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
-use amp_crds::actor::Partner;
+use amp_crds::actor::{ActorSpec, Build, Partner};
 use amp_crds::playbook::{Playbook, PlaybookState};
+use amp_resources::error::{Error, Result};
+use amp_resources::event::trace;
+use amp_resources::secret::{self, Credential, Kind};
+use amp_resources::{actor, namespace, playbook, service_account};
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::controller::Action;
 use kube::runtime::events::Recorder;
@@ -26,11 +30,6 @@ use kube::{Api, Resource, ResourceExt};
 use url::Url;
 
 use crate::context::Context;
-use crate::resources::error::{Error, Result};
-use crate::resources::event::trace;
-use crate::resources::secret::{self, Credential, Kind};
-use crate::resources::{actor, namespace, playbook, service_account};
-use crate::services::actor::ActorService;
 
 /// The reconciler that will be called when either object change
 pub async fn reconciler(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Action> {
@@ -124,10 +123,7 @@ async fn solve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> 
 
     for partner in fetches.iter() {
         tracing::info!("fetches url: {}", partner.url());
-        let actor = ActorService::read(ctx, partner)
-            .await
-            .map_err(Error::ApiError)?
-            .unwrap();
+        let actor = read(ctx, partner).await?.unwrap();
 
         trace(recorder, "Fetch and add the actor to this playbook").await?;
         playbook::add(ctx.k8s.clone(), playbook, actor).await?;
@@ -180,4 +176,24 @@ fn reference(playbbok: &Playbook) -> ObjectReference {
     let mut reference = playbbok.object_ref(&());
     reference.namespace = Some(playbbok.spec.namespace.to_string());
     reference
+}
+
+// TODO: Read real actor information from remote VCS (like github).
+pub async fn read(ctx: &Arc<Context>, partner: &Partner) -> Result<Option<ActorSpec>> {
+    let spec = ActorSpec {
+        name: partner.name.clone(),
+        description: "A simple Golang example app".into(),
+        image: format!("{}/{}", ctx.config.registry_namespace, "amp-example-go"),
+        repository: partner.repository.clone(),
+        reference: partner.reference.clone(),
+        path: partner.path.clone(),
+        commit: "2ebf3c7954f34e4a59976fdff985ea12a2009a52".into(),
+        build: Some(Build {
+            dockerfile: Some("Dockerfile".to_string()),
+            ..Default::default()
+        }),
+        ..ActorSpec::default()
+    };
+
+    Ok(Some(spec))
 }

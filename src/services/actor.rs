@@ -14,7 +14,6 @@
 
 use std::sync::Arc;
 
-use amp_crds::actor::{ActorSpec, Build, Partner};
 use axum::extract::State;
 use uuid::Uuid;
 
@@ -37,25 +36,5 @@ impl ActorService {
         ActorRepository::list(&ctx.db, pid)
             .await
             .map_err(|_| ApiError::DatabaseError)
-    }
-
-    // TODO: Read real actor information from remote VCS (like github).
-    pub async fn read(ctx: &Arc<Context>, partner: &Partner) -> Result<Option<ActorSpec>> {
-        let spec = ActorSpec {
-            name: partner.name.clone(),
-            description: "A simple Golang example app".into(),
-            image: format!("{}/{}", ctx.config.registry_namespace, "amp-example-go"),
-            repository: partner.repository.clone(),
-            reference: partner.reference.clone(),
-            path: partner.path.clone(),
-            commit: "2ebf3c7954f34e4a59976fdff985ea12a2009a52".into(),
-            build: Some(Build {
-                dockerfile: Some("Dockerfile".to_string()),
-                ..Default::default()
-            }),
-            ..ActorSpec::default()
-        };
-
-        Ok(Some(spec))
     }
 }

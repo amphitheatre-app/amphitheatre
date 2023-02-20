@@ -21,8 +21,7 @@ use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::to_string;
 
-use super::error::Result;
-use crate::resources::error::Error;
+use super::error::{Error, Result};
 
 pub async fn create(client: Client, playbook: &Playbook) -> Result<Namespace> {
     let api: Api<Namespace> = Api::all(client);
