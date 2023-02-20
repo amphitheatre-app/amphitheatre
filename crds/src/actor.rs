@@ -24,8 +24,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use super::url;
-use crate::resources::to_env_var;
+use super::{to_env_var, url};
 
 #[derive(CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate, PartialEq)]
 #[kube(

@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use amp_crds::actor::{Actor, ActorSpec, ActorState};
+use amp_crds::playbook::Playbook;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
 
-use super::crds::{Actor, ActorSpec, Playbook};
 use super::error::{Error, Result};
-use crate::resources::crds::ActorState;
 
 pub async fn exists(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Result<bool> {
     let namespace = playbook.spec.namespace.clone();

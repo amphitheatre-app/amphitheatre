@@ -14,6 +14,8 @@
 
 use std::sync::Arc;
 
+use amp_crds::actor::{ActorSpec, Partner};
+use amp_crds::playbook::PlaybookSpec;
 use axum::extract::State;
 use tracing::error;
 use uuid::Uuid;
@@ -21,7 +23,6 @@ use uuid::Uuid;
 use crate::context::Context;
 use crate::models::playbook::Playbook;
 use crate::repositories::playbook::PlaybookRepository;
-use crate::resources::crds::{ActorSpec, Partner, PlaybookSpec};
 use crate::resources::playbook;
 use crate::response::ApiError;
 use crate::services::Result;

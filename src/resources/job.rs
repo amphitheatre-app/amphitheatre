@@ -14,13 +14,13 @@
 
 use std::collections::{BTreeMap, HashMap};
 
+use amp_crds::actor::{Actor, ActorSpec};
 use k8s_openapi::api::batch::v1::{Job, JobSpec};
 use k8s_openapi::api::core::v1::{Container, PodSpec, PodTemplateSpec};
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
 
-use super::crds::{Actor, ActorSpec};
 use super::error::Result;
 use super::{hash, DEFAULT_KANIKO_IMAGE, LAST_APPLIED_HASH_KEY};
 use crate::resources::error::Error;

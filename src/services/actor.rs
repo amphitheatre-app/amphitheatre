@@ -14,13 +14,13 @@
 
 use std::sync::Arc;
 
+use amp_crds::actor::{ActorSpec, Build, Partner};
 use axum::extract::State;
 use uuid::Uuid;
 
 use crate::context::Context;
 use crate::models::actor::Actor;
 use crate::repositories::actor::ActorRepository;
-use crate::resources::crds::{ActorSpec, Build, Partner};
 use crate::response::ApiError;
 use crate::services::Result;
 

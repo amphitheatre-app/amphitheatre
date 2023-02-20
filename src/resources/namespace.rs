@@ -14,6 +14,7 @@
 
 use std::collections::BTreeMap;
 
+use amp_crds::playbook::Playbook;
 use k8s_openapi::api::core::v1::Namespace;
 use kube::api::{Patch, PatchParams};
 use kube::core::ObjectMeta;
@@ -21,7 +22,6 @@ use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::to_string;
 
 use super::error::Result;
-use crate::resources::crds::Playbook;
 use crate::resources::error::Error;
 
 pub async fn create(client: Client, playbook: &Playbook) -> Result<Namespace> {

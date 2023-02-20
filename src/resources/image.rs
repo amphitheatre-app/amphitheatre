@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use amp_crds::actor::Actor;
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::{DynamicObject, GroupVersionKind};
 use kube::discovery::ApiResource;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::{from_value, json};
 
-use super::crds::Actor;
 use super::error::{Error, Result};
 
 pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {

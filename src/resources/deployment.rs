@@ -14,6 +14,7 @@
 
 use std::collections::BTreeMap;
 
+use amp_crds::actor::Actor;
 use k8s_openapi::api::apps::v1::{Deployment, DeploymentSpec};
 use k8s_openapi::api::core::v1::{Container, PodSpec, PodTemplateSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
@@ -21,7 +22,6 @@ use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
 
-use super::crds::Actor;
 use super::error::Result;
 use super::{hash, LAST_APPLIED_HASH_KEY};
 use crate::resources::error::Error;

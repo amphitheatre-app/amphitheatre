@@ -1,4 +1,4 @@
-// Copyright 2022 The Amphitheatre Authors.
+// Copyright 2023 The Amphitheatre Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@ use std::io::Write;
 use std::path::Path;
 use std::{env, fs};
 
-use amphitheatre::resources::crds::{Actor, Playbook};
+use amp_crds::actor::Actor;
+use amp_crds::playbook::Playbook;
 use kube::CustomResourceExt;
 
 fn main() {

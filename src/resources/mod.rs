@@ -22,7 +22,6 @@ use sha2::{Digest, Sha256};
 use self::error::{Error, Result};
 
 pub mod actor;
-pub mod crds;
 pub mod deployment;
 pub mod error;
 pub mod event;

@@ -14,6 +14,8 @@
 
 use std::time::Duration;
 
+use amp_crds::actor::ActorSpec;
+use amp_crds::playbook::{Playbook, PlaybookSpec, PlaybookState};
 use k8s_openapi::apiextensions_apiserver as server;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{DeleteParams, Patch, PatchParams, PostParams};
@@ -22,7 +24,6 @@ use serde_json::{json, to_string_pretty};
 use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use tokio::time::sleep;
 
-use super::crds::{ActorSpec, Playbook, PlaybookSpec, PlaybookState};
 use super::error::{Error, Result};
 
 pub async fn install(client: Client) -> Result<()> {
