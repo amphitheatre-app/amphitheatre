@@ -1,0 +1,11 @@
+[package]
+name = "amp-common"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Common library for the Amphitheatre platform"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]

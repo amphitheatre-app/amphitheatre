@@ -1,3 +1,19 @@
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/amphitheatre-app/amphitheatre"
+
+[workspace]
+members = [
+    ".",
+    "common"
+]
+
+# https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
+[workspace.dependencies]
+amp-common = { path = "common", version = "0.1.0" }
+
 [package]
 name = "amphitheatre"
 version = "0.1.0"
