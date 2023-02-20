@@ -9,3 +9,4 @@ description = "Common library for the Amphitheatre platform"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+k8s-openapi = { workspace = true, optional = false }

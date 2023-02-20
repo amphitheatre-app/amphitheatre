@@ -15,6 +15,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 
+use amp_common::utils::to_env_var;
 use convert_case::{Case, Casing};
 use k8s_openapi::api::core::v1::{ContainerPort, EnvVar, ServicePort};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
@@ -24,7 +25,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use super::{to_env_var, url};
+use super::url;
 
 #[derive(CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate, PartialEq)]
 #[kube(

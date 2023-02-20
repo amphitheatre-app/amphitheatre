@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
-
-use k8s_openapi::api::core::v1::EnvVar;
 use serde::Serialize;
 use serde_json::to_string;
 use sha2::{Digest, Sha256};
@@ -44,14 +41,4 @@ where
     let hash = Sha256::digest(data);
 
     Ok(format!("{:x}", hash))
-}
-
-pub fn to_env_var<T: ToString>(env: &HashMap<T, T>) -> Vec<EnvVar> {
-    env.iter()
-        .map(|(key, value)| EnvVar {
-            name: key.to_string(),
-            value: Some(value.to_string()),
-            value_from: None,
-        })
-        .collect()
 }

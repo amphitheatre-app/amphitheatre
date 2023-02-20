@@ -15,10 +15,6 @@
 pub mod actor;
 pub mod playbook;
 
-use std::collections::HashMap;
-
-use k8s_openapi::api::core::v1::EnvVar;
-
 fn url(repository: &String, reference: &Option<String>, path: &Option<String>) -> String {
     let mut url = String::from(repository);
 
@@ -36,14 +32,4 @@ fn url(repository: &String, reference: &Option<String>, path: &Option<String>) -
     }
 
     url
-}
-
-fn to_env_var<T: ToString>(env: &HashMap<T, T>) -> Vec<EnvVar> {
-    env.iter()
-        .map(|(key, value)| EnvVar {
-            name: key.to_string(),
-            value: Some(value.to_string()),
-            value_from: None,
-        })
-        .collect()
 }
