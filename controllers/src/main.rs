@@ -1,4 +1,4 @@
-// Copyright 2022 The Amphitheatre Authors.
+// Copyright 2023 The Amphitheatre Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,11 +16,17 @@ use std::sync::Arc;
 
 use amp_crds::actor::Actor;
 use amp_crds::playbook::Playbook;
+use clap::Parser;
 use futures::{future, StreamExt};
 use kube::api::ListParams;
 use kube::runtime::Controller;
 use kube::Api;
+use tracing::Level;
 
+mod config;
+mod context;
+
+use crate::config::Config;
 use crate::context::Context;
 
 pub mod actor_controller;
@@ -67,4 +73,23 @@ pub async fn run(ctx: Arc<Context>) {
         _ = playbook_ctrl => tracing::warn!("playbook controller exited"),
         _ = actor_ctrl => tracing::warn!("actor controller exited"),
     }
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+
+    // This returns an error if the `.env` file doesn't exist, but that's not what we want
+    // since we're not going to use a `.env` file if we deploy this application.
+    dotenv::dotenv().ok();
+
+    // Parse our configuration from the environment.
+    // This will exit with a help message if something is wrong.
+    let config = Config::parse();
+
+    // Initialize the shared context.
+    let ctx = Arc::new(Context::new(config).await?);
+    run(ctx.clone()).await;
+
+    Ok(())
 }

@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use k8s_openapi::api::core::v1::ObjectReference;
+use kube::runtime::events::Recorder;
 use kube::Client;
 
 use crate::config::Config;
-use crate::database::{self, Database};
 
 /// The core type through which handler functions can access common API state.
 ///
@@ -27,17 +28,18 @@ use crate::database::{self, Database};
 /// judgement call.
 pub struct Context {
     pub config: Config,
-    pub db: Database,
     pub k8s: Client,
 }
 
 impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
-        let dsn = config.database_url.clone();
         Ok(Context {
             config,
-            db: database::new(dsn).await?,
             k8s: Client::try_default().await?,
         })
+    }
+
+    pub fn recorder(&self, reference: ObjectReference) -> Recorder {
+        Recorder::new(self.k8s.clone(), "amp-controllers".into(), reference)
     }
 }

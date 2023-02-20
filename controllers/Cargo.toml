@@ -1,0 +1,26 @@
+[package]
+name = "amp-controllers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "K8s CRD controllers for the Amphitheatre platform"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = { workspace = true, optional = false }
+amp-crds = { workspace = true, optional = false }
+amp-resources = { workspace = true, optional = false }
+clap = { workspace = true, optional = false }
+dotenv = { workspace = true, optional = false }
+futures = { workspace = true, optional = false }
+kube = { workspace = true, optional = false }
+k8s-openapi = { workspace = true, optional = false }
+serde = { workspace = true, optional = false }
+serde_json = { workspace = true, optional = false }
+serde_yaml = { workspace = true, optional = false }
+tracing = { workspace = true, optional = false }
+tracing-subscriber = { workspace = true, optional = false }
+tokio = { workspace = true, optional = false }
+url = { workspace = true, optional = false }

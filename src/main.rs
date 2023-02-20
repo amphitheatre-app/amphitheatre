@@ -16,9 +16,9 @@
 
 use std::sync::Arc;
 
+use amphitheatre::app;
 use amphitheatre::config::Config;
 use amphitheatre::context::Context;
-use amphitheatre::{app, composer};
 use clap::Parser;
 use tracing::Level;
 
@@ -36,11 +36,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize the shared context.
     let ctx = Arc::new(Context::new(config).await?);
-
-    tokio::select! {
-        _ = composer::run(ctx.clone()) => tracing::warn!("composer exited"),
-        _ = app::run(ctx.clone()) => tracing::info!("server exited"),
-    }
+    app::run(ctx.clone()).await;
 
     Ok(())
 }
