@@ -32,7 +32,7 @@ use url::Url;
 use crate::context::Context;
 
 /// The reconciler that will be called when either object change
-pub async fn reconciler(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Action> {
+pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Action> {
     tracing::info!("Reconciling Playbook \"{}\"", playbook.name_any());
     if playbook.spec.actors.is_empty() {
         return Err(Error::EmptyActorsError);
@@ -45,7 +45,7 @@ pub async fn reconciler(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Ac
     let finalizer_name = "playbooks.amphitheatre.app/finalizer";
     finalizer(&api, finalizer_name, playbook, |event| async {
         match event {
-            FinalizerEvent::Apply(playbook) => reconcile(&playbook, &ctx, &recorder).await,
+            FinalizerEvent::Apply(playbook) => apply(&playbook, &ctx, &recorder).await,
             FinalizerEvent::Cleanup(playbook) => cleanup(&playbook, &ctx, &recorder).await,
         }
     })
@@ -59,7 +59,7 @@ pub fn error_policy(_playbook: Arc<Playbook>, error: &Error, _ctx: Arc<Context>)
     Action::requeue(Duration::from_secs(60))
 }
 
-async fn reconcile(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
+async fn apply(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
     if let Some(ref status) = playbook.status {
         if status.pending() {
             init(playbook, ctx, recorder).await?

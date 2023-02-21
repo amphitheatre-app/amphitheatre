@@ -54,7 +54,7 @@ pub async fn run(ctx: Arc<Context>) {
     // Create playbook controller
     let playbook_ctrl = Controller::new(playbook, ListParams::default())
         .run(
-            playbook_controller::reconciler,
+            playbook_controller::reconcile,
             playbook_controller::error_policy,
             ctx.clone(),
         )
@@ -63,7 +63,7 @@ pub async fn run(ctx: Arc<Context>) {
     // Create actor controller
     let actor_ctrl = Controller::new(actor, ListParams::default())
         .run(
-            actor_controller::reconciler,
+            actor_controller::reconcile,
             actor_controller::error_policy,
             ctx.clone(),
         )

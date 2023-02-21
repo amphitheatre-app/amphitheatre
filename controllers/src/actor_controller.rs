@@ -28,7 +28,7 @@ use kube::{Api, Resource, ResourceExt};
 use crate::context::Context;
 
 /// The reconciler that will be called when either object change
-pub async fn reconciler(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
+pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
     tracing::info!("Reconciling Actor \"{}\"", actor.name_any());
 
     let ns = actor.namespace().unwrap(); // actor is namespace scoped
@@ -39,7 +39,7 @@ pub async fn reconciler(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> 
     let finalizer_name = "actors.amphitheatre.app/finalizer";
     finalizer(&api, finalizer_name, actor, |event| async {
         match event {
-            FinalizerEvent::Apply(actor) => reconcile(&actor, &ctx, &recorder).await,
+            FinalizerEvent::Apply(actor) => apply(&actor, &ctx, &recorder).await,
             FinalizerEvent::Cleanup(actor) => cleanup(&actor, &ctx, &recorder).await,
         }
     })
@@ -53,7 +53,7 @@ pub fn error_policy(_actor: Arc<Actor>, error: &Error, _ctx: Arc<Context>) -> Ac
     Action::requeue(Duration::from_secs(60))
 }
 
-async fn reconcile(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
+async fn apply(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
     if let Some(ref status) = actor.status {
         if status.pending() {
             init(actor, ctx, recorder).await?
