@@ -32,10 +32,10 @@ async fn main() -> anyhow::Result<()> {
 
     // Parse our configuration from the environment.
     // This will exit with a help message if something is wrong.
-    let config = Config::parse();
+    // Then, initialize the shared context.
+    let ctx = Arc::new(Context::new(Config::parse()).await?);
 
-    // Initialize the shared context.
-    let ctx = Arc::new(Context::new(config).await?);
+    // Running the application in a loop.
     app::run(ctx.clone()).await;
 
     Ok(())

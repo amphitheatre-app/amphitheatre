@@ -14,13 +14,7 @@
 
 use std::sync::Arc;
 
-use amp_crds::actor::Actor;
-use amp_crds::playbook::Playbook;
 use clap::Parser;
-use futures::{future, StreamExt};
-use kube::api::ListParams;
-use kube::runtime::Controller;
-use kube::Api;
 use tracing::Level;
 
 mod config;
@@ -29,51 +23,8 @@ mod context;
 use crate::config::Config;
 use crate::context::Context;
 
-pub mod actor_controller;
-pub mod playbook_controller;
-
-/// Initialize the controller and shared state (given the crd is installed)
-pub async fn run(ctx: Arc<Context>) {
-    let playbook = Api::<Playbook>::all(ctx.k8s.clone());
-    let actor = Api::<Actor>::all(ctx.k8s.clone());
-
-    // Ensure Playbook CRD is installed before loop-watching
-    if let Err(e) = playbook.list(&ListParams::default().limit(1)).await {
-        tracing::error!("Playbook CRD is not queryable; {e:?}. Is the CRD installed?");
-        tracing::info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
-        std::process::exit(1);
-    }
-
-    // Ensure Actor CRD is installed before loop-watching
-    if let Err(e) = actor.list(&ListParams::default().limit(1)).await {
-        tracing::error!("Actor CRD is not queryable; {e:?}. Is the CRD installed?");
-        tracing::info!("Installation: cargo run --bin crdgen | kubectl apply -f -");
-        std::process::exit(1);
-    }
-
-    // Create playbook controller
-    let playbook_ctrl = Controller::new(playbook, ListParams::default())
-        .run(
-            playbook_controller::reconcile,
-            playbook_controller::error_policy,
-            ctx.clone(),
-        )
-        .for_each(|_| future::ready(()));
-
-    // Create actor controller
-    let actor_ctrl = Controller::new(actor, ListParams::default())
-        .run(
-            actor_controller::reconcile,
-            actor_controller::error_policy,
-            ctx.clone(),
-        )
-        .for_each(|_| future::ready(()));
-
-    tokio::select! {
-        _ = playbook_ctrl => tracing::warn!("playbook controller exited"),
-        _ = actor_ctrl => tracing::warn!("actor controller exited"),
-    }
-}
+mod actor_controller;
+mod playbook_controller;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -85,11 +36,15 @@ async fn main() -> anyhow::Result<()> {
 
     // Parse our configuration from the environment.
     // This will exit with a help message if something is wrong.
-    let config = Config::parse();
+    // Then, initialize the shared context.
+    let ctx = Arc::new(Context::new(Config::parse()).await?);
 
-    // Initialize the shared context.
-    let ctx = Arc::new(Context::new(config).await?);
-    run(ctx.clone()).await;
+    // Creates the controllers and waits on multiple concurrent branches,
+    // returning when **the first** branch completes and cancelling the remaining branches.
+    tokio::select! {
+        _ = playbook_controller::new(&ctx) => tracing::warn!("playbook controller exited"),
+        _ = actor_controller::new(&ctx) => tracing::warn!("actor controller exited"),
+    }
 
     Ok(())
 }

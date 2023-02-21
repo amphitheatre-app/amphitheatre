@@ -19,13 +19,32 @@ use amp_crds::actor::{Actor, ActorState};
 use amp_resources::error::{Error, Result};
 use amp_resources::event::trace;
 use amp_resources::{actor, deployment, image, job, service};
+use futures::{future, StreamExt};
 use k8s_openapi::api::core::v1::Namespace;
+use kube::api::ListParams;
 use kube::runtime::controller::Action;
 use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
+use kube::runtime::Controller;
 use kube::{Api, Resource, ResourceExt};
 
 use crate::context::Context;
+
+pub async fn new(ctx: &Arc<Context>) {
+    let api = Api::<Actor>::all(ctx.k8s.clone());
+
+    // Ensure Actor CRD is installed before loop-watching
+    if let Err(e) = api.list(&ListParams::default().limit(1)).await {
+        tracing::error!("Actor CRD is not queryable; {e:?}. Is the CRD installed?");
+        tracing::info!("Installation: amp-crdgen | kubectl apply -f -");
+        std::process::exit(1);
+    }
+
+    Controller::new(api, ListParams::default())
+        .run(reconcile, error_policy, ctx.clone())
+        .for_each(|_| future::ready(()))
+        .await
+}
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {

@@ -22,14 +22,33 @@ use amp_resources::error::{Error, Result};
 use amp_resources::event::trace;
 use amp_resources::secret::{self, Credential, Kind};
 use amp_resources::{actor, namespace, playbook, service_account};
+use futures::{future, StreamExt};
 use k8s_openapi::api::core::v1::ObjectReference;
+use kube::api::ListParams;
 use kube::runtime::controller::Action;
 use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
+use kube::runtime::Controller;
 use kube::{Api, Resource, ResourceExt};
 use url::Url;
 
 use crate::context::Context;
+
+pub async fn new(ctx: &Arc<Context>) {
+    let api = Api::<Playbook>::all(ctx.k8s.clone());
+
+    // Ensure Playbook CRD is installed before loop-watching
+    if let Err(e) = api.list(&ListParams::default().limit(1)).await {
+        tracing::error!("Playbook CRD is not queryable; {e:?}. Is the CRD installed?");
+        tracing::info!("Installation: amp-crdgen | kubectl apply -f -");
+        std::process::exit(1);
+    }
+
+    Controller::new(api, ListParams::default())
+        .run(reconcile, error_policy, ctx.clone())
+        .for_each(|_| future::ready(()))
+        .await
+}
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Action> {
