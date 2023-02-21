@@ -10,6 +10,7 @@ description = "K8s resources manager for the Amphitheatre platform"
 
 [dependencies]
 amp-crds = { workspace = true, optional = false }
+amp-common = { workspace = true, optional = false }
 kube = { workspace = true, optional = false }
 k8s-openapi = { workspace = true, optional = false }
 serde = { workspace = true, optional = false }

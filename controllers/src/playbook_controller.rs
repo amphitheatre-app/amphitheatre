@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
+use amp_common::config::{Configuration, Credential};
+use amp_common::docker::build_docker_config_json;
 use amp_crds::actor::{ActorSpec, Build, Partner};
 use amp_crds::playbook::{Playbook, PlaybookState};
 use amp_resources::error::{Error, Result};
 use amp_resources::event::trace;
-use amp_resources::secret::{self, Credential, Kind};
-use amp_resources::{actor, namespace, playbook, service_account};
+use amp_resources::{actor, namespace, playbook, secret, service_account};
 use futures::{future, StreamExt};
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::api::ListParams;
@@ -30,7 +31,6 @@ use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::runtime::Controller;
 use kube::{Api, Resource, ResourceExt};
-use url::Url;
 
 use crate::context::Context;
 
@@ -104,18 +104,47 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
 
     // Docker registry Credential
     let credential = Credential::basic(
-        Kind::Image,
-        Url::parse(&ctx.config.registry_url).map_err(Error::UrlParseError)?,
         ctx.config.registry_username.clone(),
         ctx.config.registry_password.clone(),
     );
 
-    trace(recorder, "Creating Secret for Docker Registry Credential").await?;
-    secret::create(ctx.k8s.clone(), namespace.clone(), &credential).await?;
+    let configuration = Configuration {
+        registry: HashMap::from([(ctx.config.registry_url.clone(), credential)]),
+        repositories: HashMap::default(),
+    };
+    trace(recorder, format!("The Configuration is {:#?}", &configuration)).await?;
 
-    // Patch this credential to default service account
-    trace(recorder, "Patch the credential to default service account").await?;
-    service_account::patch(ctx.k8s.clone(), namespace, "default", &credential, true, true).await?;
+    let mut secrets = vec![];
+
+    // Create Docker registry secrets.
+    let docker_config_json = build_docker_config_json(&configuration.registry);
+    let docker_registry_secret =
+        secret::create_docker_registry_secret(&ctx.k8s, namespace, docker_config_json).await?;
+    secrets.push(docker_registry_secret.clone());
+
+    trace(
+        recorder,
+        format!(
+            "Created Secret for Docker Registry Credential: {:#?}",
+            docker_registry_secret
+        ),
+    )
+    .await?;
+
+    // Create repository secrets.
+    for (endpoint, credential) in configuration.repositories.iter() {
+        let secret = secret::create_repository_secret(&ctx.k8s, namespace, endpoint, credential).await?;
+        secrets.push(secret.clone());
+        trace(
+            recorder,
+            format!("Created Secret for repository: {:#?}", endpoint),
+        )
+        .await?;
+    }
+
+    // Patch this credentials to default service account
+    trace(recorder, "Patch the credentials to default service account").await?;
+    service_account::patch(ctx.k8s.clone(), namespace, "default", &secrets, true, true).await?;
 
     trace(recorder, "Init successfully, Let's begin solve, now!").await?;
     playbook::patch_status(ctx.k8s.clone(), playbook, PlaybookState::solving()).await?;

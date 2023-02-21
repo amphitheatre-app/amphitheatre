@@ -13,9 +13,10 @@
 // limitations under the License.
 
 use std::collections::BTreeMap;
-use std::fmt::Display;
 
+use amp_common::config::{Credential, Scheme};
 use k8s_openapi::api::core::v1::Secret;
+use k8s_openapi::ByteString;
 use kube::api::{Patch, PatchParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, ResourceExt};
@@ -24,130 +25,92 @@ use url::Url;
 
 use super::error::{Error, Result};
 
-pub enum Kind {
-    Image,
-    Source,
-}
-
-impl Display for Kind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Kind::Image => f.write_str("Image"),
-            Kind::Source => f.write_str("Source"),
-        }
-    }
-}
-
-impl Kind {
-    pub fn schema_name(&self) -> String {
-        match self {
-            Kind::Image => String::from("kpack.io/docker"),
-            Kind::Source => String::from("kpack.io/git"),
-        }
-    }
-}
-
-pub enum Authorization {
-    Basic,
-    Token,
-}
-
-impl Authorization {
-    pub fn schema_name(&self) -> String {
-        match self {
-            Authorization::Basic => String::from("kubernetes.io/basic-auth"),
-            Authorization::Token => String::from("kubernetes.io/ssh-auth"),
-        }
-    }
-}
-
-// Image,  Location, Basic, Username, Password
-// Source, Location, Basic, Username, Password
-// Source, Location, SSH, Token
-pub struct Credential {
-    pub kind: Kind,
-    auth: Authorization,
-    location: Url,
-    username: Option<String>,
-    password: Option<String>,
-    token: Option<String>,
-}
-
-impl Credential {
-    pub fn basic(kind: Kind, location: Url, username: String, password: String) -> Self {
-        Self {
-            kind,
-            auth: Authorization::Basic,
-            location,
-            username: Some(username),
-            password: Some(password),
-            token: None,
-        }
-    }
-
-    pub fn token(kind: Kind, location: Url, token: String) -> Self {
-        Self {
-            kind,
-            auth: Authorization::Token,
-            location,
-            username: None,
-            password: None,
-            token: Some(token),
-        }
-    }
-
-    pub fn name(&self) -> String {
-        format!(
-            "{}-{}-{}-secret",
-            self.kind,
-            self.location.scheme(),
-            self.location.host_str().unwrap(),
-        )
-        .to_lowercase()
-    }
-
-    pub fn username_any(&self) -> String {
-        self.username.clone().unwrap_or_default()
-    }
-
-    pub fn password_any(&self) -> String {
-        self.password.clone().unwrap_or_default()
-    }
-
-    pub fn token_any(&self) -> String {
-        self.token.clone().unwrap_or_default()
-    }
-}
-
-pub async fn create(client: Client, namespace: String, credential: &Credential) -> Result<Secret> {
-    let api: Api<Secret> = Api::namespaced(client, &namespace);
-
-    let annotations = BTreeMap::from([(credential.kind.schema_name(), credential.location.to_string())]);
-
-    let data = match credential.auth {
-        Authorization::Basic => BTreeMap::from([
-            ("username".to_string(), credential.username_any()),
-            ("password".to_string(), credential.password_any()),
-        ]),
-        Authorization::Token => BTreeMap::from([("ssh-privatekey".to_string(), credential.token_any())]),
+pub async fn create_docker_registry_secret(
+    client: &Client,
+    namespace: &str,
+    json: serde_json::Value,
+) -> Result<Secret> {
+    let resource = Secret {
+        metadata: ObjectMeta {
+            name: Some("amp-docker-registry-secret".to_string()),
+            ..Default::default()
+        },
+        type_: Some("kubernetes.io/dockerconfigjson".to_string()),
+        data: Some(BTreeMap::from([(
+            ".dockerconfigjson".to_string(),
+            ByteString(
+                serde_json::to_vec(&json)
+                    .map_err(Error::SerializationError)
+                    .unwrap(),
+            ),
+        )])),
+        ..Default::default()
     };
+    tracing::debug!("The secret resource:\n {:#?}\n", to_string(&resource));
+
+    create(client, namespace, resource).await
+}
+
+pub async fn create_repository_secret(
+    client: &Client,
+    namespace: &str,
+    endpoint: &str,
+    credential: &Credential,
+) -> Result<Secret> {
+    let mut secret_type = String::from("Opaque");
+    let mut data = BTreeMap::new();
+
+    match credential.scheme() {
+        Scheme::Basic => {
+            secret_type = String::from("kubernetes.io/basic-auth");
+            data = BTreeMap::from([
+                ("username".to_string(), credential.username_any()),
+                ("password".to_string(), credential.password_any()),
+            ]);
+        }
+        Scheme::Bearer => {
+            secret_type = String::from("kubernetes.io/ssh-auth");
+            data = BTreeMap::from([("ssh-privatekey".to_string(), credential.token_any())]);
+        }
+        Scheme::Unknown => {}
+    }
+
+    let annotations = BTreeMap::from([("kpack.io/git".to_string(), endpoint.to_owned())]);
 
     let resource = Secret {
         metadata: ObjectMeta {
-            name: Some(credential.name()),
+            name: Some(secret_name(endpoint)?),
             annotations: Some(annotations),
             ..ObjectMeta::default()
         },
-        type_: Some(credential.auth.schema_name()),
+        type_: Some(secret_type),
         string_data: Some(data),
         ..Secret::default()
     };
     tracing::debug!("The secret resource:\n {:#?}\n", to_string(&resource));
 
+    create(client, namespace, resource).await
+}
+
+fn secret_name(endpoint: &str) -> Result<String> {
+    let location = Url::parse(endpoint).map_err(Error::UrlParseError)?;
+    let name = format!(
+        "amp-repo-{}-{}-secret",
+        location.scheme(),
+        location.host_str().unwrap(),
+    )
+    .to_lowercase();
+
+    Ok(name)
+}
+
+pub async fn create(client: &Client, namespace: &str, resource: Secret) -> Result<Secret> {
+    let api: Api<Secret> = Api::namespaced(client.clone(), namespace);
+
     let secret = api
         .patch(
-            &credential.name(),
-            &PatchParams::apply("amp-composer").force(),
+            &resource.name_any(),
+            &PatchParams::apply("amp-controllers").force(),
             &Patch::Apply(&resource),
         )
         .await
