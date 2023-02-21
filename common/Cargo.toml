@@ -10,3 +10,7 @@ description = "Common library for the Amphitheatre platform"
 
 [dependencies]
 k8s-openapi = { workspace = true, optional = false }
+serde = { workspace = true, optional = false }
+serde_json = { workspace = true, optional = false }
+serde_yaml = { workspace = true, optional = false }
+url = { workspace = true, optional = false }
