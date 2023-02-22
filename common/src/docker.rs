@@ -19,11 +19,17 @@ use base64::Engine as _;
 use serde::Serialize;
 
 use crate::config::Credential;
+
+/// AuthConfig contains authorization information for connecting to a Registry
+/// Inlined what we use from github.com/docker/cli/cli/config/types
 #[derive(Serialize)]
 pub struct AuthConfig {
+    pub username: Option<String>,
+    pub password: Option<String>,
     pub auth: Option<String>,
 }
 
+/// DockerConfig ~/.docker/config.json file info
 #[derive(Serialize)]
 pub struct DockerConfig {
     pub auths: Option<HashMap<String, AuthConfig>>,
@@ -38,7 +44,14 @@ pub fn build_docker_config(entries: &HashMap<String, Credential>) -> DockerConfi
             credential.username_any(),
             credential.password_any()
         ));
-        auths.insert(endpoint.clone(), AuthConfig { auth: Some(auth) });
+        auths.insert(
+            endpoint.clone(),
+            AuthConfig {
+                username: Some(credential.username_any()),
+                password: Some(credential.password_any()),
+                auth: Some(auth),
+            },
+        );
     }
 
     DockerConfig { auths: Some(auths) }
