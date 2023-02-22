@@ -14,10 +14,32 @@
 
 use std::collections::HashMap;
 
-use serde_json::Value;
+use base64::engine::general_purpose::STANDARD as BASE64;
+use base64::Engine as _;
+use serde::Serialize;
 
 use crate::config::Credential;
+#[derive(Serialize)]
+pub struct AuthConfig {
+    pub auth: Option<String>,
+}
 
-pub fn build_docker_config_json(_entries: &HashMap<String, Credential>) -> Value {
-    todo!()
+#[derive(Serialize)]
+pub struct DockerConfig {
+    pub auths: Option<HashMap<String, AuthConfig>>,
+}
+
+pub fn build_docker_config(entries: &HashMap<String, Credential>) -> DockerConfig {
+    let mut auths = HashMap::new();
+
+    for (endpoint, credential) in entries.iter() {
+        let auth = BASE64.encode(format!(
+            "{}:{}",
+            credential.username_any(),
+            credential.password_any()
+        ));
+        auths.insert(endpoint.clone(), AuthConfig { auth: Some(auth) });
+    }
+
+    DockerConfig { auths: Some(auths) }
 }

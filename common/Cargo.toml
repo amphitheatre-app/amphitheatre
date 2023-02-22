@@ -9,6 +9,7 @@ description = "Common library for the Amphitheatre platform"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+base64 = "0.21.0"
 k8s-openapi = { workspace = true, optional = false }
 serde = { workspace = true, optional = false }
 serde_json = { workspace = true, optional = false }

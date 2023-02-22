@@ -15,6 +15,7 @@
 use std::collections::BTreeMap;
 
 use amp_common::config::{Credential, Scheme};
+use amp_common::docker::DockerConfig;
 use k8s_openapi::api::core::v1::Secret;
 use k8s_openapi::ByteString;
 use kube::api::{Patch, PatchParams};
@@ -25,21 +26,21 @@ use url::Url;
 
 use super::error::{Error, Result};
 
-pub async fn create_docker_registry_secret(
+pub async fn create_registry_secret(
     client: &Client,
     namespace: &str,
-    json: serde_json::Value,
+    config: DockerConfig,
 ) -> Result<Secret> {
     let resource = Secret {
         metadata: ObjectMeta {
-            name: Some("amp-docker-registry-secret".to_string()),
+            name: Some("amp-registry-secret".to_string()),
             ..Default::default()
         },
         type_: Some("kubernetes.io/dockerconfigjson".to_string()),
         data: Some(BTreeMap::from([(
             ".dockerconfigjson".to_string(),
             ByteString(
-                serde_json::to_vec(&json)
+                serde_json::to_vec(&config)
                     .map_err(Error::SerializationError)
                     .unwrap(),
             ),

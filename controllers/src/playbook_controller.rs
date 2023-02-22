@@ -17,7 +17,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use amp_common::config::{Configuration, Credential};
-use amp_common::docker::build_docker_config_json;
+use amp_common::docker::build_docker_config;
 use amp_crds::actor::{ActorSpec, Build, Partner};
 use amp_crds::playbook::{Playbook, PlaybookState};
 use amp_resources::error::{Error, Result};
@@ -117,16 +117,15 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
     let mut secrets = vec![];
 
     // Create Docker registry secrets.
-    let docker_config_json = build_docker_config_json(&configuration.registry);
-    let docker_registry_secret =
-        secret::create_docker_registry_secret(&ctx.k8s, namespace, docker_config_json).await?;
-    secrets.push(docker_registry_secret.clone());
+    let docker_config = build_docker_config(&configuration.registry);
+    let registry_secret = secret::create_registry_secret(&ctx.k8s, namespace, docker_config).await?;
+    secrets.push(registry_secret.clone());
 
     trace(
         recorder,
         format!(
             "Created Secret for Docker Registry Credential: {:#?}",
-            docker_registry_secret
+            registry_secret.name_any()
         ),
     )
     .await?;
