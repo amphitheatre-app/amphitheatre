@@ -16,7 +16,9 @@ use std::collections::{BTreeMap, HashMap};
 
 use amp_crds::actor::{Actor, ActorSpec};
 use k8s_openapi::api::batch::v1::{Job, JobSpec};
-use k8s_openapi::api::core::v1::{Container, PodSpec, PodTemplateSpec};
+use k8s_openapi::api::core::v1::{
+    Container, KeyToPath, PodSpec, PodTemplateSpec, SecretVolumeSource, Volume, VolumeMount,
+};
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
@@ -106,6 +108,19 @@ fn new(actor: &Actor) -> Result<Job> {
         spec: Some(PodSpec {
             restart_policy: Some("Never".into()),
             containers: vec![container],
+            volumes: Some(vec![Volume {
+                name: "kaniko-secret".to_string(),
+                secret: Some(SecretVolumeSource {
+                    secret_name: Some("amp-registry-secret".to_string()),
+                    items: Some(vec![KeyToPath {
+                        key: ".dockerconfigjson".to_string(),
+                        path: "config.json".to_string(),
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }]),
             ..Default::default()
         }),
     };
@@ -149,6 +164,11 @@ fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
                 .map(|(key, value)| format!("--{}={}", key, value))
                 .collect(),
         ),
+        volume_mounts: Some(vec![VolumeMount {
+            name: "kaniko-secret".to_string(),
+            mount_path: "/kaniko/.docker".to_string(),
+            ..Default::default()
+        }]),
         env: spec.build_env(),
         ..Default::default()
     };
