@@ -17,7 +17,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use amp_common::config::{Configuration, Credential};
-use amp_common::docker::build_docker_config;
+use amp_common::utils::credential::build_docker_config;
 use amp_crds::actor::{ActorSpec, Build, Partner};
 use amp_crds::playbook::{Playbook, PlaybookState};
 use amp_resources::error::{Error, Result};

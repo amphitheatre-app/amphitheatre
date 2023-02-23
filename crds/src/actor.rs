@@ -15,7 +15,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 
-use amp_common::utils::to_env_var;
+use amp_common::utils::kubernetes::to_env_var;
 use convert_case::{Case, Casing};
 use k8s_openapi::api::core::v1::{ContainerPort, EnvVar, ServicePort};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};

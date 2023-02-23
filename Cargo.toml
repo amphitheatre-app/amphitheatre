@@ -10,7 +10,6 @@ authors = [
 [workspace]
 members = [
     "apiserver",
-    "common",
     "controllers",
     "crds",
     "resources",
@@ -19,7 +18,7 @@ members = [
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
 [workspace.dependencies]
 anyhow = "1.0"
-amp-common = { path = "common", version = "0.1.0" }
+amp-common = { git = "https://github.com/amphitheatre-app/common" }
 amp-crds = { path = "crds", version = "0.1.0" }
 amp-resources = { path = "resources", version = "0.1.0" }
 clap = { version = "4.0.29", features = ["derive", "env"] }
