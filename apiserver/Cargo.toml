@@ -13,6 +13,7 @@ name = "amphitheatre"
 path = "src/lib.rs"
 
 [dependencies]
+amp-common = { workspace = true, optional = false }
 amp-crds = { workspace = true, optional = false }
 amp-resources = { workspace = true, optional = false }
 anyhow = { workspace = true, optional = false }
@@ -37,7 +38,7 @@ tower-http = { version = "0.3.5", features = ["full"] }
 tower_governor = { git = "https://github.com/benwis/tower-governor", rev="01e1a107" }
 tracing = { workspace = true, optional = false }
 tracing-subscriber = { workspace = true, optional = false }
-utoipa = { version = "2", features = ["axum_extras", "uuid", "chrono"] }
+utoipa = { version = "3", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "3", features = ["axum"] }
 uuid = { version = "1.2.2", features = ["v4", "fast-rng", "macro-diagnostics"] }
 url = { workspace = true, optional = false }

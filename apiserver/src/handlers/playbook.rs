@@ -16,6 +16,7 @@ use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
 
+use amp_common::schema::Manifest;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive};
@@ -57,6 +58,7 @@ pub async fn list(ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiErro
 pub struct CreatePlaybookRequest {
     title: String,
     description: String,
+    manifest: Manifest,
 }
 
 /// Create a playbook in the current account.
@@ -76,7 +78,7 @@ pub async fn create(
     ctx: State<Arc<Context>>,
     Json(payload): Json<CreatePlaybookRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let uuid = PlaybookService::create(&ctx, payload.title, payload.description).await?;
+    let uuid = PlaybookService::create(&ctx, &payload.title, &payload.description, &payload.manifest).await?;
     Ok((StatusCode::CREATED, data(uuid)))
 }
 
