@@ -58,7 +58,7 @@ pub async fn list(ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiErro
 pub struct CreatePlaybookRequest {
     title: String,
     description: String,
-    manifest: Manifest,
+    protagonist: Manifest,
 }
 
 /// Create a playbook in the current account.
@@ -78,7 +78,8 @@ pub async fn create(
     ctx: State<Arc<Context>>,
     Json(payload): Json<CreatePlaybookRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let uuid = PlaybookService::create(&ctx, &payload.title, &payload.description, &payload.manifest).await?;
+    let uuid =
+        PlaybookService::create(&ctx, &payload.title, &payload.description, &payload.protagonist).await?;
     Ok((StatusCode::CREATED, data(uuid)))
 }
 

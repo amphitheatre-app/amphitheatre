@@ -197,19 +197,19 @@ impl From<&Manifest> for ActorSpec {
             name: manifest.character.name.clone(),
             description: manifest.character.description.clone().unwrap_or_default(),
             // image: format!("{}/{}", ctx.config.registry_namespace, manifest.character.name),
-            // command: (),
+            command: manifest.character.command.clone(),
             repository: manifest.character.repository.clone(),
             // path: (),
             // reference: (),
             // commit: "875db185acc8bf7c7effc389a350cae7aa926e57".into(),
-            // environments: (),
+            environments: manifest.environments.clone(),
             // partners: Some(vec![Partner {
             //     name: "amp-example-go".into(),
             //     repository: "https://github.com/amphitheatre-app/amp-example-go.git".into(),
             //     ..Partner::default()
             // }]),
             // services: (),
-            // sync: (),
+            sync: None,
             // build: (),
             ..ActorSpec::default()
         }

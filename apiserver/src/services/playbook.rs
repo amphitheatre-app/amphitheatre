@@ -65,7 +65,7 @@ impl PlaybookService {
         ctx: &State<Arc<Context>>,
         title: &String,
         description: &String,
-        manifest: &Manifest,
+        protagonist: &Manifest,
     ) -> Result<Uuid> {
         let uuid = Uuid::new_v4();
         let resource = amp_crds::playbook::Playbook::new(
@@ -74,7 +74,7 @@ impl PlaybookService {
                 title: title.to_string(),
                 description: description.to_string(),
                 namespace: format!("amp-{}", uuid),
-                actors: vec![manifest.into()],
+                actors: vec![protagonist.into()],
                 sync: None,
             },
         );
