@@ -22,6 +22,7 @@ use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive};
 use axum::response::{IntoResponse, Sse};
 use axum::Json;
+use chrono::prelude::*;
 use futures::Stream;
 use k8s_openapi::api::core::v1::Event as KEvent;
 use kube::api::ListParams;
@@ -56,9 +57,23 @@ pub async fn list(ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiErro
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct CreatePlaybookRequest {
-    title: String,
-    description: String,
-    protagonist: Manifest,
+    pub title: String,
+    pub description: String,
+    pub protagonist: Manifest,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct PlaybookResponse {
+    /// The playbook ID in Amphitheatre.
+    pub id: String,
+    /// The title of the playbook.
+    pub title: String,
+    /// The description of the playbook.
+    pub description: String,
+    /// When the playbook was created in Amphitheatre.
+    pub created_at: DateTime<Utc>,
+    /// When the playbook was last updated in Amphitheatre.
+    pub updated_at: DateTime<Utc>,
 }
 
 /// Create a playbook in the current account.
@@ -70,17 +85,16 @@ pub struct CreatePlaybookRequest {
         content_type = "application/json"
     ),
     responses(
-        (status = 201, description = "Playbook created successfully", body = Uuid)
+        (status = 201, description = "Playbook created successfully", body = PlaybookResponse)
     ),
     tag = "Playbooks"
 )]
 pub async fn create(
     ctx: State<Arc<Context>>,
-    Json(payload): Json<CreatePlaybookRequest>,
+    Json(req): Json<CreatePlaybookRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let uuid =
-        PlaybookService::create(&ctx, &payload.title, &payload.description, &payload.protagonist).await?;
-    Ok((StatusCode::CREATED, data(uuid)))
+    let response = PlaybookService::create(&ctx, &req).await?;
+    Ok((StatusCode::CREATED, data(response)))
 }
 
 /// Returns a playbook detail.

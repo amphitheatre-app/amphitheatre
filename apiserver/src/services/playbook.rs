@@ -14,14 +14,17 @@
 
 use std::sync::Arc;
 
-use amp_common::schema::Manifest;
+use amp_crds::actor::ActorSpec;
 use amp_crds::playbook::PlaybookSpec;
 use amp_resources::playbook;
 use axum::extract::State;
+use chrono::Utc;
+use kube::ResourceExt;
 use tracing::error;
 use uuid::Uuid;
 
 use crate::context::Context;
+use crate::handlers::playbook::{CreatePlaybookRequest, PlaybookResponse};
 use crate::models::playbook::Playbook;
 use crate::repositories::playbook::PlaybookRepository;
 use crate::response::ApiError;
@@ -61,30 +64,31 @@ impl PlaybookService {
             .map_err(|_| ApiError::DatabaseError)
     }
 
-    pub async fn create(
-        ctx: &State<Arc<Context>>,
-        title: &String,
-        description: &String,
-        protagonist: &Manifest,
-    ) -> Result<Uuid> {
+    pub async fn create(ctx: &State<Arc<Context>>, req: &CreatePlaybookRequest) -> Result<PlaybookResponse> {
         let uuid = Uuid::new_v4();
         let resource = amp_crds::playbook::Playbook::new(
             &uuid.to_string(),
             PlaybookSpec {
-                title: title.to_string(),
-                description: description.to_string(),
+                title: req.title.to_string(),
+                description: req.description.to_string(),
                 namespace: format!("amp-{}", uuid),
-                actors: vec![protagonist.into()],
+                actors: vec![ActorSpec::from(&req.protagonist)],
                 sync: None,
             },
         );
 
-        let _playbook = playbook::create(&ctx.k8s, &resource).await.map_err(|err| {
+        let playbook = playbook::create(&ctx.k8s, &resource).await.map_err(|err| {
             error!("{:?}", err);
             ApiError::KubernetesError
         })?;
 
-        Ok(uuid)
+        Ok(PlaybookResponse {
+            id: playbook.name_any(),
+            title: playbook.spec.title,
+            description: playbook.spec.description,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
         // PlaybookRepository::create(&ctx.db, title, description)
         //     .await
         //     .map_err(|err| {
