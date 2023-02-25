@@ -15,6 +15,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 
+use amp_common::schema::Manifest;
 use amp_common::utils::kubernetes::to_env_var;
 use convert_case::{Case, Casing};
 use k8s_openapi::api::core::v1::{ContainerPort, EnvVar, ServicePort};
@@ -187,6 +188,31 @@ impl ActorSpec {
         }
 
         None
+    }
+}
+
+impl From<&Manifest> for ActorSpec {
+    fn from(manifest: &Manifest) -> Self {
+        Self {
+            name: manifest.character.name.clone(),
+            description: manifest.character.description.clone().unwrap_or_default(),
+            // image: format!("{}/{}", ctx.config.registry_namespace, manifest.character.name),
+            // command: (),
+            repository: manifest.character.repository.clone(),
+            // path: (),
+            // reference: (),
+            // commit: "875db185acc8bf7c7effc389a350cae7aa926e57".into(),
+            // environments: (),
+            // partners: Some(vec![Partner {
+            //     name: "amp-example-go".into(),
+            //     repository: "https://github.com/amphitheatre-app/amp-example-go.git".into(),
+            //     ..Partner::default()
+            // }]),
+            // services: (),
+            // sync: (),
+            // build: (),
+            ..ActorSpec::default()
+        }
     }
 }
 

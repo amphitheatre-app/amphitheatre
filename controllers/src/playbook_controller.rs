@@ -146,7 +146,7 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
     service_account::patch(ctx.k8s.clone(), namespace, "default", &secrets, true, true).await?;
 
     trace(recorder, "Init successfully, Let's begin solve, now!").await?;
-    playbook::patch_status(ctx.k8s.clone(), playbook, PlaybookState::solving()).await?;
+    playbook::patch_status(&ctx.k8s, playbook, PlaybookState::solving()).await?;
 
     Ok(())
 }
@@ -173,17 +173,12 @@ async fn solve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> 
         let actor = read(ctx, partner).await?.unwrap();
 
         trace(recorder, "Fetch and add the actor to this playbook").await?;
-        playbook::add(ctx.k8s.clone(), playbook, actor).await?;
+        playbook::add(&ctx.k8s, playbook, actor).await?;
     }
 
     if fetches.is_empty() {
         trace(recorder, "Solved successfully, Running").await?;
-        playbook::patch_status(
-            ctx.k8s.clone(),
-            playbook,
-            PlaybookState::running(true, "AutoRun", None),
-        )
-        .await?;
+        playbook::patch_status(&ctx.k8s, playbook, PlaybookState::running(true, "AutoRun", None)).await?;
     }
 
     Ok(())

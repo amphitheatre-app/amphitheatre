@@ -15,7 +15,7 @@
 use std::time::Duration;
 
 use amp_crds::actor::ActorSpec;
-use amp_crds::playbook::{Playbook, PlaybookSpec, PlaybookState};
+use amp_crds::playbook::{Playbook, PlaybookState};
 use k8s_openapi::apiextensions_apiserver as server;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{DeleteParams, Patch, PatchParams, PostParams};
@@ -26,8 +26,8 @@ use tokio::time::sleep;
 
 use super::error::{Error, Result};
 
-pub async fn install(client: Client) -> Result<()> {
-    let api: Api<CustomResourceDefinition> = Api::all(client);
+pub async fn install(client: &Client) -> Result<()> {
+    let api: Api<CustomResourceDefinition> = Api::all(client.clone());
     let crd = Playbook::crd();
     tracing::debug!(
         "Creating the Playbook CustomResourceDefinition: {}",
@@ -50,8 +50,8 @@ pub async fn install(client: Client) -> Result<()> {
     Ok(())
 }
 
-pub async fn uninstall(client: Client) -> Result<()> {
-    let api: Api<CustomResourceDefinition> = Api::all(client);
+pub async fn uninstall(client: &Client) -> Result<()> {
+    let api: Api<CustomResourceDefinition> = Api::all(client.clone());
     let params = DeleteParams::default();
 
     // Ignore delete error if not exists
@@ -69,26 +69,25 @@ pub async fn uninstall(client: Client) -> Result<()> {
     Ok(())
 }
 
-pub async fn create(client: Client, name: String, spec: PlaybookSpec) -> Result<Playbook> {
+pub async fn create(client: &Client, playbook: &Playbook) -> Result<Playbook> {
     let api: Api<Playbook> = Api::all(client.clone());
 
-    let mut playbook = Playbook::new(name.as_str(), spec);
     tracing::debug!("The playbook resource:\n {:#?}\n", playbook);
 
-    playbook = api
-        .create(&PostParams::default(), &playbook)
+    let playbook = api
+        .create(&PostParams::default(), playbook)
         .await
         .map_err(Error::KubeError)?;
 
     tracing::info!("Created playbook: {}", playbook.name_any());
 
     // Patch this playbook as initial Pending status
-    patch_status(client.clone(), &playbook, PlaybookState::pending()).await?;
+    patch_status(client, &playbook, PlaybookState::pending()).await?;
     Ok(playbook)
 }
 
-pub async fn add(client: Client, playbook: &Playbook, actor: ActorSpec) -> Result<()> {
-    let api: Api<Playbook> = Api::all(client);
+pub async fn add(client: &Client, playbook: &Playbook, actor: ActorSpec) -> Result<()> {
+    let api: Api<Playbook> = Api::all(client.clone());
 
     let actor_name = actor.name.clone();
     let mut actors = playbook.spec.actors.clone();
@@ -109,8 +108,8 @@ pub async fn add(client: Client, playbook: &Playbook, actor: ActorSpec) -> Resul
     Ok(())
 }
 
-pub async fn patch_status(client: Client, playbook: &Playbook, condition: Condition) -> Result<()> {
-    let api: Api<Playbook> = Api::all(client);
+pub async fn patch_status(client: &Client, playbook: &Playbook, condition: Condition) -> Result<()> {
+    let api: Api<Playbook> = Api::all(client.clone());
 
     let status = json!({ "status": { "conditions": vec![condition] }});
     let playbook = api
@@ -127,12 +126,12 @@ pub async fn patch_status(client: Client, playbook: &Playbook, condition: Condit
     Ok(())
 }
 
-pub async fn replace_status(_client: Client, _playbook: &Playbook, _condition: Condition) -> Result<()> {
+pub async fn replace_status(_client: &Client, _playbook: &Playbook, _condition: Condition) -> Result<()> {
     todo!()
 }
 
 pub async fn replace_status_with(
-    _client: Client,
+    _client: &Client,
     _playbook: &Playbook,
     _before: Condition,
     _after: Condition,

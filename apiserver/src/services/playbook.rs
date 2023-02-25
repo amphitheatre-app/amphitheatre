@@ -15,7 +15,6 @@
 use std::sync::Arc;
 
 use amp_common::schema::Manifest;
-use amp_crds::actor::ActorSpec;
 use amp_crds::playbook::PlaybookSpec;
 use amp_resources::playbook;
 use axum::extract::State;
@@ -69,17 +68,21 @@ impl PlaybookService {
         manifest: &Manifest,
     ) -> Result<Uuid> {
         let uuid = Uuid::new_v4();
-        let namespace = format!("amp-{}", uuid);
+        let resource = amp_crds::playbook::Playbook::new(
+            &uuid.to_string(),
+            PlaybookSpec {
+                title: title.to_string(),
+                description: description.to_string(),
+                namespace: format!("amp-{}", uuid),
+                actors: vec![manifest.into()],
+                sync: None,
+            },
+        );
 
-        let spec = Self::read(ctx, title, description, &namespace, manifest)
-            .await?
-            .unwrap();
-        let _playbook = playbook::create(ctx.k8s.clone(), uuid.to_string(), spec)
-            .await
-            .map_err(|err| {
-                error!("{:?}", err);
-                ApiError::KubernetesError
-            })?;
+        let _playbook = playbook::create(&ctx.k8s, &resource).await.map_err(|err| {
+            error!("{:?}", err);
+            ApiError::KubernetesError
+        })?;
 
         Ok(uuid)
         // PlaybookRepository::create(&ctx.db, title, description)
@@ -99,35 +102,5 @@ impl PlaybookService {
         PlaybookRepository::update(&ctx.db, id, title, description)
             .await
             .map_err(|_| ApiError::DatabaseError)
-    }
-
-    pub async fn read(
-        ctx: &Arc<Context>,
-        title: &String,
-        description: &String,
-        namespace: &String,
-        manifest: &Manifest,
-    ) -> Result<Option<PlaybookSpec>> {
-        let spec = PlaybookSpec {
-            title: title.to_string(),
-            description: description.to_string(),
-            namespace: namespace.to_string(),
-            actors: vec![ActorSpec {
-                name: manifest.character.name.clone(),
-                description: manifest.character.description.clone().unwrap_or_default(),
-                image: format!("{}/{}", ctx.config.registry_namespace, manifest.character.name),
-                repository: manifest.character.repository.clone(),
-                commit: "875db185acc8bf7c7effc389a350cae7aa926e57".into(),
-                // partners: Some(vec![Partner {
-                //     name: "amp-example-go".into(),
-                //     repository: "https://github.com/amphitheatre-app/amp-example-go.git".into(),
-                //     ..Partner::default()
-                // }]),
-                ..ActorSpec::default()
-            }],
-            ..PlaybookSpec::default()
-        };
-
-        Ok(Some(spec))
     }
 }
