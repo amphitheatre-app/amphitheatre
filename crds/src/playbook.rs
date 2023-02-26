@@ -24,7 +24,7 @@ use validator::Validate;
 
 use super::actor::ActorSpec;
 
-#[derive(CustomResource, Default, Deserialize, Serialize, Clone, Debug, JsonSchema, Validate)]
+#[derive(Clone, CustomResource, Debug, Default, Deserialize, Serialize, JsonSchema, Validate)]
 #[kube(
     group = "amphitheatre.app",
     version = "v1",
@@ -54,26 +54,32 @@ pub struct PlaybookStatus {
 }
 
 impl PlaybookStatus {
+    #[inline]
     pub fn pending(&self) -> bool {
         self.state(PlaybookState::Pending, true)
     }
 
+    #[inline]
     pub fn solving(&self) -> bool {
         self.state(PlaybookState::Solving, true)
     }
 
+    #[inline]
     pub fn ready(&self) -> bool {
         self.state(PlaybookState::Ready, true)
     }
 
+    #[inline]
     pub fn running(&self) -> bool {
         self.state(PlaybookState::Running, true)
     }
 
+    #[inline]
     pub fn succeeded(&self) -> bool {
         self.state(PlaybookState::Succeeded, true)
     }
 
+    #[inline]
     pub fn failed(&self) -> bool {
         self.state(PlaybookState::Failed, true)
     }
@@ -95,31 +101,36 @@ pub enum PlaybookState {
 }
 
 impl PlaybookState {
+    #[inline]
     pub fn pending() -> Condition {
         PlaybookState::create(PlaybookState::Pending, true, "Created", None)
     }
 
+    #[inline]
     pub fn solving() -> Condition {
         PlaybookState::create(PlaybookState::Solving, true, "Solve", None)
     }
 
+    #[inline]
     pub fn ready() -> Condition {
         PlaybookState::create(PlaybookState::Ready, true, "Solved", None)
     }
 
+    #[inline]
     pub fn running(status: bool, reason: &str, message: Option<String>) -> Condition {
         PlaybookState::create(PlaybookState::Running, status, reason, message)
     }
 
+    #[inline]
     pub fn succeeded(status: bool, reason: &str, message: Option<String>) -> Condition {
         PlaybookState::create(PlaybookState::Succeeded, status, reason, message)
     }
 
+    #[inline]
     pub fn failed(status: bool, reason: &str, message: Option<String>) -> Condition {
         PlaybookState::create(PlaybookState::Failed, status, reason, message)
     }
 
-    #[inline]
     fn create(state: PlaybookState, status: bool, reason: &str, message: Option<String>) -> Condition {
         Condition {
             type_: state.to_string(),
