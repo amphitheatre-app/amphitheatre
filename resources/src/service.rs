@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use amp_crds::actor::Actor;
+use amp_common::schema::Actor;
 use k8s_openapi::api::core::v1::{Service, ServiceSpec};
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;

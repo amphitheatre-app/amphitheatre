@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use amp_crds::actor::Actor;
+use amp_common::schema::Actor;
 use k8s_openapi::api::apps::v1::{Deployment, DeploymentSpec};
 use k8s_openapi::api::core::v1::{Container, PodSpec, PodTemplateSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;

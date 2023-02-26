@@ -11,7 +11,6 @@ description = "K8s CRD controllers for the Amphitheatre platform"
 [dependencies]
 anyhow = { workspace = true, optional = false }
 amp-common = { workspace = true, optional = false }
-amp-crds = { workspace = true, optional = false }
 amp-resources = { workspace = true, optional = false }
 clap = { workspace = true, optional = false }
 dotenv = { workspace = true, optional = false }

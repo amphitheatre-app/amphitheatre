@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use amp_crds::playbook::Playbook;
+use amp_common::schema::Playbook;
 use k8s_openapi::api::core::v1::Namespace;
 use kube::api::{Patch, PatchParams};
 use kube::core::ObjectMeta;

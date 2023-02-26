@@ -9,7 +9,6 @@ description = "K8s resources manager for the Amphitheatre platform"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-amp-crds = { workspace = true, optional = false }
 amp-common = { workspace = true, optional = false }
 kube = { workspace = true, optional = false }
 k8s-openapi = { workspace = true, optional = false }

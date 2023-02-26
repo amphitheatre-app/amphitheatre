@@ -14,7 +14,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use amp_crds::actor::{Actor, ActorSpec};
+use amp_common::schema::{Actor, ActorSpec};
 use k8s_openapi::api::batch::v1::{Job, JobSpec};
 use k8s_openapi::api::core::v1::{
     Container, KeyToPath, PodSpec, PodTemplateSpec, SecretVolumeSource, Volume, VolumeMount,
@@ -144,12 +144,13 @@ fn new(actor: &Actor) -> Result<Job> {
     Ok(resource)
 }
 
+fn context(spec: &ActorSpec) -> String {
+    format!("{}#{}", spec.source.repo.replace("https", "git"), spec.source.rev)
+}
+
 fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
     let args: HashMap<String, String> = HashMap::from([
-        (
-            "context".into(),
-            format!("{}#{}", spec.repository.replace("https", "git"), spec.commit),
-        ),
+        ("context".into(), context(spec)),
         ("destination".into(), spec.docker_tag()),
         ("verbosity".into(), "trace".into()),
         ("cache".into(), "false".into()),

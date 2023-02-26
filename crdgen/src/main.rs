@@ -17,8 +17,7 @@ use std::io::Write;
 use std::path::Path;
 use std::{env, fs};
 
-use amp_crds::actor::Actor;
-use amp_crds::playbook::Playbook;
+use amp_common::schema::{Actor, Playbook};
 use kube::CustomResourceExt;
 
 fn main() {

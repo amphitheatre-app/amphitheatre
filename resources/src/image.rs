@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_crds::actor::Actor;
+use amp_common::schema::Actor;
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::{DynamicObject, GroupVersionKind};
 use kube::discovery::ApiResource;
@@ -103,10 +103,10 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
             },
             "source": {
                 "git": {
-                    "url": actor.spec.repository,
-                    "revision": actor.spec.commit,
+                    "url": actor.spec.source.repo,
+                    "revision": actor.spec.source.rev,
                 },
-                "subPath": actor.spec.path.as_deref().unwrap_or_default(),
+                "subPath": actor.spec.source.path.as_deref().unwrap_or_default(),
             }
         }
     }))

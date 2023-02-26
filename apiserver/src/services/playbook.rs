@@ -14,8 +14,7 @@
 
 use std::sync::Arc;
 
-use amp_crds::actor::ActorSpec;
-use amp_crds::playbook::PlaybookSpec;
+use amp_common::schema::{ActorSpec, Playbook as PlaybookResource, PlaybookSpec};
 use amp_resources::playbook;
 use axum::extract::State;
 use chrono::Utc;
@@ -25,7 +24,7 @@ use uuid::Uuid;
 
 use crate::context::Context;
 use crate::handlers::playbook::{CreatePlaybookRequest, PlaybookResponse};
-use crate::models::playbook::Playbook;
+use crate::models::playbook::Playbook as PlaybookModel;
 use crate::repositories::playbook::PlaybookRepository;
 use crate::response::ApiError;
 use crate::services::Result;
@@ -33,13 +32,13 @@ use crate::services::Result;
 pub struct PlaybookService;
 
 impl PlaybookService {
-    pub async fn get(ctx: &State<Arc<Context>>, id: Uuid) -> Result<Option<Playbook>> {
+    pub async fn get(ctx: &State<Arc<Context>>, id: Uuid) -> Result<Option<PlaybookModel>> {
         PlaybookRepository::get(&ctx.db, id)
             .await
             .map_err(|_| ApiError::DatabaseError)
     }
 
-    pub async fn list(ctx: &State<Arc<Context>>) -> Result<Vec<Playbook>> {
+    pub async fn list(ctx: &State<Arc<Context>>) -> Result<Vec<PlaybookModel>> {
         PlaybookRepository::list(&ctx.db).await.map_err(|err| {
             error!("{:?}", err);
             ApiError::DatabaseError
@@ -66,7 +65,7 @@ impl PlaybookService {
 
     pub async fn create(ctx: &State<Arc<Context>>, req: &CreatePlaybookRequest) -> Result<PlaybookResponse> {
         let uuid = Uuid::new_v4();
-        let resource = amp_crds::playbook::Playbook::new(
+        let resource = PlaybookResource::new(
             &uuid.to_string(),
             PlaybookSpec {
                 title: req.title.to_string(),
@@ -102,7 +101,7 @@ impl PlaybookService {
         id: Uuid,
         title: Option<String>,
         description: Option<String>,
-    ) -> Result<Playbook> {
+    ) -> Result<PlaybookModel> {
         PlaybookRepository::update(&ctx.db, id, title, description)
             .await
             .map_err(|_| ApiError::DatabaseError)

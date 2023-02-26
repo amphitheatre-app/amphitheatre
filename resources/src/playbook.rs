@@ -14,8 +14,7 @@
 
 use std::time::Duration;
 
-use amp_crds::actor::ActorSpec;
-use amp_crds::playbook::{Playbook, PlaybookState};
+use amp_common::schema::{ActorSpec, Playbook, PlaybookState};
 use k8s_openapi::apiextensions_apiserver as server;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{DeleteParams, Patch, PatchParams, PostParams};

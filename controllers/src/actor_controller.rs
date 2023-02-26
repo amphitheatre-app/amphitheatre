@@ -15,7 +15,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use amp_crds::actor::{Actor, ActorState};
+use amp_common::schema::{Actor, ActorState};
 use amp_resources::error::{Error, Result};
 use amp_resources::event::trace;
 use amp_resources::{actor, deployment, image, job, service};

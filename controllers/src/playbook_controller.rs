@@ -17,9 +17,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use amp_common::config::{Configuration, Credential};
+use amp_common::schema::{ActorSpec, Playbook, PlaybookState, Source};
 use amp_common::utils::credential::build_docker_config;
-use amp_crds::actor::{ActorSpec, Build, Partner};
-use amp_crds::playbook::{Playbook, PlaybookState};
 use amp_resources::error::{Error, Result};
 use amp_resources::event::trace;
 use amp_resources::{actor, namespace, playbook, secret, service_account};
@@ -152,13 +151,18 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
 }
 
 async fn solve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    let exists: HashSet<String> = playbook.spec.actors.iter().map(|actor| actor.url()).collect();
+    let exists: HashSet<String> = playbook
+        .spec
+        .actors
+        .iter()
+        .map(|actor| actor.name.to_string())
+        .collect();
 
-    let mut fetches: HashSet<Partner> = HashSet::new();
+    let mut fetches: HashSet<Source> = HashSet::new();
     for actor in &playbook.spec.actors {
         if let Some(partners) = &actor.partners {
-            for partner in partners {
-                if exists.contains(&partner.url()) {
+            for (name, partner) in partners {
+                if exists.contains(name) {
                     continue;
                 }
                 fetches.insert(partner.clone());
@@ -168,9 +172,9 @@ async fn solve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> 
 
     tracing::debug!("Existing repos are:\n{exists:#?}\nand fetches are: {fetches:#?}");
 
-    for partner in fetches.iter() {
-        tracing::info!("fetches url: {}", partner.url());
-        let actor = read(ctx, partner).await?.unwrap();
+    for source in fetches.iter() {
+        tracing::info!("fetching partner with source: {}", source.uri());
+        let actor = read(ctx, source).await?.unwrap();
 
         trace(recorder, "Fetch and add the actor to this playbook").await?;
         playbook::add(&ctx.k8s, playbook, actor).await?;
@@ -221,21 +225,6 @@ fn reference(playbbok: &Playbook) -> ObjectReference {
 }
 
 // TODO: Read real actor information from remote VCS (like github).
-pub async fn read(ctx: &Arc<Context>, partner: &Partner) -> Result<Option<ActorSpec>> {
-    let spec = ActorSpec {
-        name: partner.name.clone(),
-        description: "A simple Golang example app".into(),
-        image: format!("{}/{}", ctx.config.registry_namespace, "amp-example-go"),
-        repository: partner.repository.clone(),
-        reference: partner.reference.clone(),
-        path: partner.path.clone(),
-        commit: "2ebf3c7954f34e4a59976fdff985ea12a2009a52".into(),
-        build: Some(Build {
-            dockerfile: Some("Dockerfile".to_string()),
-            ..Default::default()
-        }),
-        ..ActorSpec::default()
-    };
-
-    Ok(Some(spec))
+pub async fn read(_ctx: &Arc<Context>, _source: &Source) -> Result<Option<ActorSpec>> {
+    todo!()
 }
