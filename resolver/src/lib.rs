@@ -15,6 +15,7 @@
 use amp_common::client::ClientError;
 use amp_common::schema::{ActorSpec, Manifest, Source};
 use amp_common::scm::client::Client;
+use amp_common::scm::content::ContentService;
 use amp_common::scm::driver::{github, Driver};
 use amp_common::scm::git::GitService;
 use amp_common::scm::repo::RepositoryService;
@@ -30,8 +31,11 @@ pub enum ResolveError {
     #[error("InvalidRepository: {0}")]
     InvalidRepoAddress(#[source] url::ParseError),
 
-    #[error("Fetching error: {0}")]
+    #[error("FetchingError: {0}")]
     FetchingError(String),
+
+    #[error("TomlParseFailed: {0}")]
+    TomlParseFailed(String),
 }
 
 pub type Result<T, E = ResolveError> = std::result::Result<T, E>;
@@ -40,7 +44,7 @@ pub type Result<T, E = ResolveError> = std::result::Result<T, E>;
 fn repo(url: &str) -> Result<String> {
     let url = Url::parse(url).map_err(ResolveError::InvalidRepoAddress)?;
     let mut repo = url.path().replace(".git", "");
-    repo = repo.trim_start_matches("/").to_string();
+    repo = repo.trim_start_matches('/').to_string();
 
     Ok(repo)
 }
@@ -89,7 +93,16 @@ pub fn load(source: &Source) -> Result<ActorSpec> {
     let client = Client::new(github::default());
 
     let source = patch(&client, source)?;
-    let manifest = Manifest::default();
+    let repo = repo(&source.repo)?;
+    let path = source.path.clone().unwrap_or(".amp.toml".to_string());
+    let content = client
+        .conetnts()
+        .find(&repo, &path, source.rev.as_str())
+        .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
+    debug!("{:#?}", content);
+
+    let manifest: Manifest = toml::from_slice(content.data.as_slice())
+        .map_err(|e| ResolveError::TomlParseFailed(e.to_string()))?;
 
     let mut spec = ActorSpec::from(&manifest);
     spec.source = source;
