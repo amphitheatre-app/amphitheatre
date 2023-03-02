@@ -81,8 +81,8 @@ async fn apply(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> 
     if let Some(ref status) = playbook.status {
         if status.pending() {
             init(playbook, ctx, recorder).await?
-        } else if status.solving() {
-            solve(playbook, ctx, recorder).await?
+        } else if status.resolving() {
+            resolve(playbook, ctx, recorder).await?
         } else if status.running() {
             run(playbook, ctx, recorder).await?
         }
@@ -144,13 +144,13 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
     trace(recorder, "Patch the credentials to default service account").await?;
     service_account::patch(ctx.k8s.clone(), namespace, "default", &secrets, true, true).await?;
 
-    trace(recorder, "Init successfully, Let's begin solve, now!").await?;
-    playbook::patch_status(&ctx.k8s, playbook, PlaybookState::solving()).await?;
+    trace(recorder, "Init successfully, Let's begin resolving, now!").await?;
+    playbook::patch_status(&ctx.k8s, playbook, PlaybookState::resolving()).await?;
 
     Ok(())
 }
 
-async fn solve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
     let exists: HashSet<String> = playbook
         .spec
         .actors
