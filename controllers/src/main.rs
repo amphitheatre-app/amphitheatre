@@ -19,6 +19,7 @@ use tracing::Level;
 
 mod config;
 mod context;
+mod error;
 
 use crate::config::Config;
 use crate::context::Context;

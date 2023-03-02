@@ -14,6 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 amp-common = { workspace = true, optional = false }
+amp-resolver = { workspace = true, optional = false }
 amp-resources = { workspace = true, optional = false }
 anyhow = { workspace = true, optional = false }
 axum = { version = "0.6", features = ["headers"] }

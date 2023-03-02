@@ -12,6 +12,7 @@ members = [
     "apiserver",
     "controllers",
     "crdgen",
+    "resolver",
     "resources",
 ]
 
@@ -19,6 +20,7 @@ members = [
 [workspace.dependencies]
 anyhow = "1.0"
 amp-common = { git = "https://github.com/amphitheatre-app/common" }
+amp-resolver = { path = "resolver", version = "0.1.0" }
 amp-resources = { path = "resources", version = "0.1.0" }
 clap = { version = "4.0.29", features = ["derive", "env"] }
 dotenv = "0.15.0"

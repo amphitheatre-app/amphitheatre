@@ -14,7 +14,8 @@
 
 use std::sync::Arc;
 
-use amp_common::schema::{ActorSpec, Playbook as PlaybookResource, PlaybookSpec};
+use amp_common::schema::{Playbook as PlaybookResource, PlaybookSpec, Source};
+use amp_resolver as resolver;
 use amp_resources::playbook;
 use axum::extract::State;
 use chrono::Utc;
@@ -65,13 +66,20 @@ impl PlaybookService {
 
     pub async fn create(ctx: &State<Arc<Context>>, req: &CreatePlaybookRequest) -> Result<PlaybookResponse> {
         let uuid = Uuid::new_v4();
+
+        let source = Source::new(req.protagonist.character.repository.clone());
+        let protagonist = resolver::load(&source).map_err(|err| {
+            error!("{:?}", err);
+            ApiError::ResolveError
+        })?;
+
         let resource = PlaybookResource::new(
             &uuid.to_string(),
             PlaybookSpec {
                 title: req.title.to_string(),
                 description: req.description.to_string(),
                 namespace: format!("amp-{}", uuid),
-                actors: vec![ActorSpec::from(&req.protagonist)],
+                actors: vec![protagonist],
                 sync: None,
             },
         );

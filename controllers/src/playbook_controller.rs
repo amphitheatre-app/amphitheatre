@@ -17,9 +17,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use amp_common::config::{Configuration, Credential};
-use amp_common::schema::{ActorSpec, Playbook, PlaybookState, Source};
+use amp_common::schema::{Playbook, PlaybookState, Source};
 use amp_common::utils::credential::build_docker_config;
-use amp_resources::error::{Error, Result};
+use amp_resolver as resolver;
 use amp_resources::event::trace;
 use amp_resources::{actor, namespace, playbook, secret, service_account};
 use futures::{future, StreamExt};
@@ -32,6 +32,7 @@ use kube::runtime::Controller;
 use kube::{Api, Resource, ResourceExt};
 
 use crate::context::Context;
+use crate::error::{Error, Result};
 
 pub async fn new(ctx: &Arc<Context>) {
     let api = Api::<Playbook>::all(ctx.k8s.clone());
@@ -98,8 +99,12 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
     let namespace = &playbook.spec.namespace;
 
     // Create namespace for this playbook
-    namespace::create(ctx.k8s.clone(), playbook).await?;
-    trace(recorder, "Created namespace for this playbook").await?;
+    namespace::create(ctx.k8s.clone(), playbook)
+        .await
+        .map_err(Error::ResourceError)?;
+    trace(recorder, "Created namespace for this playbook")
+        .await
+        .map_err(Error::ResourceError)?;
 
     // Docker registry Credential
     let credential = Credential::basic(
@@ -111,13 +116,17 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
         registry: HashMap::from([(ctx.config.registry_url.clone(), credential)]),
         repositories: HashMap::default(),
     };
-    trace(recorder, format!("The Configuration is {:#?}", &configuration)).await?;
+    trace(recorder, format!("The Configuration is {:#?}", &configuration))
+        .await
+        .map_err(Error::ResourceError)?;
 
     let mut secrets = vec![];
 
     // Create Docker registry secrets.
     let docker_config = build_docker_config(&configuration.registry);
-    let registry_secret = secret::create_registry_secret(&ctx.k8s, namespace, docker_config).await?;
+    let registry_secret = secret::create_registry_secret(&ctx.k8s, namespace, docker_config)
+        .await
+        .map_err(Error::ResourceError)?;
     secrets.push(registry_secret.clone());
 
     trace(
@@ -127,25 +136,37 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
             registry_secret.name_any()
         ),
     )
-    .await?;
+    .await
+    .map_err(Error::ResourceError)?;
 
     // Create repository secrets.
     for (endpoint, credential) in configuration.repositories.iter() {
-        let secret = secret::create_repository_secret(&ctx.k8s, namespace, endpoint, credential).await?;
+        let secret = secret::create_repository_secret(&ctx.k8s, namespace, endpoint, credential)
+            .await
+            .map_err(Error::ResourceError)?;
         secrets.push(secret.clone());
         trace(
             recorder,
             format!("Created Secret for repository: {:#?}", endpoint),
         )
-        .await?;
+        .await
+        .map_err(Error::ResourceError)?;
     }
 
     // Patch this credentials to default service account
-    trace(recorder, "Patch the credentials to default service account").await?;
-    service_account::patch(ctx.k8s.clone(), namespace, "default", &secrets, true, true).await?;
+    trace(recorder, "Patch the credentials to default service account")
+        .await
+        .map_err(Error::ResourceError)?;
+    service_account::patch(ctx.k8s.clone(), namespace, "default", &secrets, true, true)
+        .await
+        .map_err(Error::ResourceError)?;
 
-    trace(recorder, "Init successfully, Let's begin resolving, now!").await?;
-    playbook::patch_status(&ctx.k8s, playbook, PlaybookState::resolving()).await?;
+    trace(recorder, "Init successfully, Let's begin resolving, now!")
+        .await
+        .map_err(Error::ResourceError)?;
+    playbook::patch_status(&ctx.k8s, playbook, PlaybookState::resolving())
+        .await
+        .map_err(Error::ResourceError)?;
 
     Ok(())
 }
@@ -174,15 +195,23 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
 
     for source in fetches.iter() {
         tracing::info!("fetching partner with source: {}", source.uri());
-        let actor = read(ctx, source).await?.unwrap();
+        let actor = resolver::load(source).map_err(Error::ResolveError)?;
 
-        trace(recorder, "Fetch and add the actor to this playbook").await?;
-        playbook::add(&ctx.k8s, playbook, actor).await?;
+        trace(recorder, "Fetch and add the actor to this playbook")
+            .await
+            .map_err(Error::ResourceError)?;
+        playbook::add(&ctx.k8s, playbook, actor)
+            .await
+            .map_err(Error::ResourceError)?;
     }
 
     if fetches.is_empty() {
-        trace(recorder, "Solved successfully, Running").await?;
-        playbook::patch_status(&ctx.k8s, playbook, PlaybookState::running(true, "AutoRun", None)).await?;
+        trace(recorder, "Solved successfully, Running")
+            .await
+            .map_err(Error::ResourceError)?;
+        playbook::patch_status(&ctx.k8s, playbook, PlaybookState::running(true, "AutoRun", None))
+            .await
+            .map_err(Error::ResourceError)?;
     }
 
     Ok(())
@@ -190,7 +219,10 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
 
 async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
     for spec in &playbook.spec.actors {
-        match actor::exists(ctx.k8s.clone(), playbook, spec).await? {
+        match actor::exists(ctx.k8s.clone(), playbook, spec)
+            .await
+            .map_err(Error::ResourceError)?
+        {
             true => {
                 // Actor already exists, update it if there are new changes
                 trace(
@@ -200,13 +232,20 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
                         spec.name
                     ),
                 )
-                .await?;
-                actor::update(ctx.k8s.clone(), playbook, spec).await?;
+                .await
+                .map_err(Error::ResourceError)?;
+                actor::update(ctx.k8s.clone(), playbook, spec)
+                    .await
+                    .map_err(Error::ResourceError)?;
             }
             false => {
                 // Create a new actor
-                trace(recorder, format!("Create new Actor: {}", spec.name)).await?;
-                actor::create(ctx.k8s.clone(), playbook, spec).await?;
+                trace(recorder, format!("Create new Actor: {}", spec.name))
+                    .await
+                    .map_err(Error::ResourceError)?;
+                actor::create(ctx.k8s.clone(), playbook, spec)
+                    .await
+                    .map_err(Error::ResourceError)?;
             }
         }
     }
@@ -222,9 +261,4 @@ fn reference(playbbok: &Playbook) -> ObjectReference {
     let mut reference = playbbok.object_ref(&());
     reference.namespace = Some(playbbok.spec.namespace.to_string());
     reference
-}
-
-// TODO: Read real actor information from remote VCS (like github).
-pub async fn read(_ctx: &Arc<Context>, _source: &Source) -> Result<Option<ActorSpec>> {
-    todo!()
 }

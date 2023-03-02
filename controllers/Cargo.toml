@@ -11,6 +11,7 @@ description = "K8s CRD controllers for the Amphitheatre platform"
 [dependencies]
 anyhow = { workspace = true, optional = false }
 amp-common = { workspace = true, optional = false }
+amp-resolver = { workspace = true, optional = false }
 amp-resources = { workspace = true, optional = false }
 clap = { workspace = true, optional = false }
 dotenv = { workspace = true, optional = false }
@@ -24,3 +25,4 @@ tracing = { workspace = true, optional = false }
 tracing-subscriber = { workspace = true, optional = false }
 tokio = { workspace = true, optional = false }
 url = { workspace = true, optional = false }
+thiserror = { workspace = true, optional = false }

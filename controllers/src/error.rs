@@ -1,4 +1,4 @@
-// Copyright 2022 The Amphitheatre Authors.
+// Copyright 2023 The Amphitheatre Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,23 +14,24 @@
 
 use thiserror::Error;
 
-// use crate::response::ApiError;
-
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("SerializationError: {0}")]
-    SerializationError(#[source] serde_json::Error),
+    ResourceError(#[source] amp_resources::error::Error),
 
     #[error("Kube Error: {0}")]
     KubeError(#[source] kube::Error),
 
-    #[error("MissingObjectKey: {0}")]
-    MissingObjectKey(&'static str),
+    #[error("Finalizer Error: {0}")]
+    // NB: awkward type because finalizer::Error embeds the reconciler error (which is this)
+    // so boxing this error to break cycles
+    FinalizerError(#[source] Box<kube::runtime::finalizer::Error<Error>>),
 
-    #[error("UrlParseError: {0}")]
-    UrlParseError(#[source] url::ParseError),
-    // #[error("ApiError: {0}")]
-    // ApiError(#[source] ApiError),
+    #[error("Empty Actors Error")]
+    EmptyActorsError,
+
+    #[error("ResolveError: {0}")]
+    ResolveError(#[source] amp_resolver::ResolveError),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

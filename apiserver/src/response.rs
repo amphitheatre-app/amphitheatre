@@ -77,6 +77,8 @@ pub enum ApiError {
     InternalServerError,
     #[error("Not Found")]
     NotFound,
+    #[error("Resolve Error")]
+    ResolveError,
 }
 
 impl IntoResponse for ApiError {
@@ -86,6 +88,7 @@ impl IntoResponse for ApiError {
             Self::KubernetesError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             Self::InternalServerError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             Self::NotFound => (StatusCode::NOT_FOUND, self.to_string()),
+            Self::ResolveError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
         };
         (status, Json(json!({ "message": message }))).into_response()
     }
