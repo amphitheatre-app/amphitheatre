@@ -16,7 +16,7 @@ use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
 
-use amp_common::schema::Manifest;
+use amp_common::schema::Source;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive};
@@ -59,7 +59,7 @@ pub async fn list(ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiErro
 pub struct CreatePlaybookRequest {
     pub title: String,
     pub description: String,
-    pub protagonist: Manifest,
+    pub preface: Source,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]

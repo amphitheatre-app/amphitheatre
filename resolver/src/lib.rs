@@ -53,7 +53,7 @@ fn patch<T: Driver>(client: &Client<T>, source: &Source) -> Result<Source> {
     let mut actual = source.clone();
 
     // Return it if revision was provided.
-    if !actual.rev.is_empty() {
+    if actual.rev.is_some() {
         return Ok(actual);
     }
 
@@ -83,7 +83,7 @@ fn patch<T: Driver>(client: &Client<T>, source: &Source) -> Result<Source> {
 
     // Get its real latest revision according to the reference
     let commit = client.git().find_commit(&repo, &reference).unwrap();
-    actual.rev = commit.unwrap().sha;
+    actual.rev = Some(commit.unwrap().sha);
 
     Ok(actual)
 }
@@ -97,7 +97,7 @@ pub fn load(source: &Source) -> Result<ActorSpec> {
     let path = source.path.clone().unwrap_or(".amp.toml".to_string());
     let content = client
         .conetnts()
-        .find(&repo, &path, source.rev.as_str())
+        .find(&repo, &path, source.rev())
         .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
     debug!("{:#?}", content);
 

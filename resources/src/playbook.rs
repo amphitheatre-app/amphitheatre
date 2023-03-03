@@ -87,16 +87,19 @@ pub async fn create(client: &Client, playbook: &Playbook) -> Result<Playbook> {
 
 pub async fn add(client: &Client, playbook: &Playbook, actor: ActorSpec) -> Result<()> {
     let api: Api<Playbook> = Api::all(client.clone());
-
     let actor_name = actor.name.clone();
-    let mut actors = playbook.spec.actors.clone();
+
+    let mut actors: Vec<ActorSpec> = vec![];
+    if let Some(items) = &playbook.spec.actors {
+        actors = items.clone();
+    }
     actors.push(actor);
 
     let patch = json!({"spec": { "actors": actors }});
     let playbook = api
         .patch(
             playbook.name_any().as_str(),
-            &PatchParams::apply("amp-composer"),
+            &PatchParams::apply("amp-controllers"),
             &Patch::Merge(&patch),
         )
         .await

@@ -77,7 +77,7 @@ pub async fn update(client: Client, actor: &Actor) -> Result<Job> {
         job = api
             .patch(
                 &name,
-                &PatchParams::apply("amp-builder").force(),
+                &PatchParams::apply("amp-controllers").force(),
                 &Patch::Apply(&resource),
             )
             .await
@@ -144,8 +144,13 @@ fn new(actor: &Actor) -> Result<Job> {
     Ok(resource)
 }
 
+#[inline]
 fn context(spec: &ActorSpec) -> String {
-    format!("{}#{}", spec.source.repo.replace("https", "git"), spec.source.rev)
+    format!(
+        "{}#{}",
+        spec.source.repo.replace("https", "git"),
+        spec.source.rev()
+    )
 }
 
 fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {

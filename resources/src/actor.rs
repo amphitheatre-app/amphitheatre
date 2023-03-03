@@ -69,7 +69,7 @@ pub async fn update(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Re
         actor = api
             .patch(
                 &name,
-                &PatchParams::apply("amp-composer").force(),
+                &PatchParams::apply("amp-controllers").force(),
                 &Patch::Apply(&resource),
             )
             .await

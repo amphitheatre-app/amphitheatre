@@ -76,7 +76,7 @@ pub async fn update(client: Client, actor: &Actor) -> Result<Deployment> {
         deployment = api
             .patch(
                 &name,
-                &PatchParams::apply("amp-composer").force(),
+                &PatchParams::apply("amp-controllers").force(),
                 &Patch::Apply(&resource),
             )
             .await

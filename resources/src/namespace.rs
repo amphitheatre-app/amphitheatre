@@ -45,7 +45,7 @@ pub async fn create(client: Client, playbook: &Playbook) -> Result<Namespace> {
     let namespace = api
         .patch(
             &name,
-            &PatchParams::apply("amp-composer").force(),
+            &PatchParams::apply("amp-controllers").force(),
             &Patch::Apply(&resource),
         )
         .await

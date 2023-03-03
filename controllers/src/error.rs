@@ -27,9 +27,6 @@ pub enum Error {
     // so boxing this error to break cycles
     FinalizerError(#[source] Box<kube::runtime::finalizer::Error<Error>>),
 
-    #[error("Empty Actors Error")]
-    EmptyActorsError,
-
     #[error("ResolveError: {0}")]
     ResolveError(#[source] amp_resolver::ResolveError),
 }

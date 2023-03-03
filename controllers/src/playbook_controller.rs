@@ -53,9 +53,6 @@ pub async fn new(ctx: &Arc<Context>) {
 /// The reconciler that will be called when either object change
 pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Action> {
     tracing::info!("Reconciling Playbook \"{}\"", playbook.name_any());
-    if playbook.spec.actors.is_empty() {
-        return Err(Error::EmptyActorsError);
-    }
 
     let api: Api<Playbook> = Api::all(ctx.k8s.clone());
     let recorder = ctx.recorder(reference(&playbook));
@@ -172,27 +169,29 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
 }
 
 async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    let exists: HashSet<String> = playbook
-        .spec
-        .actors
-        .iter()
-        .map(|actor| actor.name.to_string())
-        .collect();
-
     let mut fetches: HashSet<Source> = HashSet::new();
-    for actor in &playbook.spec.actors {
-        if let Some(partners) = &actor.partners {
-            for (name, partner) in partners {
-                if exists.contains(name) {
-                    continue;
+
+    if let Some(actors) = &playbook.spec.actors {
+        let exists: HashSet<&String> = actors.iter().map(|actor| &actor.name).collect();
+
+        for actor in actors {
+            if let Some(partners) = &actor.partners {
+                for (name, partner) in partners {
+                    if exists.contains(name) {
+                        continue;
+                    }
+                    fetches.insert(partner.clone());
                 }
-                fetches.insert(partner.clone());
             }
         }
+
+        tracing::debug!("The currently existing actors are: {exists:#?}");
+    } else {
+        tracing::debug!("Build from the starting characters (preface)");
+        fetches.insert(playbook.spec.preface.clone());
     }
 
-    tracing::debug!("Existing repos are:\n{exists:#?}\nand fetches are: {fetches:#?}");
-
+    tracing::debug!("The repositories to be fetched are: {fetches:#?}");
     for source in fetches.iter() {
         tracing::info!("fetching partner with source: {}", source.uri());
         let actor = resolver::load(source).map_err(Error::ResolveError)?;
@@ -206,7 +205,7 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
     }
 
     if fetches.is_empty() {
-        trace(recorder, "Solved successfully, Running")
+        trace(recorder, "Resolved successfully, Running")
             .await
             .map_err(Error::ResourceError)?;
         playbook::patch_status(&ctx.k8s, playbook, PlaybookState::running(true, "AutoRun", None))
@@ -218,34 +217,36 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
 }
 
 async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    for spec in &playbook.spec.actors {
-        match actor::exists(ctx.k8s.clone(), playbook, spec)
-            .await
-            .map_err(Error::ResourceError)?
-        {
-            true => {
-                // Actor already exists, update it if there are new changes
-                trace(
-                    recorder,
-                    format!(
-                        "Actor {} already exists, update it if there are new changes",
-                        spec.name
-                    ),
-                )
+    if let Some(actors) = &playbook.spec.actors {
+        for spec in actors {
+            match actor::exists(ctx.k8s.clone(), playbook, spec)
                 .await
-                .map_err(Error::ResourceError)?;
-                actor::update(ctx.k8s.clone(), playbook, spec)
+                .map_err(Error::ResourceError)?
+            {
+                true => {
+                    // Actor already exists, update it if there are new changes
+                    trace(
+                        recorder,
+                        format!(
+                            "Actor {} already exists, update it if there are new changes",
+                            spec.name
+                        ),
+                    )
                     .await
                     .map_err(Error::ResourceError)?;
-            }
-            false => {
-                // Create a new actor
-                trace(recorder, format!("Create new Actor: {}", spec.name))
-                    .await
-                    .map_err(Error::ResourceError)?;
-                actor::create(ctx.k8s.clone(), playbook, spec)
-                    .await
-                    .map_err(Error::ResourceError)?;
+                    actor::update(ctx.k8s.clone(), playbook, spec)
+                        .await
+                        .map_err(Error::ResourceError)?;
+                }
+                false => {
+                    // Create a new actor
+                    trace(recorder, format!("Create new Actor: {}", spec.name))
+                        .await
+                        .map_err(Error::ResourceError)?;
+                    actor::create(ctx.k8s.clone(), playbook, spec)
+                        .await
+                        .map_err(Error::ResourceError)?;
+                }
             }
         }
     }
