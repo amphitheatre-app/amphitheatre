@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
-use amp_common::config::{Configuration, Credential};
 use amp_common::schema::{Playbook, PlaybookState, Source};
 use amp_common::utils::credential::build_docker_config;
 use amp_resolver as resolver;
@@ -103,24 +102,10 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
         .await
         .map_err(Error::ResourceError)?;
 
-    // Docker registry Credential
-    let credential = Credential::basic(
-        ctx.config.registry_username.clone(),
-        ctx.config.registry_password.clone(),
-    );
-
-    let configuration = Configuration {
-        registry: HashMap::from([(ctx.config.registry_url.clone(), credential)]),
-        repositories: HashMap::default(),
-    };
-    trace(recorder, format!("The Configuration is {:#?}", &configuration))
-        .await
-        .map_err(Error::ResourceError)?;
-
     let mut secrets = vec![];
 
     // Create Docker registry secrets.
-    let docker_config = build_docker_config(&configuration.registry);
+    let docker_config = build_docker_config(&ctx.configuration.registry);
     let registry_secret = secret::create_registry_secret(&ctx.k8s, namespace, docker_config)
         .await
         .map_err(Error::ResourceError)?;
@@ -137,7 +122,7 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
     .map_err(Error::ResourceError)?;
 
     // Create repository secrets.
-    for (endpoint, credential) in configuration.repositories.iter() {
+    for (endpoint, credential) in ctx.configuration.repositories.iter() {
         let secret = secret::create_repository_secret(&ctx.k8s, namespace, endpoint, credential)
             .await
             .map_err(Error::ResourceError)?;
@@ -194,7 +179,7 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
     tracing::debug!("The repositories to be fetched are: {fetches:#?}");
     for source in fetches.iter() {
         tracing::info!("fetching partner with source: {}", source.uri());
-        let actor = resolver::load(source).map_err(Error::ResolveError)?;
+        let actor = resolver::load(&ctx.configuration, source).map_err(Error::ResolveError)?;
 
         trace(recorder, "Fetch and add the actor to this playbook")
             .await

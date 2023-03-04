@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
+
+use amp_common::config::{Configuration, Credential};
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::events::Recorder;
 use kube::Client;
@@ -29,17 +32,34 @@ use crate::config::Config;
 pub struct Context {
     pub config: Config,
     pub k8s: Client,
+    pub configuration: Configuration,
 }
 
 impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
+        let k8s = Client::try_default().await?;
+        let configuration = init_credentials(&config);
         Ok(Context {
             config,
-            k8s: Client::try_default().await?,
+            k8s,
+            configuration,
         })
     }
 
     pub fn recorder(&self, reference: ObjectReference) -> Recorder {
         Recorder::new(self.k8s.clone(), "amp-controllers".into(), reference)
+    }
+}
+
+fn init_credentials(config: &Config) -> Configuration {
+    let endpoint = config.registry_url.clone();
+    let name = config.registry_username.clone();
+    let password = config.registry_password.clone();
+
+    let credential = Credential::basic(name, password);
+
+    Configuration {
+        registry: HashMap::from([(endpoint, credential)]),
+        repositories: HashMap::default(),
     }
 }

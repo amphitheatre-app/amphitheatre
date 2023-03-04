@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use amp_common::client::ClientError;
+use amp_common::config::Configuration;
 use amp_common::schema::{ActorSpec, Manifest, Source};
 use amp_common::scm::client::Client;
 use amp_common::scm::content::ContentService;
@@ -28,7 +29,7 @@ pub enum ResolveError {
     #[error("ClientError: {0}")]
     ClientError(#[source] ClientError),
 
-    #[error("InvalidRepository: {0}")]
+    #[error("InvalidRepoAddress: {0}")]
     InvalidRepoAddress(#[source] url::ParseError),
 
     #[error("FetchingError: {0}")]
@@ -36,6 +37,12 @@ pub enum ResolveError {
 
     #[error("TomlParseFailed: {0}")]
     TomlParseFailed(String),
+
+    #[error("InvalidRegistryAddress: {0}")]
+    InvalidRegistryAddress(#[source] url::ParseError),
+
+    #[error("EmptyRegistryAddress")]
+    EmptyRegistryAddress,
 }
 
 pub type Result<T, E = ResolveError> = std::result::Result<T, E>;
@@ -89,12 +96,13 @@ fn patch<T: Driver>(client: &Client<T>, source: &Source) -> Result<Source> {
 }
 
 /// Read real actor information from remote VCS (like github).
-pub fn load(source: &Source) -> Result<ActorSpec> {
+pub fn load(configuration: &Configuration, source: &Source) -> Result<ActorSpec> {
     let client = Client::new(github::default());
 
     let source = patch(&client, source)?;
     let repo = repo(&source.repo)?;
-    let path = source.path.clone().unwrap_or(".amp.toml".to_string());
+    let path = source.path.clone().unwrap_or(".amp.toml".into());
+
     let content = client
         .conetnts()
         .find(&repo, &path, source.rev())
@@ -106,6 +114,20 @@ pub fn load(source: &Source) -> Result<ActorSpec> {
 
     let mut spec = ActorSpec::from(&manifest);
     spec.source = source;
+
+    // Generate image name based on the current registry and character name.
+    if manifest.character.image.is_none() {
+        if let Some((endpoint, credential)) = configuration.registry.iter().next() {
+            let mut registry = endpoint.as_str();
+            if endpoint.eq("https://index.docker.io/v1/") {
+                registry = "index.docker.io";
+            }
+
+            spec.image = format!("{}/{}/{}", registry, credential.username_any(), spec.name);
+        } else {
+            return Err(ResolveError::EmptyRegistryAddress);
+        }
+    }
 
     Ok(spec)
 }
