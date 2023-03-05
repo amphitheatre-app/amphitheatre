@@ -26,6 +26,7 @@ use crate::context::Context;
 
 mod actor_controller;
 mod playbook_controller;
+mod syncer_controller;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -45,6 +46,7 @@ async fn main() -> anyhow::Result<()> {
     tokio::select! {
         _ = playbook_controller::new(&ctx) => tracing::warn!("playbook controller exited"),
         _ = actor_controller::new(&ctx) => tracing::warn!("actor controller exited"),
+        _ = syncer_controller::new(&ctx) => tracing::warn!("syncer controller exited"),
     }
 
     Ok(())
