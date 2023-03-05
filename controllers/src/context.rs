@@ -18,6 +18,7 @@ use amp_common::config::{Configuration, Credential};
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::events::Recorder;
 use kube::Client;
+use tokio::sync::RwLock;
 
 use crate::config::Config;
 
@@ -30,19 +31,18 @@ use crate::config::Config;
 /// on and off, and disable any unused extension objects) but it's really up to a
 /// judgement call.
 pub struct Context {
-    pub config: Config,
     pub k8s: Client,
-    pub configuration: Configuration,
+    pub configuration: RwLock<Configuration>,
+    pub config: Config,
 }
 
 impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
-        let k8s = Client::try_default().await?;
         let configuration = init_credentials(&config);
         Ok(Context {
+            k8s: Client::try_default().await?,
+            configuration: RwLock::new(configuration),
             config,
-            k8s,
-            configuration,
         })
     }
 

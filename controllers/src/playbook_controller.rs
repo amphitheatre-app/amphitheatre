@@ -105,7 +105,8 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
     let mut secrets = vec![];
 
     // Create Docker registry secrets.
-    let docker_config = build_docker_config(&ctx.configuration.registry);
+    let configuration = ctx.configuration.read().await;
+    let docker_config = build_docker_config(&configuration.registry);
     let registry_secret = secret::create_registry_secret(&ctx.k8s, namespace, docker_config)
         .await
         .map_err(Error::ResourceError)?;
@@ -122,7 +123,7 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
     .map_err(Error::ResourceError)?;
 
     // Create repository secrets.
-    for (endpoint, credential) in ctx.configuration.repositories.iter() {
+    for (endpoint, credential) in configuration.repositories.iter() {
         let secret = secret::create_repository_secret(&ctx.k8s, namespace, endpoint, credential)
             .await
             .map_err(Error::ResourceError)?;
@@ -177,9 +178,11 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
     }
 
     tracing::debug!("The repositories to be fetched are: {fetches:#?}");
+    let configuration = ctx.configuration.read().await;
+
     for source in fetches.iter() {
         tracing::info!("fetching partner with source: {}", source.uri());
-        let actor = resolver::load(&ctx.configuration, source).map_err(Error::ResolveError)?;
+        let actor = resolver::load(&configuration, source).map_err(Error::ResolveError)?;
 
         trace(recorder, "Fetch and add the actor to this playbook")
             .await
