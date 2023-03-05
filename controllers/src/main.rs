@@ -25,6 +25,7 @@ use crate::config::Config;
 use crate::context::Context;
 
 mod actor_controller;
+mod configuration_watcher;
 mod playbook_controller;
 mod syncer_controller;
 
@@ -47,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
         _ = playbook_controller::new(&ctx) => tracing::warn!("playbook controller exited"),
         _ = actor_controller::new(&ctx) => tracing::warn!("actor controller exited"),
         _ = syncer_controller::new(&ctx) => tracing::warn!("syncer controller exited"),
+        _ = configuration_watcher::new(&ctx) => tracing::warn!("configuration watcher exited"),
     }
 
     Ok(())
