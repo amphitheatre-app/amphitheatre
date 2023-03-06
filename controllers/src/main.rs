@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
         _ = playbook_controller::new(&ctx) => tracing::warn!("playbook controller exited"),
         _ = actor_controller::new(&ctx) => tracing::warn!("actor controller exited"),
         _ = syncer_controller::new(&ctx) => tracing::warn!("syncer controller exited"),
-        _ = configuration_watcher::new(&ctx) => tracing::warn!("configuration watcher exited"),
+        err = configuration_watcher::new(&ctx) => tracing::warn!("configuration watcher exited: {:?}", err),
     }
 
     Ok(())

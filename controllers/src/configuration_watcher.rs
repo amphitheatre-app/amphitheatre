@@ -28,8 +28,7 @@ pub async fn new(ctx: &Arc<Context>) -> Result<()> {
     let api = Api::<ConfigMap>::namespaced(ctx.k8s.clone(), "amp-system");
     let params = ListParams::default()
         .fields("metadata.name=amp-configurations")
-        .timeout(10)
-        .limit(1);
+        .timeout(10);
 
     let mut obs = watcher(api, params).applied_objects().boxed();
     while let Some(cm) = &obs.try_next().await.map_err(ResolveConfigMapStreamFailed)? {
