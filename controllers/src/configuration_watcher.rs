@@ -19,27 +19,37 @@ use k8s_openapi::api::core::v1::ConfigMap;
 use kube::api::ListParams;
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::Api;
+use tracing::{debug, error};
 
 use crate::context::Context;
-use crate::error::Error::ResolveConfigMapStreamFailed;
 use crate::error::Result;
 
-pub async fn new(ctx: &Arc<Context>) -> Result<()> {
+pub async fn new(ctx: &Arc<Context>) {
     let api = Api::<ConfigMap>::namespaced(ctx.k8s.clone(), "amp-system");
-    let params = ListParams::default()
-        .fields("metadata.name=amp-configurations")
-        .timeout(10);
 
+    let params = ListParams::default().fields("metadata.name=amp-configurations");
     let mut obs = watcher(api, params).applied_objects().boxed();
-    while let Some(cm) = &obs.try_next().await.map_err(ResolveConfigMapStreamFailed)? {
-        handle_config_map(ctx, cm)?;
-    }
 
-    Ok(())
+    loop {
+        let config_map = obs.try_next().await;
+
+        match config_map {
+            Ok(Some(cm)) => {
+                if let Err(err) = handle_config_map(ctx, &cm) {
+                    error!("Handle config map failed: {}", err.to_string());
+                }
+            }
+            Ok(None) => continue,
+            Err(err) => {
+                error!("Resolve config config stream failed: {}", err.to_string());
+                continue;
+            }
+        }
+    }
 }
 
 // This function lets the app handle an added/modified configmap from k8s.
 fn handle_config_map(_ctx: &Arc<Context>, cm: &ConfigMap) -> Result<()> {
-    tracing::info!("ConfigMap {:#?}", cm.data);
+    debug!("Handle an added/modified configmap from k8s: {:#?}", cm.data);
     Ok(())
 }
