@@ -15,6 +15,7 @@
 use std::sync::Arc;
 
 use amp_common::config::Configuration;
+use amp_resources::credential;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::ConfigMap;
 use kube::api::ListParams;
@@ -61,8 +62,11 @@ async fn handle_config_map(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result
 
             let mut configuration = ctx.configuration.write().await;
             *configuration = value;
-
             info!("The latest configuration has been successfully applied!");
+
+            // Refresh the credentials under the amp platform's own namespace.
+            let configuration = ctx.configuration.read().await;
+            credential::sync(&ctx.k8s, &ctx.config.namespace, &configuration).await?;
         }
     }
 

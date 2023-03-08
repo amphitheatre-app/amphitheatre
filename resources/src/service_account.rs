@@ -20,14 +20,14 @@ use serde_json::json;
 use super::error::{Error, Result};
 
 pub async fn patch(
-    client: Client,
+    client: &Client,
     namespace: &str,
     service_account_name: &str,
     new_secrets: &Vec<Secret>,
     append_to_secret: bool,
     append_to_image_pull_secret: bool,
 ) -> Result<ServiceAccount> {
-    let api: Api<ServiceAccount> = Api::namespaced(client, namespace);
+    let api: Api<ServiceAccount> = Api::namespaced(client.clone(), namespace);
     let mut service_account = api.get(service_account_name).await.map_err(Error::KubeError)?;
 
     tracing::debug!(

@@ -17,10 +17,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use amp_common::schema::{Playbook, PlaybookState, Source};
-use amp_common::utils::credential::build_docker_config;
 use amp_resolver as resolver;
 use amp_resources::event::trace;
-use amp_resources::{actor, namespace, playbook, secret, service_account};
+use amp_resources::{actor, namespace, playbook};
 use futures::{future, StreamExt};
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::api::ListParams;
@@ -29,7 +28,6 @@ use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::runtime::Controller;
 use kube::{Api, Resource, ResourceExt};
-use tracing::info;
 
 use crate::context::Context;
 use crate::error::{Error, Result};
@@ -87,63 +85,15 @@ async fn apply(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> 
     }
 
     Ok(Action::await_change())
-    // If no events were received, check back every 2 minutes
-    // Ok(Action::requeue(Duration::from_secs(2 * 60)))
 }
 
-/// Init create namespace, credentials and service accounts
+/// Init create namespace and go to resolving.
 async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    let namespace = &playbook.spec.namespace;
-
     // Create namespace for this playbook
     namespace::create(ctx.k8s.clone(), playbook)
         .await
         .map_err(Error::ResourceError)?;
     trace(recorder, "Created namespace for this playbook")
-        .await
-        .map_err(Error::ResourceError)?;
-
-    let mut secrets = vec![];
-
-    // Create Docker registry secrets.
-    let configuration = ctx.configuration.read().await;
-    info!("The current configuration reads: {:#?}", configuration);
-
-    let docker_config = build_docker_config(&configuration.registry);
-    let registry_secret = secret::create_registry_secret(&ctx.k8s, namespace, docker_config)
-        .await
-        .map_err(Error::ResourceError)?;
-    secrets.push(registry_secret.clone());
-
-    trace(
-        recorder,
-        format!(
-            "Created Secret for Docker Registry Credential: {:#?}",
-            registry_secret.name_any()
-        ),
-    )
-    .await
-    .map_err(Error::ResourceError)?;
-
-    // Create repository secrets.
-    for (endpoint, credential) in configuration.repositories.iter() {
-        let secret = secret::create_repository_secret(&ctx.k8s, namespace, endpoint, credential)
-            .await
-            .map_err(Error::ResourceError)?;
-        secrets.push(secret.clone());
-        trace(
-            recorder,
-            format!("Created Secret for repository: {:#?}", endpoint),
-        )
-        .await
-        .map_err(Error::ResourceError)?;
-    }
-
-    // Patch this credentials to default service account
-    trace(recorder, "Patch the credentials to default service account")
-        .await
-        .map_err(Error::ResourceError)?;
-    service_account::patch(ctx.k8s.clone(), namespace, "default", &secrets, true, true)
         .await
         .map_err(Error::ResourceError)?;
 

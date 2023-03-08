@@ -15,13 +15,15 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use amp_resources::credential;
 use futures::{future, StreamExt};
 use k8s_openapi::api::core::v1::Namespace;
 use kube::api::ListParams;
 use kube::runtime::controller::Action;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::runtime::Controller;
-use kube::Api;
+use kube::{Api, ResourceExt};
+use tracing::error;
 
 use crate::context::Context;
 use crate::error::{Error, Result};
@@ -57,7 +59,16 @@ pub fn error_policy(_ns: Arc<Namespace>, error: &Error, _ctx: Arc<Context>) -> A
     Action::requeue(Duration::from_secs(60))
 }
 
-async fn apply(_ns: &Namespace, _ctx: &Arc<Context>) -> Result<Action> {
+async fn apply(ns: &Namespace, ctx: &Arc<Context>) -> Result<Action> {
+    // Inject dependent credentials for this namespace
+    let configuration = ctx.configuration.read().await;
+    credential::sync(&ctx.k8s, &ns.name_any(), &configuration)
+        .await
+        .map_err(|err| {
+            error!("Sync the credentials failed: {}", err.to_string());
+            Error::ResourceError(err)
+        })?;
+
     Ok(Action::await_change())
 }
 

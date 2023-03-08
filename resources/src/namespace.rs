@@ -32,10 +32,10 @@ pub async fn create(client: Client, playbook: &Playbook) -> Result<Namespace> {
         metadata: ObjectMeta {
             name: Some(name.clone()),
             owner_references: Some(vec![owner_reference]),
-            labels: Some(BTreeMap::from([(
-                "app.kubernetes.io/managed-by".into(),
-                "Amphitheatre".into(),
-            )])),
+            labels: Some(BTreeMap::from([
+                ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),
+                ("syncer.amphitheatre.app/sync".into(), "true".into()),
+            ])),
             ..ObjectMeta::default()
         },
         ..Namespace::default()
