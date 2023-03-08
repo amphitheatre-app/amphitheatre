@@ -14,15 +14,15 @@
 
 use std::sync::Arc;
 
+use amp_common::config::Configuration;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::ConfigMap;
 use kube::api::ListParams;
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::Api;
-use tracing::{debug, error};
+use tracing::{error, info};
 
 use crate::context::Context;
-use crate::error::Result;
 
 pub async fn new(ctx: &Arc<Context>) {
     let api = Api::<ConfigMap>::namespaced(ctx.k8s.clone(), "amp-system");
@@ -35,7 +35,7 @@ pub async fn new(ctx: &Arc<Context>) {
 
         match config_map {
             Ok(Some(cm)) => {
-                if let Err(err) = handle_config_map(ctx, &cm) {
+                if let Err(err) = handle_config_map(ctx, &cm).await {
                     error!("Handle config map failed: {}", err.to_string());
                 }
             }
@@ -49,7 +49,19 @@ pub async fn new(ctx: &Arc<Context>) {
 }
 
 // This function lets the app handle an added/modified configmap from k8s.
-fn handle_config_map(_ctx: &Arc<Context>, cm: &ConfigMap) -> Result<()> {
-    debug!("Handle an added/modified configmap from k8s: {:#?}", cm.data);
+async fn handle_config_map(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
+    info!("Handle an added/modified configmap from k8s: {:#?}", cm.data);
+
+    if let Some(data) = &cm.data {
+        if let Some(content) = data.get("confgiuration.toml") {
+            let value: Configuration = toml::from_str(content)?;
+
+            let mut configuration = ctx.configuration.write().await;
+            *configuration = value;
+
+            info!("The latest configuration has been successfully applied!");
+        }
+    }
+
     Ok(())
 }

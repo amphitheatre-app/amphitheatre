@@ -29,9 +29,6 @@ pub enum Error {
 
     #[error("ResolveError: {0}")]
     ResolveError(#[source] amp_resolver::ResolveError),
-
-    #[error("ResolveConfigMapStreamFailed: {0}")]
-    ResolveConfigMapStreamFailed(#[source] kube::runtime::watcher::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

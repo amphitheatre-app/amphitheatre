@@ -24,5 +24,6 @@ serde_yaml = { workspace = true, optional = false }
 tracing = { workspace = true, optional = false }
 tracing-subscriber = { workspace = true, optional = false }
 tokio = { workspace = true, optional = false }
+toml = "0.5"
 url = { workspace = true, optional = false }
 thiserror = { workspace = true, optional = false }

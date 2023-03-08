@@ -29,6 +29,7 @@ use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::runtime::Controller;
 use kube::{Api, Resource, ResourceExt};
+use tracing::info;
 
 use crate::context::Context;
 use crate::error::{Error, Result};
@@ -106,6 +107,8 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
 
     // Create Docker registry secrets.
     let configuration = ctx.configuration.read().await;
+    info!("The current configuration reads: {:#?}", configuration);
+
     let docker_config = build_docker_config(&configuration.registry);
     let registry_secret = secret::create_registry_secret(&ctx.k8s, namespace, docker_config)
         .await

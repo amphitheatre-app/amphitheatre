@@ -39,6 +39,7 @@ pub struct Context {
 impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
         let configuration = init_credentials(&config);
+        println!("Configuration is:\n{}", toml::to_string_pretty(&configuration)?);
         Ok(Context {
             k8s: Client::try_default().await?,
             configuration: RwLock::new(configuration),
