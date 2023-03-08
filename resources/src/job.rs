@@ -111,7 +111,7 @@ fn new(actor: &Actor) -> Result<Job> {
             volumes: Some(vec![Volume {
                 name: "kaniko-secret".to_string(),
                 secret: Some(SecretVolumeSource {
-                    secret_name: Some("amp-registry-secret".to_string()),
+                    secret_name: Some("amp-registry-credentials".to_string()),
                     items: Some(vec![KeyToPath {
                         key: ".dockerconfigjson".to_string(),
                         path: "config.json".to_string(),

@@ -33,7 +33,7 @@ pub async fn create_registry_secret(
 ) -> Result<Secret> {
     let resource = Secret {
         metadata: ObjectMeta {
-            name: Some("amp-registry-secret".to_string()),
+            name: Some("amp-registry-credentials".to_string()),
             ..Default::default()
         },
         type_: Some("kubernetes.io/dockerconfigjson".to_string()),
@@ -96,7 +96,7 @@ pub async fn create_repository_secret(
 fn secret_name(endpoint: &str) -> Result<String> {
     let location = Url::parse(endpoint).map_err(Error::UrlParseError)?;
     let name = format!(
-        "amp-repo-{}-{}-secret",
+        "amp-repo-credentials-{}-{}",
         location.scheme(),
         location.host_str().unwrap(),
     )
