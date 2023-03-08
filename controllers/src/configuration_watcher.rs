@@ -20,12 +20,15 @@ use k8s_openapi::api::core::v1::ConfigMap;
 use kube::api::ListParams;
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::Api;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 use crate::context::Context;
 
 pub async fn new(ctx: &Arc<Context>) {
-    let api = Api::<ConfigMap>::namespaced(ctx.k8s.clone(), "amp-system");
+    let namespace = ctx.config.namespace.clone();
+    debug!("namespace = {}", namespace);
+
+    let api = Api::<ConfigMap>::namespaced(ctx.k8s.clone(), &namespace);
 
     let params = ListParams::default().fields("metadata.name=amp-configurations");
     let mut obs = watcher(api, params).applied_objects().boxed();
