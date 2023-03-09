@@ -29,6 +29,9 @@ pub enum Error {
 
     #[error("ResolveError: {0}")]
     ResolveError(#[source] amp_resolver::ResolveError),
+
+    #[error("DockerRegistryExistsFailed: {0}")]
+    DockerRegistryExistsFailed(#[source] anyhow::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

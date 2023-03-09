@@ -15,6 +15,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use amp_common::docker::registry;
 use amp_common::schema::{Actor, ActorState};
 use amp_resources::event::trace;
 use amp_resources::{actor, deployment, image, job, service};
@@ -26,6 +27,7 @@ use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::runtime::Controller;
 use kube::{Api, Resource, ResourceExt};
+use tracing::info;
 
 use crate::context::Context;
 use crate::error::{Error, Result};
@@ -103,10 +105,11 @@ async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<
 
 async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
     // Return if the image already exists
-    if exists(&actor.spec.image) {
-        trace(recorder, "The images already exists, Running")
-            .await
-            .map_err(Error::ResourceError)?;
+    if registry::exists(&actor.spec.image)
+        .await
+        .map_err(Error::DockerRegistryExistsFailed)?
+    {
+        info!("The images already exists, Running");
         let condition = ActorState::running(true, "AutoRun", None);
         actor::patch_status(ctx.k8s.clone(), actor, condition)
             .await
@@ -297,9 +300,4 @@ pub async fn cleanup(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> 
         .await
         .map_err(Error::ResourceError)?;
     Ok(Action::await_change())
-}
-
-/// TODO: Check if the docker image exists
-fn exists(_image: &str) -> bool {
-    false
 }
