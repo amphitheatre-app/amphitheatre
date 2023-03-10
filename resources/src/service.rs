@@ -23,17 +23,17 @@ use kube::{Api, Client, Resource, ResourceExt};
 use super::error::{Error, Result};
 use super::{hash, LAST_APPLIED_HASH_KEY};
 
-pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
+pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
     let namespace = actor
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-    let api: Api<Service> = Api::namespaced(client, namespace.as_str());
+    let api: Api<Service> = Api::namespaced(client.clone(), namespace.as_str());
     let name = actor.name_any();
 
     Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
 }
 
-pub async fn create(client: Client, actor: &Actor) -> Result<Service> {
+pub async fn create(client: &Client, actor: &Actor) -> Result<Service> {
     let namespace = actor
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
@@ -51,7 +51,7 @@ pub async fn create(client: Client, actor: &Actor) -> Result<Service> {
     Ok(service)
 }
 
-pub async fn update(client: Client, actor: &Actor) -> Result<Service> {
+pub async fn update(client: &Client, actor: &Actor) -> Result<Service> {
     let namespace = actor
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;

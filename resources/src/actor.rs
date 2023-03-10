@@ -20,15 +20,15 @@ use serde_json::json;
 
 use super::error::{Error, Result};
 
-pub async fn exists(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Result<bool> {
+pub async fn exists(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> Result<bool> {
     let namespace = playbook.spec.namespace.clone();
     let name = spec.name.clone();
 
-    let api: Api<Actor> = Api::namespaced(client, namespace.as_str());
+    let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
     Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
 }
 
-pub async fn create(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Result<Actor> {
+pub async fn create(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> Result<Actor> {
     let namespace = playbook.spec.namespace.clone();
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
 
@@ -47,11 +47,11 @@ pub async fn create(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Re
     tracing::info!("Created actor: {}", actor.name_any());
 
     // Patch this actor as initial Pending status
-    patch_status(client.clone(), &actor, ActorState::pending()).await?;
+    patch_status(client, &actor, ActorState::pending()).await?;
     Ok(actor)
 }
 
-pub async fn update(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Result<Actor> {
+pub async fn update(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> Result<Actor> {
     let namespace = playbook.spec.namespace.clone();
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
 
@@ -81,12 +81,12 @@ pub async fn update(client: Client, playbook: &Playbook, spec: &ActorSpec) -> Re
     Ok(actor)
 }
 
-pub async fn patch_status(client: Client, actor: &Actor, condition: Condition) -> Result<()> {
+pub async fn patch_status(client: &Client, actor: &Actor, condition: Condition) -> Result<()> {
     let namespace = actor
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
 
-    let api: Api<Actor> = Api::namespaced(client, &namespace);
+    let api: Api<Actor> = Api::namespaced(client.clone(), &namespace);
 
     let status = json!({ "status": { "conditions": vec![condition] }});
     let actor = api

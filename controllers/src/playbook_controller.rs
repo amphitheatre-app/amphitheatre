@@ -90,7 +90,7 @@ async fn apply(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> 
 /// Init create namespace and go to resolving.
 async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
     // Create namespace for this playbook
-    namespace::create(ctx.k8s.clone(), playbook)
+    namespace::create(&ctx.k8s, playbook)
         .await
         .map_err(Error::ResourceError)?;
     trace(recorder, "Created namespace for this playbook")
@@ -160,7 +160,7 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
 async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
     if let Some(actors) = &playbook.spec.actors {
         for spec in actors {
-            match actor::exists(ctx.k8s.clone(), playbook, spec)
+            match actor::exists(&ctx.k8s, playbook, spec)
                 .await
                 .map_err(Error::ResourceError)?
             {
@@ -175,7 +175,7 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
                     )
                     .await
                     .map_err(Error::ResourceError)?;
-                    actor::update(ctx.k8s.clone(), playbook, spec)
+                    actor::update(&ctx.k8s, playbook, spec)
                         .await
                         .map_err(Error::ResourceError)?;
                 }
@@ -184,7 +184,7 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
                     trace(recorder, format!("Create new Actor: {}", spec.name))
                         .await
                         .map_err(Error::ResourceError)?;
-                    actor::create(ctx.k8s.clone(), playbook, spec)
+                    actor::create(&ctx.k8s, playbook, spec)
                         .await
                         .map_err(Error::ResourceError)?;
                 }

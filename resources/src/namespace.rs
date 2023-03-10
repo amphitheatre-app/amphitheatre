@@ -23,8 +23,8 @@ use serde_json::to_string;
 
 use super::error::{Error, Result};
 
-pub async fn create(client: Client, playbook: &Playbook) -> Result<Namespace> {
-    let api: Api<Namespace> = Api::all(client);
+pub async fn create(client: &Client, playbook: &Playbook) -> Result<Namespace> {
+    let api: Api<Namespace> = Api::all(client.clone());
 
     let name = playbook.spec.namespace.clone();
     let owner_reference = playbook.controller_owner_ref(&()).unwrap();

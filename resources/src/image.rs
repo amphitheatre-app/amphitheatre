@@ -21,21 +21,21 @@ use serde_json::{from_value, json};
 
 use super::error::{Error, Result};
 
-pub async fn exists(client: Client, actor: &Actor) -> Result<bool> {
+pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
     let namespace = actor
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-    let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
+    let api: Api<DynamicObject> = Api::namespaced_with(client.clone(), namespace.as_str(), &api_resource());
     let name = actor.spec.build_name();
 
     Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
 }
 
-pub async fn create(client: Client, actor: &Actor) -> Result<DynamicObject> {
+pub async fn create(client: &Client, actor: &Actor) -> Result<DynamicObject> {
     let namespace = actor
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-    let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
+    let api: Api<DynamicObject> = Api::namespaced_with(client.clone(), namespace.as_str(), &api_resource());
 
     let resource = new(actor)?;
     tracing::debug!("The image resource:\n {:#?}\n", resource);
@@ -50,11 +50,11 @@ pub async fn create(client: Client, actor: &Actor) -> Result<DynamicObject> {
     Ok(image)
 }
 
-pub async fn update(client: Client, actor: &Actor) -> Result<DynamicObject> {
+pub async fn update(client: &Client, actor: &Actor) -> Result<DynamicObject> {
     let namespace = actor
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-    let api: Api<DynamicObject> = Api::namespaced_with(client, namespace.as_str(), &api_resource());
+    let api: Api<DynamicObject> = Api::namespaced_with(client.clone(), namespace.as_str(), &api_resource());
 
     let name = actor.spec.build_name();
     let mut image = api.get(&name).await.map_err(Error::KubeError)?;

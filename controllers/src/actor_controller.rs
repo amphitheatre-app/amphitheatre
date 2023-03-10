@@ -97,7 +97,7 @@ async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<
     )
     .await
     .map_err(Error::ResourceError)?;
-    actor::patch_status(ctx.k8s.clone(), actor, ActorState::building())
+    actor::patch_status(&ctx.k8s, actor, ActorState::building())
         .await
         .map_err(Error::ResourceError)?;
     Ok(())
@@ -111,7 +111,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
     {
         info!("The images already exists, Running");
         let condition = ActorState::running(true, "AutoRun", None);
-        actor::patch_status(ctx.k8s.clone(), actor, condition)
+        actor::patch_status(&ctx.k8s, actor, condition)
             .await
             .map_err(Error::ResourceError)?;
 
@@ -134,7 +134,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
         .await
         .map_err(Error::ResourceError)?;
     let condition = ActorState::running(true, "AutoRun", None);
-    actor::patch_status(ctx.k8s.clone(), actor, condition)
+    actor::patch_status(&ctx.k8s, actor, condition)
         .await
         .map_err(Error::ResourceError)?;
 
@@ -142,10 +142,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
 }
 
 async fn build_with_kaniko(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    match job::exists(ctx.k8s.clone(), actor)
-        .await
-        .map_err(Error::ResourceError)?
-    {
+    match job::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
         true => {
             // Build job already exists, update it if there are new changes
             trace(
@@ -157,9 +154,7 @@ async fn build_with_kaniko(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorde
             )
             .await
             .map_err(Error::ResourceError)?;
-            job::update(ctx.k8s.clone(), actor)
-                .await
-                .map_err(Error::ResourceError)?;
+            job::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
         false => {
             // Create a new build job
@@ -169,9 +164,7 @@ async fn build_with_kaniko(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorde
             )
             .await
             .map_err(Error::ResourceError)?;
-            job::create(ctx.k8s.clone(), actor)
-                .await
-                .map_err(Error::ResourceError)?;
+            job::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
     }
 
@@ -179,7 +172,7 @@ async fn build_with_kaniko(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorde
 }
 
 async fn build_with_kpack(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    match image::exists(ctx.k8s.clone(), actor)
+    match image::exists(&ctx.k8s, actor)
         .await
         .map_err(Error::ResourceError)?
     {
@@ -194,7 +187,7 @@ async fn build_with_kpack(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder
             )
             .await
             .map_err(Error::ResourceError)?;
-            image::update(ctx.k8s.clone(), actor)
+            image::update(&ctx.k8s, actor)
                 .await
                 .map_err(Error::ResourceError)?;
         }
@@ -203,7 +196,7 @@ async fn build_with_kpack(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder
             trace(recorder, format!("Create new image: {}", actor.spec.build_name()))
                 .await
                 .map_err(Error::ResourceError)?;
-            image::create(ctx.k8s.clone(), actor)
+            image::create(&ctx.k8s, actor)
                 .await
                 .map_err(Error::ResourceError)?;
         }
@@ -220,7 +213,7 @@ async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<(
     .await
     .map_err(Error::ResourceError)?;
 
-    match deployment::exists(ctx.k8s.clone(), actor)
+    match deployment::exists(&ctx.k8s, actor)
         .await
         .map_err(Error::ResourceError)?
     {
@@ -235,7 +228,7 @@ async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<(
             )
             .await
             .map_err(Error::ResourceError)?;
-            deployment::update(ctx.k8s.clone(), actor)
+            deployment::update(&ctx.k8s, actor)
                 .await
                 .map_err(Error::ResourceError)?;
         }
@@ -244,14 +237,14 @@ async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<(
             trace(recorder, format!("Create new Deployment: {}", actor.name_any()))
                 .await
                 .map_err(Error::ResourceError)?;
-            deployment::create(ctx.k8s.clone(), actor)
+            deployment::create(&ctx.k8s, actor)
                 .await
                 .map_err(Error::ResourceError)?;
         }
     }
 
     if actor.spec.service_ports().is_some() {
-        match service::exists(ctx.k8s.clone(), actor)
+        match service::exists(&ctx.k8s, actor)
             .await
             .map_err(Error::ResourceError)?
         {
@@ -266,7 +259,7 @@ async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<(
                 )
                 .await
                 .map_err(Error::ResourceError)?;
-                service::update(ctx.k8s.clone(), actor)
+                service::update(&ctx.k8s, actor)
                     .await
                     .map_err(Error::ResourceError)?;
             }
@@ -275,7 +268,7 @@ async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<(
                 trace(recorder, format!("Create new Service: {}", actor.name_any()))
                     .await
                     .map_err(Error::ResourceError)?;
-                service::create(ctx.k8s.clone(), actor)
+                service::create(&ctx.k8s, actor)
                     .await
                     .map_err(Error::ResourceError)?;
             }
