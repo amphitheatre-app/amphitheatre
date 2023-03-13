@@ -52,6 +52,7 @@ pub async fn reconcile(ns: Arc<Namespace>, ctx: Arc<Context>) -> Result<Action> 
     .await
     .map_err(|e| Error::FinalizerError(Box::new(e)))
 }
+
 /// an error handler that will be called when the reconciler fails with access to both the
 /// object that caused the failure and the actual error
 pub fn error_policy(_ns: Arc<Namespace>, error: &Error, _ctx: Arc<Context>) -> Action {
