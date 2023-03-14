@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use amp_common::config::Configuration;
-use amp_common::utils::credential::build_docker_config;
+use amp_common::docker::DockerConfig;
 use k8s_openapi::api::core::v1::Secret;
 use kube::{Client, ResourceExt};
 use tracing::info;
@@ -44,8 +44,8 @@ async fn sync_registry_credentials(
 ) -> Result<Vec<Secret>> {
     let mut secrets = vec![];
 
-    let docker_config = build_docker_config(&configuration.registry);
-    let secret = secret::create_registry_secret(client, namespace, docker_config).await?;
+    let config = DockerConfig::from(&configuration.registry);
+    let secret = secret::create_registry_secret(client, namespace, config).await?;
 
     info!("Created Secret for Docker Registry: {:#?}", secret.name_any());
     secrets.push(secret);

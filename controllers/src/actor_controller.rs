@@ -15,9 +15,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use amp_common::docker::{self, registry};
+use amp_common::docker::{self, registry, DockerConfig};
 use amp_common::schema::{Actor, ActorState};
-use amp_common::utils::credential::build_docker_config;
 use amp_resources::event::trace;
 use amp_resources::{actor, deployment, image, job, service};
 use futures::{future, StreamExt};
@@ -107,9 +106,9 @@ async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<
 async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
     // Return if the image already exists
     let configuration = ctx.configuration.read().await;
-    let docker_config = build_docker_config(&configuration.registry);
+    let config = DockerConfig::from(&configuration.registry);
 
-    let credential = docker::get_credential(&docker_config, &actor.spec.image);
+    let credential = docker::get_credential(&config, &actor.spec.image);
     let credential = match credential {
         Ok(credential) => Some(credential),
         Err(err) => {
