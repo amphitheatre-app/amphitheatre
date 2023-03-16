@@ -39,7 +39,7 @@ pub async fn new(ctx: &Arc<Context>) {
 
         match config_map {
             Ok(Some(cm)) => {
-                if let Err(err) = handle_config_map(ctx, &cm).await {
+                if let Err(err) = handle(ctx, &cm).await {
                     error!("Handle config map failed: {}", err.to_string());
                 }
             }
@@ -53,7 +53,7 @@ pub async fn new(ctx: &Arc<Context>) {
 }
 
 // This function lets the app handle an added/modified configmap from k8s.
-async fn handle_config_map(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
+async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
     info!("Handle an added/modified configmap from k8s: {:#?}", cm.data);
 
     if let Some(data) = &cm.data {
