@@ -48,16 +48,13 @@ pub async fn run(ctx: Arc<Context>) {
         )
         .with_state(ctx);
 
-    use tokio::signal::unix as usig;
-    let mut shutdown = usig::signal(usig::SignalKind::terminate()).unwrap();
-
     // run it with hyper on localhost:3000
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     let service = app.into_make_service_with_connect_info::<SocketAddr>();
     let server = Server::bind(&addr)
         .serve(service)
         .with_graceful_shutdown(async move {
-            shutdown.recv().await;
+            tokio::signal::ctrl_c().await.ok();
         });
 
     // Run this server for ... forever!
