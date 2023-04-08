@@ -12,11 +12,11 @@
 # the official Rust toolchain. (see https://github.com/clux/muslrust)
 FROM clux/muslrust:nightly-2022-12-01 AS chef
 
+USER root
 WORKDIR /app
 
 # We only pay the installation cost once,
 # it will be cached from the second build onwards
-RUN rustup target add x86_64-unknown-linux-musl
 RUN cargo install cargo-chef
 
 ################################################################################
@@ -32,6 +32,7 @@ COPY --from=planner /app/recipe.json recipe.json
 
 # Build dependencies - this is the caching Docker layer!
 # Notice that we are specifying the --target flag!
+# RUN rustup target add x86_64-unknown-linux-musl
 RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path recipe.json
 COPY . .
 
