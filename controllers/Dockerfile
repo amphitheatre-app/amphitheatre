@@ -16,6 +16,7 @@ WORKDIR /app
 
 # We only pay the installation cost once,
 # it will be cached from the second build onwards
+RUN rustup target add x86_64-unknown-linux-musl
 RUN cargo install cargo-chef
 
 ################################################################################

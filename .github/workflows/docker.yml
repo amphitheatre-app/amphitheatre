@@ -42,7 +42,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v4
       with:
-        images: ghcr.io/${{ github.actor }}/${{ matrix.bin }}
+        images: ghcr.io/${{ github.repository_owner }}/${{ matrix.bin }}
 
     - name: Build and push image
       uses: docker/build-push-action@v4
