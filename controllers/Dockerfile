@@ -8,28 +8,35 @@
 # Pick a base image to serve as the foundation for the other build stages in
 # this file.
 #
-# For illustrative purposes, the following FROM command
-# is using the alpine image (see https://hub.docker.com/_/alpine).
-# By specifying the "latest" tag, it will also use whatever happens to be the
-# most recent version of that image when you build your Dockerfile.
-# If reproducability is important, consider using a versioned tag
-# (e.g., alpine:3.17.2) or SHA (e.g., alpine:sha256:c41ab5c992deb4fe7e5da09f67a8804a46bd0592bfdf0b1847dde0e0889d2bff).
-FROM alpine:latest as base
+# Using the `rust-musl-builder` as base image, instead of
+# the official Rust toolchain. (see https://github.com/clux/muslrust)
+FROM clux/muslrust:nightly-2022-12-01 AS chef
+
+WORKDIR /app
+
+# We only pay the installation cost once,
+# it will be cached from the second build onwards
+RUN cargo install cargo-chef
+
+################################################################################
+# Create a stage for cargo chef prepare recipe.
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare  --recipe-path recipe.json
 
 ################################################################################
 # Create a stage for building/compiling the application.
-#
-# The following commands will leverage the "base" stage above to generate
-# a "hello world" script and make it executable, but for a real application, you
-# would issue a RUN command for your application's build process to generate the
-# executable. For language-specific examples, take a look at the Dockerfiles in
-# the Awesome Compose repository: https://github.com/docker/awesome-compose
-FROM base as build
-COPY <<EOF /bin/hello.sh
-#!/bin/sh
-echo Hello world from $(whoami)! In order to get your application running in a container, take a look at the comments in the Dockerfile to get started.
-EOF
-RUN chmod +x /bin/hello.sh
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+
+# Build dependencies - this is the caching Docker layer!
+# Notice that we are specifying the --target flag!
+RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path recipe.json
+COPY . .
+
+# Build application
+RUN cargo build --release --target x86_64-unknown-linux-musl --bin amp-controllers
+RUN strip -s /app/target/x86_64-unknown-linux-musl/release/amp-controllers
 
 ################################################################################
 # Create a final stage for running your application.
@@ -40,23 +47,13 @@ RUN chmod +x /bin/hello.sh
 # the smallest image possible. This often means using a different and smaller
 # image than the one used for building the application, but for illustrative
 # purposes the "base" image is used here.
-FROM base AS final
+FROM gcr.io/distroless/static:nonroot AS runtime
 
-# What the container should run when it is started.
-ENTRYPOINT [ "/bin/hello.sh" ]
+# Copy the executable from the "building" stage.
+COPY --from=builder \
+     --chown=nonroot:nonroot \
+     /app/target/x86_64-unknown-linux-musl/release/amp-controllers \
+     /usr/local/bin/
 
-# Create a non-priveldged user that the app will run under.
-# See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#user
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    appuser
-USER appuser
-
-# Copy the executable from the "build" stage.
-COPY --from=build --chown=appuser:appuser /bin/hello.sh /bin/
+# What the container should run when it is started
+ENTRYPOINT ["/usr/local/bin/amp-controllers"]
