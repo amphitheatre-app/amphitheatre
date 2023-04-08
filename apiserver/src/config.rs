@@ -28,7 +28,7 @@
 /// See `.env.sample` in the repository root for details.
 #[derive(clap::Parser)]
 pub struct Config {
-    /// The connection URL for the Postgres database this application should use.
+    /// The connection URL for the database this application should use.
     #[clap(long, env = "AMP_DATABASE_URL")]
     pub database_url: String,
 }
