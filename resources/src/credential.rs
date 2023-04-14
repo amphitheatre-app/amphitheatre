@@ -21,7 +21,12 @@ use tracing::info;
 use super::error::Result;
 use crate::{secret, service_account};
 
-pub async fn sync(client: &Client, namespace: &str, configuration: &Configuration) -> Result<()> {
+pub async fn sync(
+    client: &Client,
+    namespace: &str,
+    service_account_name: &str,
+    configuration: &Configuration,
+) -> Result<()> {
     info!("The current configuration reads: {:#?}", configuration);
 
     let mut secrets = vec![];
@@ -31,7 +36,7 @@ pub async fn sync(client: &Client, namespace: &str, configuration: &Configuratio
 
     // Patch this credentials to default service account
     info!("Patch the credentials to default service account");
-    service_account::patch(client, namespace, "default", &secrets, true, true).await?;
+    service_account::patch(client, namespace, service_account_name, &secrets, true, true).await?;
 
     Ok(())
 }

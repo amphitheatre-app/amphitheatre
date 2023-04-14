@@ -32,4 +32,9 @@ pub struct Config {
     /// currently running in, the default is `amp-system`
     #[clap(long, env = "AMP_NAMESPACE", default_value = "amp-system")]
     pub namespace: String,
+
+    /// The name of the ServiceAccount that Amphitheatre is
+    /// currently using, the default is `default`.
+    #[clap(long, env = "AMP_SERVICE_ACCOUNT_NAME", default_value = "default")]
+    pub service_account_name: String,
 }

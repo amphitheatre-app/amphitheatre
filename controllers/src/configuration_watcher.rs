@@ -66,7 +66,13 @@ async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
 
             // Refresh the credentials under the amp platform's own namespace.
             let configuration = ctx.configuration.read().await;
-            credential::sync(&ctx.k8s, &ctx.config.namespace, &configuration).await?;
+            credential::sync(
+                &ctx.k8s,
+                &ctx.config.namespace,
+                &ctx.config.service_account_name,
+                &configuration,
+            )
+            .await?;
         }
     }
 
