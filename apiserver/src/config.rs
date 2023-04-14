@@ -43,4 +43,8 @@ pub struct Config {
     /// The Database password.
     #[clap(long, env = "AMP_DATABASE_PASSWORD")]
     pub database_password: String,
+
+    /// The Server port.
+    #[clap(long, env = "AMP_PORT")]
+    pub port: u16,
 }

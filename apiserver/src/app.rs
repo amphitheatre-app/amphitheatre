@@ -26,6 +26,7 @@ use crate::context::Context;
 use crate::{routes, swagger};
 
 pub async fn run(ctx: Arc<Context>) {
+    let port = ctx.config.port;
     let governor_conf = Box::new(
         GovernorConfigBuilder::default()
             .per_second(1024)
@@ -48,8 +49,8 @@ pub async fn run(ctx: Arc<Context>) {
         )
         .with_state(ctx);
 
-    // run it with hyper on localhost:3000
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    // run it
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     let service = app.into_make_service_with_connect_info::<SocketAddr>();
     let server = Server::bind(&addr)
         .serve(service)
