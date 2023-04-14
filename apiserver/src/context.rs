@@ -33,7 +33,15 @@ pub struct Context {
 
 impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
-        let dsn = config.database_url.clone();
+        let dsn = format!(
+            "mysql://{}:{}@{}:{}/{}",
+            config.database_username,
+            config.database_password,
+            config.database_host,
+            config.database_port,
+            config.database_name
+        );
+
         Ok(Context {
             config,
             db: database::new(dsn).await?,
