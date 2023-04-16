@@ -53,7 +53,7 @@ COPY --from=builder \
      /app/target/release/amp-apiserver \
      /usr/local/bin/
 
-EXPOSE 3000
+EXPOSE 8170
 
 # What the container should run when it is started
 CMD ["/usr/local/bin/amp-apiserver"]
