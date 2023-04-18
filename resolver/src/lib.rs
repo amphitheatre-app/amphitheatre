@@ -109,8 +109,8 @@ pub fn load(configuration: &Configuration, source: &Source) -> Result<ActorSpec>
         .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
     debug!("{:#?}", content);
 
-    let manifest: Manifest = toml::from_slice(content.data.as_slice())
-        .map_err(|e| ResolveError::TomlParseFailed(e.to_string()))?;
+    let manifest: Manifest =
+        toml::from_slice(content.data.as_slice()).map_err(|e| ResolveError::TomlParseFailed(e.to_string()))?;
 
     let mut spec = ActorSpec::from(&manifest);
     spec.source = source;

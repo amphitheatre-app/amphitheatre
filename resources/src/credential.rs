@@ -68,11 +68,7 @@ async fn sync_repository_credentials(
 
     for (endpoint, credential) in configuration.repositories.iter() {
         let secret = secret::create_repository_secret(client, namespace, endpoint, credential).await?;
-        info!(
-            "Created Secret {} for repository: {} ",
-            secret.name_any(),
-            endpoint
-        );
+        info!("Created Secret {} for repository: {} ", secret.name_any(), endpoint);
         secrets.push(secret.clone());
     }
 

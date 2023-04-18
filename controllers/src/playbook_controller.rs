@@ -169,10 +169,7 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
                     // Actor already exists, update it if there are new changes
                     trace(
                         recorder,
-                        format!(
-                            "Actor {} already exists, update it if there are new changes",
-                            spec.name
-                        ),
+                        format!("Actor {} already exists, update it if there are new changes", spec.name),
                     )
                     .await
                     .map_err(Error::ResourceError)?;

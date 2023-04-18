@@ -91,12 +91,9 @@ async fn apply(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
 }
 
 async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    trace(
-        recorder,
-        format!("Building the image for Actor {}", actor.name_any()),
-    )
-    .await
-    .map_err(Error::ResourceError)?;
+    trace(recorder, format!("Building the image for Actor {}", actor.name_any()))
+        .await
+        .map_err(Error::ResourceError)?;
     actor::patch_status(&ctx.k8s, actor, ActorState::building())
         .await
         .map_err(Error::ResourceError)?;
@@ -139,10 +136,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
     }
 
     // Check If the build Job has not completed, requeue the reconciler.
-    if !job::completed(&ctx.k8s, actor)
-        .await
-        .map_err(Error::ResourceError)?
-    {
+    if !job::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
         return Ok(());
     }
 
@@ -176,12 +170,9 @@ async fn build_with_kaniko(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorde
         }
         false => {
             // Create a new build job
-            trace(
-                recorder,
-                format!("Create new build Job: {}", actor.spec.build_name()),
-            )
-            .await
-            .map_err(Error::ResourceError)?;
+            trace(recorder, format!("Create new build Job: {}", actor.spec.build_name()))
+                .await
+                .map_err(Error::ResourceError)?;
             job::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
     }
@@ -190,10 +181,7 @@ async fn build_with_kaniko(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorde
 }
 
 async fn build_with_kpack(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    match image::exists(&ctx.k8s, actor)
-        .await
-        .map_err(Error::ResourceError)?
-    {
+    match image::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
         true => {
             // Image already exists, update it if there are new changes
             trace(
@@ -205,18 +193,14 @@ async fn build_with_kpack(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder
             )
             .await
             .map_err(Error::ResourceError)?;
-            image::update(&ctx.k8s, actor)
-                .await
-                .map_err(Error::ResourceError)?;
+            image::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
         false => {
             // Create a new image
             trace(recorder, format!("Create new image: {}", actor.spec.build_name()))
                 .await
                 .map_err(Error::ResourceError)?;
-            image::create(&ctx.k8s, actor)
-                .await
-                .map_err(Error::ResourceError)?;
+            image::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
     }
 
@@ -262,10 +246,7 @@ async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<(
     }
 
     if actor.spec.service_ports().is_some() {
-        match service::exists(&ctx.k8s, actor)
-            .await
-            .map_err(Error::ResourceError)?
-        {
+        match service::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
             true => {
                 // Service already exists, update it if there are new changes
                 trace(
@@ -277,18 +258,14 @@ async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<(
                 )
                 .await
                 .map_err(Error::ResourceError)?;
-                service::update(&ctx.k8s, actor)
-                    .await
-                    .map_err(Error::ResourceError)?;
+                service::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
             }
             false => {
                 // Create a new Service
                 trace(recorder, format!("Create new Service: {}", actor.name_any()))
                     .await
                     .map_err(Error::ResourceError)?;
-                service::create(&ctx.k8s, actor)
-                    .await
-                    .map_err(Error::ResourceError)?;
+                service::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
             }
         }
     }

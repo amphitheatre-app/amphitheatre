@@ -146,11 +146,7 @@ fn new(actor: &Actor) -> Result<Job> {
 
 #[inline]
 fn context(spec: &ActorSpec) -> String {
-    format!(
-        "{}#{}",
-        spec.source.repo.replace("https", "git"),
-        spec.source.rev()
-    )
+    format!("{}#{}", spec.source.repo.replace("https", "git"), spec.source.rev())
 }
 
 fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
@@ -165,11 +161,7 @@ fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
         name: "build".to_string(),
         image: Some(DEFAULT_KANIKO_IMAGE.to_string()),
         image_pull_policy: Some("Always".into()),
-        args: Some(
-            args.iter()
-                .map(|(key, value)| format!("--{}={}", key, value))
-                .collect(),
-        ),
+        args: Some(args.iter().map(|(key, value)| format!("--{}={}", key, value)).collect()),
         volume_mounts: Some(vec![VolumeMount {
             name: "kaniko-secret".to_string(),
             mount_path: "/kaniko/.docker".to_string(),

@@ -42,12 +42,7 @@ fn write(path: &Path, data: String) {
         fs::remove_file(path).unwrap();
     }
 
-    let mut file = OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .open(path)
-        .unwrap();
-
+    let mut file = OpenOptions::new().create_new(true).write(true).open(path).unwrap();
     if let Err(e) = write!(file, "{}", data) {
         eprintln!("Couldn't write to file: {}", e);
     }

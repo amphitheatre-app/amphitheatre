@@ -40,9 +40,7 @@ pub async fn run(ctx: Arc<Context>) {
         .merge(swagger::build())
         .layer(
             ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(
-                    |e: BoxError| async move { display_error(e) },
-                ))
+                .layer(HandleErrorLayer::new(|e: BoxError| async move { display_error(e) }))
                 .layer(GovernorLayer {
                     config: Box::leak(governor_conf),
                 }),
@@ -52,11 +50,9 @@ pub async fn run(ctx: Arc<Context>) {
     // run it
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     let service = app.into_make_service_with_connect_info::<SocketAddr>();
-    let server = Server::bind(&addr)
-        .serve(service)
-        .with_graceful_shutdown(async move {
-            tokio::signal::ctrl_c().await.ok();
-        });
+    let server = Server::bind(&addr).serve(service).with_graceful_shutdown(async move {
+        tokio::signal::ctrl_c().await.ok();
+    });
 
     // Run this server for ... forever!
     if let Err(err) = server.await {

@@ -26,11 +26,7 @@ use url::Url;
 
 use super::error::{Error, Result};
 
-pub async fn create_registry_secret(
-    client: &Client,
-    namespace: &str,
-    config: DockerConfig,
-) -> Result<Secret> {
+pub async fn create_registry_secret(client: &Client, namespace: &str, config: DockerConfig) -> Result<Secret> {
     let resource = Secret {
         metadata: ObjectMeta {
             name: Some("amp-registry-credentials".to_string()),
@@ -39,11 +35,7 @@ pub async fn create_registry_secret(
         type_: Some("kubernetes.io/dockerconfigjson".to_string()),
         data: Some(BTreeMap::from([(
             ".dockerconfigjson".to_string(),
-            ByteString(
-                serde_json::to_vec(&config)
-                    .map_err(Error::SerializationError)
-                    .unwrap(),
-            ),
+            ByteString(serde_json::to_vec(&config).map_err(Error::SerializationError).unwrap()),
         )])),
         ..Default::default()
     };
