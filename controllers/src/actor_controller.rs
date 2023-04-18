@@ -138,7 +138,13 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
         build_with_kpack(actor, ctx, recorder).await?;
     }
 
-    // TODO: Check if the build Job has completed.
+    // Check If the build Job has not completed, requeue the reconciler.
+    if !job::completed(&ctx.k8s, actor)
+        .await
+        .map_err(Error::ResourceError)?
+    {
+        return Ok(());
+    }
 
     // Once the image is built, it is deployed to the cluster with the
     // appropriate resource type (e.g. Deployment or StatefulSet).

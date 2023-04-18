@@ -181,3 +181,15 @@ fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
 
     Ok(container)
 }
+
+pub async fn completed(client: &Client, actor: &Actor) -> Result<bool> {
+    let namespace = actor
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let api: Api<Job> = Api::namespaced(client.clone(), namespace.as_str());
+    let name = actor.spec.build_name();
+
+    let job = api.get(&name).await.map_err(Error::KubeError)?;
+
+    Ok(job.status.map_or(false, |s| s.succeeded >= Some(1)))
+}
