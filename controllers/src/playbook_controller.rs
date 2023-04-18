@@ -195,13 +195,13 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
     Ok(())
 }
 
-pub async fn cleanup(_playboo: &Playbook, _ctx: &Arc<Context>, _recorder: &Recorder) -> Result<Action> {
+pub async fn cleanup(_playbook: &Playbook, _ctx: &Arc<Context>, _recorder: &Recorder) -> Result<Action> {
     Ok(Action::await_change())
 }
 
 #[inline]
-fn reference(playbbok: &Playbook) -> ObjectReference {
-    let mut reference = playbbok.object_ref(&());
-    reference.namespace = Some(playbbok.spec.namespace.to_string());
+fn reference(playbook: &Playbook) -> ObjectReference {
+    let mut reference = playbook.object_ref(&());
+    reference.namespace = Some(playbook.spec.namespace.to_string());
     reference
 }
