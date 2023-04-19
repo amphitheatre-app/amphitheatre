@@ -17,11 +17,14 @@ use kube::runtime::events::{Event, EventType, Recorder};
 use super::error::{Error, Result};
 
 pub async fn trace(recorder: &Recorder, message: impl Into<String>) -> Result<()> {
+    let message: String = message.into();
+
+    tracing::info!("{}", message);
     recorder
         .publish(Event {
             type_: EventType::Normal,
             reason: "Tracing".into(),
-            note: Some(message.into()),
+            note: Some(message),
             action: "Reconciling".into(),
             secondary: None,
         })
