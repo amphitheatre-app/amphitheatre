@@ -77,11 +77,11 @@ pub fn error_policy(_playbook: Arc<Playbook>, error: &Error, _ctx: Arc<Context>)
 async fn apply(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
     if let Some(ref status) = playbook.status {
         if status.pending() {
-            init(playbook, ctx, recorder).await?
+            init(playbook, ctx, recorder).await.map_err(Error::ResourceError)?
         } else if status.resolving() {
             resolve(playbook, ctx, recorder).await?
         } else if status.running() {
-            run(playbook, ctx, recorder).await?
+            run(playbook, ctx, recorder).await.map_err(Error::ResourceError)?
         }
     }
 
@@ -89,21 +89,13 @@ async fn apply(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> 
 }
 
 /// Init create namespace and go to resolving.
-async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<(), amp_resources::error::Error> {
     // Create namespace for this playbook
-    namespace::create(&ctx.k8s, playbook)
-        .await
-        .map_err(Error::ResourceError)?;
-    trace(recorder, "Created namespace for this playbook")
-        .await
-        .map_err(Error::ResourceError)?;
+    namespace::create(&ctx.k8s, playbook).await?;
+    trace(recorder, "Created namespace for this playbook").await?;
 
-    trace(recorder, "Init successfully, Let's begin resolving, now!")
-        .await
-        .map_err(Error::ResourceError)?;
-    playbook::patch_status(&ctx.k8s, playbook, PlaybookState::resolving())
-        .await
-        .map_err(Error::ResourceError)?;
+    trace(recorder, "Init successfully, Let's begin resolving, now!").await?;
+    playbook::patch_status(&ctx.k8s, playbook, PlaybookState::resolving()).await?;
 
     Ok(())
 }
@@ -138,18 +130,18 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
         tracing::info!("fetching partner with source: {}", source.uri());
         let actor = resolver::load(&configuration, source).map_err(Error::ResolveError)?;
 
-        trace(recorder, "Fetch and add the actor to this playbook")
-            .await
-            .map_err(Error::ResourceError)?;
+        let message = "Fetch and add the actor to this playbook";
+        trace(recorder, message).await.map_err(Error::ResourceError)?;
+
         playbook::add(&ctx.k8s, playbook, actor)
             .await
             .map_err(Error::ResourceError)?;
     }
 
     if fetches.is_empty() {
-        trace(recorder, "Resolved successfully, Running")
-            .await
-            .map_err(Error::ResourceError)?;
+        let message = "Resolved successfully, Running";
+        trace(recorder, message).await.map_err(Error::ResourceError)?;
+
         playbook::patch_status(&ctx.k8s, playbook, PlaybookState::running(true, "AutoRun", None))
             .await
             .map_err(Error::ResourceError)?;
@@ -158,33 +150,21 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
     Ok(())
 }
 
-async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<(), amp_resources::error::Error> {
     if let Some(actors) = &playbook.spec.actors {
         for spec in actors {
-            match actor::exists(&ctx.k8s, playbook, spec)
-                .await
-                .map_err(Error::ResourceError)?
-            {
+            match actor::exists(&ctx.k8s, playbook, spec).await? {
                 true => {
                     // Actor already exists, update it if there are new changes
-                    trace(
-                        recorder,
-                        format!("Actor {} already exists, update it if there are new changes", spec.name),
-                    )
-                    .await
-                    .map_err(Error::ResourceError)?;
-                    actor::update(&ctx.k8s, playbook, spec)
-                        .await
-                        .map_err(Error::ResourceError)?;
+                    let message = format!("Try to refresh an existing Actor {}", spec.name);
+                    trace(recorder, message).await?;
+
+                    actor::update(&ctx.k8s, playbook, spec).await?;
                 }
                 false => {
                     // Create a new actor
-                    trace(recorder, format!("Create new Actor: {}", spec.name))
-                        .await
-                        .map_err(Error::ResourceError)?;
-                    actor::create(&ctx.k8s, playbook, spec)
-                        .await
-                        .map_err(Error::ResourceError)?;
+                    trace(recorder, format!("Create new Actor: {}", spec.name)).await?;
+                    actor::create(&ctx.k8s, playbook, spec).await?;
                 }
             }
         }
