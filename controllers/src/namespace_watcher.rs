@@ -34,6 +34,13 @@ pub async fn new(ctx: &Arc<Context>) {
 
         match namespace {
             Ok(Some(ns)) => {
+                // Ignore the namespace being terminated
+                if let Some(status) = &ns.status {
+                    if status.phase == Some("Terminating".into()) {
+                        continue;
+                    }
+                }
+
                 if let Err(err) = handle(ctx, &ns).await {
                     error!("Handle namespace failed: {}", err.to_string());
                 }
