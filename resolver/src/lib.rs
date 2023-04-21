@@ -107,7 +107,7 @@ pub fn load(configuration: &Configuration, source: &Source) -> Result<ActorSpec>
         .conetnts()
         .find(&repo, &path, source.rev())
         .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
-    debug!("{:#?}", content);
+    debug!("The `.amp.toml` content of {} is:\n{:#?}", repo, content);
 
     let manifest: Manifest =
         toml::from_slice(content.data.as_slice()).map_err(|e| ResolveError::TomlParseFailed(e.to_string()))?;
