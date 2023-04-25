@@ -34,8 +34,8 @@ pub async fn sync(
     secrets.extend(sync_registry_credentials(client, namespace, configuration).await?);
     secrets.extend(sync_repository_credentials(client, namespace, configuration).await?);
 
-    // Patch this credentials to default service account
-    info!("Patch the credentials to default service account");
+    // Patch this credentials to service account
+    info!("Patch the credentials to service account");
     service_account::patch(client, namespace, service_account_name, &secrets, true, true).await?;
 
     Ok(())

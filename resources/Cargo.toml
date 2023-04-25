@@ -18,5 +18,6 @@ serde_yaml = { workspace = true, optional = false }
 sha2 = "0.10.6"
 thiserror = { workspace = true, optional = false }
 tracing = { workspace = true, optional = false }
+tracing-subscriber = { workspace = true, optional = false }
 tokio = { workspace = true, optional = false }
 url = { workspace = true, optional = false }

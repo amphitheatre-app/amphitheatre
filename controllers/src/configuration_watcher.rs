@@ -20,7 +20,7 @@ use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::ConfigMap;
 use kube::api::ListParams;
 use kube::runtime::{watcher, WatchStreamExt};
-use kube::Api;
+use kube::{Api, ResourceExt};
 use tracing::{debug, error, info};
 
 use crate::context::Context;
@@ -54,18 +54,19 @@ pub async fn new(ctx: &Arc<Context>) {
 
 // This function lets the app handle an added/modified configmap from k8s.
 async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
-    info!("Handle an added/modified configmap from k8s: {:#?}", cm.data);
+    info!("Handle an added/modified configmap from k8s: {}", cm.name_any());
 
     if let Some(data) = &cm.data {
+        debug!("Recived configmap data is: {:#?}", data);
         if let Some(content) = data.get("confgiuration.toml") {
+            debug!("The content of confgiuration.toml: {:#?}", content);
             let value: Configuration = toml::from_str(content)?;
 
             let mut configuration = ctx.configuration.write().await;
             *configuration = value;
-            info!("The latest configuration has been successfully applied!");
 
             // Refresh the credentials under the amp platform's own namespace.
-            let configuration = ctx.configuration.read().await;
+            debug!("Refresh the credentials under the amp platform's own namespace.");
             credential::sync(
                 &ctx.k8s,
                 &ctx.config.namespace,
@@ -73,6 +74,8 @@ async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
                 &configuration,
             )
             .await?;
+
+            info!("The latest configuration has been successfully applied!");
         }
     }
 
