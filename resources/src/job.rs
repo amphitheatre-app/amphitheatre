@@ -175,13 +175,19 @@ fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
 }
 
 pub async fn completed(client: &Client, actor: &Actor) -> Result<bool> {
+    tracing::debug!("Check If the build Job has not completed");
+
     let namespace = actor
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Job> = Api::namespaced(client.clone(), namespace.as_str());
     let name = actor.spec.build_name();
 
-    let job = api.get(&name).await.map_err(Error::KubeError)?;
-
-    Ok(job.status.map_or(false, |s| s.succeeded >= Some(1)))
+    if let Ok(Some(job)) = api.get_opt(&name).await {
+        tracing::debug!("Found Job {}", &name);
+        Ok(job.status.map_or(false, |s| s.succeeded >= Some(1)))
+    } else {
+        tracing::debug!("Not found Job {}", &name);
+        Ok(false)
+    }
 }

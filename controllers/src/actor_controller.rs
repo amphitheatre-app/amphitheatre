@@ -74,32 +74,32 @@ pub fn error_policy(_actor: Arc<Actor>, error: &Error, _ctx: Arc<Context>) -> Ac
 }
 
 async fn apply(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
+    let mut action = Action::await_change();
+
     if let Some(ref status) = actor.status {
         if status.pending() {
-            init(actor, ctx, recorder).await?
+            action = init(actor, ctx, recorder).await?
         } else if status.building() {
-            build(actor, ctx, recorder).await?
+            action = build(actor, ctx, recorder).await?
         } else if status.running() {
-            run(actor, ctx, recorder).await?
+            action = run(actor, ctx, recorder).await?
         }
     }
 
-    Ok(Action::await_change())
-    // If no events were received, check back every 2 minutes
-    // Ok(Action::requeue(Duration::from_secs(2 * 60)))
+    Ok(action)
 }
 
-async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
     trace(recorder, format!("Building the image for Actor {}", actor.name_any()))
         .await
         .map_err(Error::ResourceError)?;
     actor::patch_status(&ctx.k8s, actor, ActorState::building())
         .await
         .map_err(Error::ResourceError)?;
-    Ok(())
+    Ok(Action::await_change())
 }
 
-async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
     // Return if the image already exists
     let configuration = ctx.configuration.read().await;
     let config = DockerConfig::from(&configuration.registry);
@@ -123,20 +123,27 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
             .await
             .map_err(Error::ResourceError)?;
 
-        return Ok(());
+        return Ok(Action::await_change());
     }
 
     // Prefer to use Kaniko to build images with Dockerfile,
     // else, build the image with Cloud Native Buildpacks
     if actor.spec.has_dockerfile() {
+        tracing::debug!("Found dockerfile, build it with kaniko");
         build_with_kaniko(actor, ctx, recorder).await?;
-    } else {
-        build_with_kpack(actor, ctx, recorder).await?;
-    }
 
-    // Check If the build Job has not completed, requeue the reconciler.
-    if !job::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
-        return Ok(());
+        // Check If the build Job has not completed, requeue the reconciler.
+        if !job::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
+            return Ok(Action::requeue(Duration::from_secs(60)));
+        }
+    } else {
+        tracing::debug!("Build the image with Cloud Native Buildpacks");
+        build_with_kpack(actor, ctx, recorder).await?;
+
+        // Check If the build Image has not completed, requeue the reconciler.
+        if !image::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
+            return Ok(Action::requeue(Duration::from_secs(60)));
+        }
     }
 
     // Once the image is built, it is deployed to the cluster with the
@@ -149,7 +156,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
         .await
         .map_err(Error::ResourceError)?;
 
-    Ok(())
+    Ok(Action::await_change())
 }
 
 async fn build_with_kaniko(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
@@ -194,7 +201,7 @@ async fn build_with_kpack(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder
     Ok(())
 }
 
-async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
     trace(
         recorder,
         format!("Try to deploying the resources for Actor {}", actor.name_any()),
@@ -245,7 +252,7 @@ async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<(
         }
     }
 
-    Ok(())
+    Ok(Action::await_change())
 }
 
 pub async fn cleanup(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {

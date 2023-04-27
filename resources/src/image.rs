@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use amp_common::schema::Actor;
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::{DynamicObject, GroupVersionKind};
 use kube::discovery::ApiResource;
@@ -113,4 +114,30 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
     .map_err(Error::SerializationError)?;
 
     Ok(resource)
+}
+
+pub async fn completed(client: &Client, actor: &Actor) -> Result<bool> {
+    tracing::debug!("Check If the build image has not completed");
+
+    let namespace = actor
+        .namespace()
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let api: Api<DynamicObject> = Api::namespaced_with(client.clone(), namespace.as_str(), &api_resource());
+    let name = actor.spec.build_name();
+
+    if let Some(image) = api.get_opt(&name).await.map_err(Error::KubeError)? {
+        tracing::debug!("Found Image {}", &name);
+        tracing::debug!("The Image data is: {:#?}", image.data);
+
+        if let Some(condtions) = image.data.pointer("/status/conditions") {
+            let conditions: Vec<Condition> =
+                serde_json::from_value(json!(condtions)).map_err(Error::SerializationError)?;
+            return Ok(conditions
+                .iter()
+                .any(|condition| condition.type_ == "Ready" && condition.status == "True"));
+        }
+    }
+
+    tracing::debug!("Not found Image {}", &name);
+    Ok(false)
 }
