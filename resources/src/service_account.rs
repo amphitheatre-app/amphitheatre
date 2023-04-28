@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashSet;
+
 use k8s_openapi::api::core::v1::{LocalObjectReference, ObjectReference, Secret, ServiceAccount};
 use kube::api::{Patch, PatchParams};
 use kube::{Api, Client, ResourceExt};
@@ -22,29 +24,29 @@ use super::error::{Error, Result};
 pub async fn patch(
     client: &Client,
     namespace: &str,
-    service_account_name: &str,
+    name: &str,
     new_secrets: &Vec<Secret>,
     append_to_secret: bool,
     append_to_image_pull_secret: bool,
 ) -> Result<ServiceAccount> {
     let api: Api<ServiceAccount> = Api::namespaced(client.clone(), namespace);
-    let mut service_account = api.get(service_account_name).await.map_err(Error::KubeError)?;
+    let mut account = api.get(name).await.map_err(Error::KubeError)?;
 
-    tracing::debug!(
-        "The current {} ServiceAccount is: {:#?}",
-        service_account_name,
-        service_account
-    );
+    tracing::debug!("The current Service Account {} is: {:?}", name, account);
 
     // Fetch original secrets and image pull secrets.
-    let mut secrets = service_account.secrets.map_or(vec![], |v| v);
-    let mut image_pull_secrets = service_account.image_pull_secrets.map_or(vec![], |v| v);
+    let mut secrets = account.secrets.map_or(vec![], |v| v);
+    let secret_names: HashSet<String> = HashSet::from_iter(secrets.iter().map(|s| s.name.clone().unwrap()));
+
+    let mut image_pull_secrets = account.image_pull_secrets.map_or(vec![], |v| v);
+    let image_pull_secret_names: HashSet<String> =
+        HashSet::from_iter(image_pull_secrets.iter().map(|s| s.name.clone().unwrap()));
 
     for secret in new_secrets {
         let secret_name = secret.name_any();
 
         // Append to original secrets.
-        if append_to_secret {
+        if append_to_secret && !secret_names.contains(&secret_name) {
             secrets.push(ObjectReference {
                 name: Some(secret_name.clone()),
                 ..Default::default()
@@ -52,36 +54,22 @@ pub async fn patch(
         }
 
         // Append to original image pull secrets.
-        if append_to_image_pull_secret {
+        if append_to_image_pull_secret && !image_pull_secret_names.contains(&secret_name) {
             image_pull_secrets.push(LocalObjectReference {
                 name: Some(secret_name.clone()),
             });
         }
     }
 
-    tracing::debug!("The secrets is: {:#?}", secrets);
-    tracing::debug!("The image_pull_secrets is: {:#?}", image_pull_secrets);
-
     // Create patch for update.
-    let patch = json!({"secrets": secrets, "imagePullSecrets": image_pull_secrets });
-    tracing::debug!("The service account patch is: {:#?}", patch);
+    let json = json!({"secrets": secrets, "imagePullSecrets": image_pull_secrets });
+    tracing::debug!("The patch of Service Account {} is: {:?}", name, json);
 
     // Save to Kubernetes cluster
-    service_account = api
-        .patch(
-            service_account_name,
-            &PatchParams::apply("amp-controllers"),
-            &Patch::Merge(&patch),
-        )
-        .await
-        .map_err(Error::KubeError)?;
+    let param = PatchParams::apply("amp-controllers");
+    let patch = Patch::Strategic(&json);
+    account = api.patch(name, &param, &patch).await.map_err(Error::KubeError)?;
 
-    tracing::debug!(
-        "Added Secrets {:?} for ServiceAccount {}: {:#?}",
-        secrets,
-        service_account_name,
-        service_account
-    );
-
-    Ok(service_account)
+    tracing::debug!("The final Service Account {} is {:?}", name, account);
+    Ok(account)
 }

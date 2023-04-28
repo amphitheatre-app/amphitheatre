@@ -16,32 +16,32 @@ use amp_common::config::Configuration;
 use amp_common::docker::DockerConfig;
 use k8s_openapi::api::core::v1::Secret;
 use kube::{Client, ResourceExt};
-use tracing::info;
+use tracing::{debug, info};
 
 use super::error::Result;
 use crate::{secret, service_account};
 
-pub async fn sync(
-    client: &Client,
-    namespace: &str,
-    service_account_name: &str,
-    configuration: &Configuration,
-) -> Result<()> {
-    info!("The current configuration reads: {:#?}", configuration);
+pub async fn sync(client: &Client, namespace: &str, name: &str, configuration: &Configuration) -> Result<()> {
+    debug!("The current configuration reads: {:?}", configuration);
 
     let mut secrets = vec![];
 
+    // Patch the image pull secrets to service account
+    info!("Patch the image pull secrets to Service Account {}", name);
     secrets.extend(sync_registry_credentials(client, namespace, configuration).await?);
-    secrets.extend(sync_repository_credentials(client, namespace, configuration).await?);
+    service_account::patch(client, namespace, name, &secrets, false, true).await?;
 
-    // Patch this credentials to service account
-    info!("Patch the credentials to service account");
-    service_account::patch(client, namespace, service_account_name, &secrets, true, true).await?;
+    // Patch the secrets to service account
+    info!("Patch the secrets to Service Account {}", name);
+    secrets.extend(sync_repository_credentials(client, namespace, configuration).await?);
+    service_account::patch(client, namespace, name, &secrets, true, false).await?;
+
+    // @TODO: Clean up unused secrets
 
     Ok(())
 }
 
-/// Create Docker registry secrets.
+/// Sync Docker registry credentials.
 async fn sync_registry_credentials(
     client: &Client,
     namespace: &str,
@@ -52,13 +52,13 @@ async fn sync_registry_credentials(
     let config = DockerConfig::from(&configuration.registry);
     let secret = secret::create_registry_secret(client, namespace, config).await?;
 
-    info!("Created Secret for Docker Registry: {:#?}", secret.name_any());
+    info!("Created Secret {} for Docker Registries", secret.name_any());
     secrets.push(secret);
 
     Ok(secrets)
 }
 
-// Create repository secrets.
+// Sync repository credentials.
 async fn sync_repository_credentials(
     client: &Client,
     namespace: &str,
