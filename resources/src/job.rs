@@ -43,7 +43,7 @@ pub async fn create(client: &Client, actor: &Actor) -> Result<Job> {
     let api: Api<Job> = Api::namespaced(client.clone(), namespace.as_str());
 
     let resource = new(actor)?;
-    tracing::debug!("The Job resource:\n {:#?}\n", resource);
+    tracing::debug!("The Job resource:\n {:?}\n", resource);
 
     let job = api
         .create(&PostParams::default(), &resource)
@@ -62,7 +62,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Job> {
     let name = actor.spec.build_name();
 
     let mut job = api.get(&name).await.map_err(Error::KubeError)?;
-    tracing::debug!("The Job {} already exists: {:#?}", &name, job);
+    tracing::debug!("The Job {} already exists: {:?}", &name, job);
 
     let expected_hash = hash(&actor.spec)?;
     let found_hash: String = job
@@ -72,7 +72,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Job> {
 
     if found_hash != expected_hash {
         let resource = new(actor)?;
-        tracing::debug!("The updating Job resource:\n {:#?}\n", resource);
+        tracing::debug!("The updating Job resource:\n {:?}\n", resource);
 
         job = api
             .patch(

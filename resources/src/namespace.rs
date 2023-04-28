@@ -40,7 +40,7 @@ pub async fn create(client: &Client, playbook: &Playbook) -> Result<Namespace> {
         },
         ..Namespace::default()
     };
-    tracing::debug!("The namespace resource:\n {:#?}\n", to_string(&resource));
+    tracing::debug!("The namespace resource:\n {:?}\n", resource);
 
     let namespace = api
         .patch(

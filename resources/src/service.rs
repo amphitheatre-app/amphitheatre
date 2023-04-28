@@ -40,7 +40,7 @@ pub async fn create(client: &Client, actor: &Actor) -> Result<Service> {
     let api: Api<Service> = Api::namespaced(client.clone(), namespace.as_str());
 
     let resource = new(actor)?;
-    tracing::debug!("The service resource:\n {:#?}\n", resource);
+    tracing::debug!("The service resource:\n {:?}\n", resource);
 
     let service = api
         .create(&PostParams::default(), &resource)
@@ -59,7 +59,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Service> {
     let name = actor.name_any();
 
     let mut service = api.get(&name).await.map_err(Error::KubeError)?;
-    tracing::debug!("The Service {} already exists: {:#?}", &name, service);
+    tracing::debug!("The Service {} already exists: {:?}", &name, service);
 
     let expected_hash = hash(&actor.spec)?;
     let found_hash: String = service
@@ -69,7 +69,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Service> {
 
     if found_hash != expected_hash {
         let resource = new(actor)?;
-        tracing::debug!("The updating Service resource:\n {:#?}\n", resource);
+        tracing::debug!("The updating Service resource:\n {:?}\n", resource);
 
         service = api
             .patch(

@@ -57,9 +57,9 @@ async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
     info!("Handle an added/modified configmap from k8s: {}", cm.name_any());
 
     if let Some(data) = &cm.data {
-        debug!("Recived configmap data is: {:#?}", data);
+        debug!("Recived configmap data is: {:?}", data);
         if let Some(content) = data.get("confgiuration.toml") {
-            debug!("The content of confgiuration.toml: {:#?}", content);
+            debug!("The content of confgiuration.toml: {:?}", content);
             let value: Configuration = toml::from_str(content)?;
 
             let mut configuration = ctx.configuration.write().await;

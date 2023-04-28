@@ -39,14 +39,14 @@ pub async fn create(client: &Client, actor: &Actor) -> Result<DynamicObject> {
     let api: Api<DynamicObject> = Api::namespaced_with(client.clone(), namespace.as_str(), &api_resource());
 
     let resource = new(actor)?;
-    tracing::debug!("The image resource:\n {:#?}\n", resource);
+    tracing::debug!("The Image resource:\n {:?}\n", resource);
 
     let image = api
         .create(&PostParams::default(), &resource)
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Created image: {}", image.name_any());
+    tracing::info!("Created Image: {}", image.name_any());
 
     Ok(image)
 }
@@ -59,12 +59,12 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<DynamicObject> {
 
     let name = actor.spec.build_name();
     let mut image = api.get(&name).await.map_err(Error::KubeError)?;
-    tracing::debug!("The image \"{}\" already exists:\n {:#?}\n", name, image);
+    tracing::debug!("The Image \"{}\" already exists:\n {:?}\n", name, image);
 
     let resource = new(actor)?;
 
     if image.data.pointer("/spec") != resource.data.pointer("/spec") {
-        tracing::debug!("The updating image resource:\n {:#?}\n", resource);
+        tracing::debug!("The updating Image resource:\n {:?}\n", resource);
 
         image = api
             .patch(
@@ -75,7 +75,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<DynamicObject> {
             .await
             .map_err(Error::KubeError)?;
 
-        tracing::info!("Updated image: {}", image.name_any());
+        tracing::info!("Updated Image: {}", image.name_any());
     }
 
     Ok(image)
@@ -127,7 +127,7 @@ pub async fn completed(client: &Client, actor: &Actor) -> Result<bool> {
 
     if let Some(image) = api.get_opt(&name).await.map_err(Error::KubeError)? {
         tracing::debug!("Found Image {}", &name);
-        tracing::debug!("The Image data is: {:#?}", image.data);
+        tracing::debug!("The Image data is: {:?}", image.data);
 
         if let Some(condtions) = image.data.pointer("/status/conditions") {
             let conditions: Vec<Condition> =

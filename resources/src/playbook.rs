@@ -71,7 +71,7 @@ pub async fn uninstall(client: &Client) -> Result<()> {
 pub async fn create(client: &Client, playbook: &Playbook) -> Result<Playbook> {
     let api: Api<Playbook> = Api::all(client.clone());
 
-    tracing::debug!("The playbook resource:\n {:#?}\n", playbook);
+    tracing::debug!("The playbook resource:\n {:?}\n", playbook);
 
     let playbook = api
         .create(&PostParams::default(), playbook)

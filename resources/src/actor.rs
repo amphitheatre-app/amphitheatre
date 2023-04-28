@@ -37,14 +37,14 @@ pub async fn create(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> R
     resource
         .owner_references_mut()
         .push(playbook.controller_owner_ref(&()).unwrap());
-    tracing::debug!("The actor resource:\n {:#?}\n", resource);
+    tracing::debug!("The Actor resource:\n {:?}\n", resource);
 
     let actor = api
         .create(&PostParams::default(), &resource)
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Created actor: {}", actor.name_any());
+    tracing::info!("Created Actor: {}", actor.name_any());
 
     // Patch this actor as initial Pending status
     patch_status(client, &actor, ActorState::pending()).await?;
@@ -57,14 +57,14 @@ pub async fn update(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> R
 
     let name = spec.name.clone();
     let mut actor = api.get(&name).await.map_err(Error::KubeError)?;
-    tracing::debug!("The Actor {} already exists: {:#?}", &spec.name, actor);
+    tracing::debug!("The Actor {} already exists: {:?}", &spec.name, actor);
 
     if &actor.spec != spec {
         let mut resource = Actor::new(&name, spec.clone());
         resource
             .owner_references_mut()
             .push(playbook.controller_owner_ref(&()).unwrap());
-        tracing::debug!("The updating actor resource:\n {:#?}\n", resource);
+        tracing::debug!("The updating Actor resource:\n {:?}\n", resource);
 
         actor = api
             .patch(
@@ -75,7 +75,7 @@ pub async fn update(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> R
             .await
             .map_err(Error::KubeError)?;
 
-        tracing::info!("Updated actor: {}", actor.name_any());
+        tracing::info!("Updated Actor: {}", actor.name_any());
     }
 
     Ok(actor)
@@ -98,7 +98,7 @@ pub async fn patch_status(client: &Client, actor: &Actor, condition: Condition) 
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Patched status {:?} for {}", actor.status, actor.name_any());
+    tracing::info!("Patched status {:?} for Actor {}", actor.status, actor.name_any());
 
     Ok(())
 }

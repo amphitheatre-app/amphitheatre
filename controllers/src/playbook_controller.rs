@@ -117,13 +117,13 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
             }
         }
 
-        tracing::debug!("The currently existing actors are: {exists:#?}");
+        tracing::debug!("The currently existing actors are: {exists:?}");
     } else {
         tracing::debug!("Build from the starting characters (preface)");
         fetches.insert(playbook.spec.preface.clone());
     }
 
-    tracing::debug!("The repositories to be fetched are: {fetches:#?}");
+    tracing::debug!("The repositories to be fetched are: {fetches:?}");
     let configuration = ctx.configuration.read().await;
 
     for source in fetches.iter() {

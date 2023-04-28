@@ -56,7 +56,7 @@ pub async fn new(ctx: &Arc<Context>) {
 
 // This function lets the app handle an added namespace from k8s.
 async fn handle(ctx: &Arc<Context>, ns: &Namespace) -> anyhow::Result<()> {
-    info!("Handle an added namespace from k8s: {:#?}", ns.name_any());
+    info!("Handle an added Namespace from k8s: {:?}", ns.name_any());
 
     // Inject dependent credentials for this namespace.
     let configuration = ctx.configuration.read().await;

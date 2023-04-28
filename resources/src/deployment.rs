@@ -42,14 +42,14 @@ pub async fn create(client: &Client, actor: &Actor) -> Result<Deployment> {
     let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
 
     let resource = new(actor)?;
-    tracing::debug!("The deployment resource:\n {:#?}\n", resource);
+    tracing::debug!("The Deployment resource:\n {:?}\n", resource);
 
     let deployment = api
         .create(&PostParams::default(), &resource)
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Created deployment: {}", deployment.name_any());
+    tracing::info!("Created Deployment: {}", deployment.name_any());
     Ok(deployment)
 }
 
@@ -61,7 +61,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Deployment> {
     let name = actor.name_any();
 
     let mut deployment = api.get(&name).await.map_err(Error::KubeError)?;
-    tracing::debug!("The Deployment {} already exists: {:#?}", &name, deployment);
+    tracing::debug!("The Deployment {} already exists: {:?}", &name, deployment);
 
     let expected_hash = hash(&actor.spec)?;
     let found_hash: String = deployment
@@ -71,7 +71,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Deployment> {
 
     if found_hash != expected_hash {
         let resource = new(actor)?;
-        tracing::debug!("The updating deployment resource:\n {:#?}\n", resource);
+        tracing::debug!("The updating Deployment resource:\n {:?}\n", resource);
 
         deployment = api
             .patch(
@@ -82,7 +82,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Deployment> {
             .await
             .map_err(Error::KubeError)?;
 
-        tracing::info!("Updated deployment: {}", deployment.name_any());
+        tracing::info!("Updated Deployment: {}", deployment.name_any());
     }
 
     Ok(deployment)
