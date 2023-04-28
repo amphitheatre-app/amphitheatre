@@ -113,7 +113,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
         }
     };
 
-    if registry::exists(&actor.spec.image, credential)
+    if registry::exists(&actor.spec.docker_tag(), credential)
         .await
         .map_err(Error::DockerRegistryExistsFailed)?
     {
