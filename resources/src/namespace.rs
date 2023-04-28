@@ -19,7 +19,6 @@ use k8s_openapi::api::core::v1::Namespace;
 use kube::api::{Patch, PatchParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
-use serde_json::to_string;
 
 use super::error::{Error, Result};
 

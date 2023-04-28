@@ -39,7 +39,7 @@ pub async fn create_registry_secret(client: &Client, namespace: &str, config: Do
         )])),
         ..Default::default()
     };
-    tracing::debug!("The secret resource:\n {:?}\n", resource);
+    tracing::debug!("The secret resource:\n {:?}\n", to_string(&resource));
 
     create(client, namespace, resource).await
 }
