@@ -48,7 +48,7 @@ pub async fn create_repository_secret(
     client: &Client,
     namespace: &str,
     endpoint: &str,
-    credential: &Credential,
+    credential: &impl Credential,
 ) -> Result<Secret> {
     let mut secret_type = String::from("Opaque");
     let mut data = BTreeMap::new();

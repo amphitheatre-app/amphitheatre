@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::config::Configuration;
+use amp_common::config::CredentialConfiguration;
 use amp_common::docker::DockerConfig;
 use k8s_openapi::api::core::v1::Secret;
 use kube::{Client, ResourceExt};
@@ -21,7 +21,7 @@ use tracing::{debug, info};
 use super::error::Result;
 use crate::{secret, service_account};
 
-pub async fn sync(client: &Client, namespace: &str, name: &str, configuration: &Configuration) -> Result<()> {
+pub async fn sync(client: &Client, namespace: &str, name: &str, configuration: &CredentialConfiguration) -> Result<()> {
     debug!("The current configuration reads: {:?}", configuration);
 
     let mut secrets = vec![];
@@ -45,11 +45,11 @@ pub async fn sync(client: &Client, namespace: &str, name: &str, configuration: &
 async fn sync_registry_credentials(
     client: &Client,
     namespace: &str,
-    configuration: &Configuration,
+    configuration: &CredentialConfiguration,
 ) -> Result<Vec<Secret>> {
     let mut secrets = vec![];
 
-    let config = DockerConfig::from(&configuration.registry);
+    let config = DockerConfig::from(&configuration.registries);
     let secret = secret::create_registry_secret(client, namespace, config).await?;
 
     info!("Created Secret {} for Docker Registries", secret.name_any());
@@ -62,11 +62,12 @@ async fn sync_registry_credentials(
 async fn sync_repository_credentials(
     client: &Client,
     namespace: &str,
-    configuration: &Configuration,
+    configuration: &CredentialConfiguration,
 ) -> Result<Vec<Secret>> {
     let mut secrets = vec![];
 
-    for (endpoint, credential) in configuration.repositories.iter() {
+    for credential in configuration.repositories.iter() {
+        let endpoint = &credential.server;
         let secret = secret::create_repository_secret(client, namespace, endpoint, credential).await?;
         info!("Created Secret {} for repository: {} ", secret.name_any(), endpoint);
         secrets.push(secret.clone());

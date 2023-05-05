@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use amp_common::client::ClientError;
-use amp_common::config::Configuration;
+use amp_common::config::{Credential, CredentialConfiguration};
 use amp_common::schema::{ActorSpec, Manifest, Source};
 use amp_common::scm::client::Client;
 use amp_common::scm::content::ContentService;
@@ -96,7 +96,7 @@ fn patch<T: Driver>(client: &Client<T>, source: &Source) -> Result<Source> {
 }
 
 /// Read real actor information from remote VCS (like github).
-pub fn load(configuration: &Configuration, source: &Source) -> Result<ActorSpec> {
+pub fn load(configuration: &CredentialConfiguration, source: &Source) -> Result<ActorSpec> {
     let client = Client::new(github::default());
 
     let source = patch(&client, source)?;
@@ -117,9 +117,14 @@ pub fn load(configuration: &Configuration, source: &Source) -> Result<ActorSpec>
 
     // Generate image name based on the current registry and character name.
     if manifest.character.image.is_none() {
-        if let Some((endpoint, credential)) = configuration.registry.iter().next() {
-            let mut registry = endpoint.as_str();
-            if endpoint.eq("https://index.docker.io/v1/") {
+        // @TODO: extract below logic to `default()` method of CredentialConfiguration
+        if let Some(credential) = configuration
+            .registries
+            .iter()
+            .find(|registry| registry.default == true)
+        {
+            let mut registry = credential.server.as_str();
+            if registry.eq("https://index.docker.io/v1/") {
                 registry = "index.docker.io";
             }
 

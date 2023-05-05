@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::config::Configuration;
+use amp_common::config::CredentialConfiguration;
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::events::Recorder;
 use kube::Client;
@@ -30,7 +30,7 @@ use crate::config::Config;
 /// judgement call.
 pub struct Context {
     pub k8s: Client,
-    pub configuration: RwLock<Configuration>,
+    pub configuration: RwLock<CredentialConfiguration>,
     pub config: Config,
 }
 
@@ -38,7 +38,7 @@ impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
         Ok(Context {
             k8s: Client::try_default().await?,
-            configuration: RwLock::new(Configuration::default()),
+            configuration: RwLock::new(CredentialConfiguration::default()),
             config,
         })
     }

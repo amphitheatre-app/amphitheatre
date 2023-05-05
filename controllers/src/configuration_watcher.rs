@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use amp_common::config::Configuration;
+use amp_common::config::CredentialConfiguration;
 use amp_resources::credential;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::ConfigMap;
@@ -60,7 +60,7 @@ async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
         debug!("Recived configmap data is: {:?}", data);
         if let Some(content) = data.get("confgiuration.toml") {
             debug!("The content of confgiuration.toml: {:?}", content);
-            let value: Configuration = toml::from_str(content)?;
+            let value: CredentialConfiguration = toml::from_str(content)?;
 
             let mut configuration = ctx.configuration.write().await;
             *configuration = value;
