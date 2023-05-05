@@ -58,8 +58,8 @@ async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
 
     if let Some(data) = &cm.data {
         debug!("Recived configmap data is: {:?}", data);
-        if let Some(content) = data.get("confgiuration.toml") {
-            debug!("The content of confgiuration.toml: {:?}", content);
+        if let Some(content) = data.get("configuration.toml") {
+            debug!("The content of configuration.toml: {:?}", content);
             let value: CredentialConfiguration = toml::from_str(content)?;
 
             let mut configuration = ctx.configuration.write().await;
