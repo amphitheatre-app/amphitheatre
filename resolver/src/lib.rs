@@ -117,12 +117,7 @@ pub fn load(configuration: &CredentialConfiguration, source: &Source) -> Result<
 
     // Generate image name based on the current registry and character name.
     if manifest.character.image.is_none() {
-        // @TODO: extract below logic to `default()` method of CredentialConfiguration
-        if let Some(credential) = configuration
-            .registries
-            .iter()
-            .find(|registry| registry.default == true)
-        {
+        if let Some(credential) = configuration.default_registry() {
             let mut registry = credential.server.as_str();
             if registry.eq("https://index.docker.io/v1/") {
                 registry = "index.docker.io";
