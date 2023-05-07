@@ -14,27 +14,20 @@
 
 use std::sync::Arc;
 
-use axum::extract::State;
 use uuid::Uuid;
 
 use crate::context::Context;
-use crate::models::actor::Actor;
-use crate::repositories::actor::ActorRepository;
-use crate::response::ApiError;
+use crate::responses::actor::ActorResponse;
 use crate::services::Result;
 
 pub struct ActorService;
 
 impl ActorService {
-    pub async fn get(ctx: &State<Arc<Context>>, id: Uuid) -> Result<Option<Actor>> {
-        ActorRepository::get(&ctx.db, id)
-            .await
-            .map_err(|_| ApiError::DatabaseError)
+    pub async fn get(_ctx: Arc<Context>, _id: Uuid) -> Result<ActorResponse> {
+        unimplemented!()
     }
 
-    pub async fn list(ctx: &State<Arc<Context>>, pid: Uuid) -> Result<Vec<Actor>> {
-        ActorRepository::list(&ctx.db, pid)
-            .await
-            .map_err(|_| ApiError::DatabaseError)
+    pub async fn list(_ctx: Arc<Context>, _pid: Uuid) -> Result<Vec<ActorResponse>> {
+        unimplemented!()
     }
 }

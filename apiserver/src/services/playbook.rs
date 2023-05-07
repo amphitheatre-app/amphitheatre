@@ -16,54 +16,41 @@ use std::sync::Arc;
 
 use amp_common::schema::{Playbook as PlaybookResource, PlaybookSpec};
 use amp_resources::playbook;
-use axum::extract::State;
 use chrono::Utc;
 use kube::ResourceExt;
 use tracing::error;
 use uuid::Uuid;
 
 use crate::context::Context;
-use crate::handlers::playbook::{CreatePlaybookRequest, PlaybookResponse};
-use crate::models::playbook::Playbook as PlaybookModel;
-use crate::repositories::playbook::PlaybookRepository;
+use crate::requests::playbook::CreatePlaybookRequest;
 use crate::response::ApiError;
+use crate::responses::playbook::PlaybookResponse;
 use crate::services::Result;
 
 pub struct PlaybookService;
 
 impl PlaybookService {
-    pub async fn get(ctx: &State<Arc<Context>>, id: Uuid) -> Result<Option<PlaybookModel>> {
-        PlaybookRepository::get(&ctx.db, id)
-            .await
-            .map_err(|_| ApiError::DatabaseError)
+    pub async fn get(_ctx: Arc<Context>, _id: Uuid) -> Result<PlaybookResponse> {
+        unimplemented!()
     }
 
-    pub async fn list(ctx: &State<Arc<Context>>) -> Result<Vec<PlaybookModel>> {
-        PlaybookRepository::list(&ctx.db).await.map_err(|err| {
-            error!("{:?}", err);
-            ApiError::DatabaseError
-        })
+    pub async fn list(_ctx: Arc<Context>) -> Result<Vec<PlaybookResponse>> {
+        unimplemented!()
     }
 
-    pub async fn start(ctx: &State<Arc<Context>>, id: Uuid) -> Result<()> {
-        PlaybookRepository::change_state(&ctx.db, id, "RUNNING")
-            .await
-            .map_err(|_| ApiError::DatabaseError)
+    pub async fn start(_ctx: Arc<Context>, _id: Uuid) -> Result<()> {
+        unimplemented!()
     }
 
-    pub async fn stop(ctx: &State<Arc<Context>>, id: Uuid) -> Result<()> {
-        PlaybookRepository::change_state(&ctx.db, id, "STOPPED")
-            .await
-            .map_err(|_| ApiError::DatabaseError)
+    pub async fn stop(_ctx: Arc<Context>, _id: Uuid) -> Result<()> {
+        unimplemented!()
     }
 
-    pub async fn delete(ctx: &State<Arc<Context>>, id: Uuid) -> Result<()> {
-        PlaybookRepository::delete(&ctx.db, id)
-            .await
-            .map_err(|_| ApiError::DatabaseError)
+    pub async fn delete(_ctx: Arc<Context>, _id: Uuid) -> Result<()> {
+        unimplemented!()
     }
 
-    pub async fn create(ctx: &State<Arc<Context>>, req: &CreatePlaybookRequest) -> Result<PlaybookResponse> {
+    pub async fn create(ctx: Arc<Context>, req: &CreatePlaybookRequest) -> Result<PlaybookResponse> {
         let uuid = Uuid::new_v4();
         let resource = PlaybookResource::new(
             &uuid.to_string(),
@@ -88,22 +75,14 @@ impl PlaybookService {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         })
-        // PlaybookRepository::create(&ctx.db, title, description)
-        //     .await
-        //     .map_err(|err| {
-        //         error!("{:?}", err);
-        //         ApiError::DatabaseError
-        //     })
     }
 
     pub async fn update(
-        ctx: &State<Arc<Context>>,
-        id: Uuid,
-        title: Option<String>,
-        description: Option<String>,
-    ) -> Result<PlaybookModel> {
-        PlaybookRepository::update(&ctx.db, id, title, description)
-            .await
-            .map_err(|_| ApiError::DatabaseError)
+        _ctx: Arc<Context>,
+        _id: Uuid,
+        _title: Option<String>,
+        _description: Option<String>,
+    ) -> Result<PlaybookResponse> {
+        unimplemented!()
     }
 }

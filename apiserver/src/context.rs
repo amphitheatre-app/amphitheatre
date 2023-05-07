@@ -15,7 +15,6 @@
 use kube::Client;
 
 use crate::config::Config;
-use crate::database::{self, Database};
 
 /// The core type through which handler functions can access common API state.
 ///
@@ -25,26 +24,16 @@ use crate::database::{self, Database};
 /// It may not be a bad idea if you need your API to be more modular (turn routes
 /// on and off, and disable any unused extension objects) but it's really up to a
 /// judgement call.
+#[derive(Clone)]
 pub struct Context {
     pub config: Config,
-    pub db: Database,
     pub k8s: Client,
 }
 
 impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
-        let dsn = format!(
-            "mysql://{}:{}@{}:{}/{}",
-            config.database_username,
-            config.database_password,
-            config.database_host,
-            config.database_port,
-            config.database_name
-        );
-
         Ok(Context {
             config,
-            db: database::new(dsn).await?,
             k8s: Client::try_default().await?,
         })
     }

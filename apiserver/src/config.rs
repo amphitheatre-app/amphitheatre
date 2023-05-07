@@ -26,24 +26,8 @@
 /// directory where the application is started.
 ///
 /// See `.env.sample` in the repository root for details.
-#[derive(clap::Parser)]
+#[derive(Clone, clap::Parser)]
 pub struct Config {
-    /// The Database server host.
-    #[clap(long, env = "AMP_DATABASE_HOST")]
-    pub database_host: String,
-    /// The Database server port.
-    #[clap(long, env = "AMP_DATABASE_PORT")]
-    pub database_port: String,
-    /// The Database name.
-    #[clap(long, env = "AMP_DATABASE_NAME")]
-    pub database_name: String,
-    /// The Database username.
-    #[clap(long, env = "AMP_DATABASE_USERNAME")]
-    pub database_username: String,
-    /// The Database password.
-    #[clap(long, env = "AMP_DATABASE_PASSWORD")]
-    pub database_password: String,
-
     /// The Server port.
     #[clap(long, env = "AMP_PORT")]
     pub port: u16,

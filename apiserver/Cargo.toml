@@ -26,7 +26,6 @@ kube = { workspace = true, optional = false }
 k8s-openapi = { workspace = true, optional = false }
 pin-project = "1.0.12"
 quote = "1.0.21"
-sea-orm = { version = "0.10.5", features=["runtime-tokio-rustls", "sqlx-mysql"] }
 serde = { workspace = true, optional = false }
 serde_json = { workspace = true, optional = false }
 serde_yaml = { workspace = true, optional = false }
@@ -40,6 +39,6 @@ tracing = { workspace = true, optional = false }
 tracing-subscriber = { workspace = true, optional = false }
 utoipa = { version = "3", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "3", features = ["axum"] }
-uuid = { version = "1.2.2", features = ["v4", "fast-rng", "macro-diagnostics"] }
+uuid = { version = "1.2.2", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
 url = { workspace = true, optional = false }
 chrono = "0.4.23"

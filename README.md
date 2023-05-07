@@ -6,7 +6,7 @@ source code locally, then deploy to a local or remote Kubernetes cluster, just
 like docker build && kubectl apply or docker-compose up. Amphitheatre handles
 the workflow of building, pushing, and deploying applications. It also provides
 building blocks and describes customization of CI/CD pipelines. It is written in
-Rust, with the Axum framework, and SeaORM to interact with the database.
+Rust, with the Axum framework.
 
 [![License](https://img.shields.io/github/license/amphitheatre-app/amphitheatre)](https://github.com/amphitheatre-app/amphitheatre/blob/master/LICENSE)
 [![GitHub

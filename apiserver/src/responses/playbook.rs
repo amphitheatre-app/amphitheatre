@@ -12,13 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod app;
-pub mod config;
-pub mod context;
-pub mod handlers;
-pub mod requests;
-pub mod response;
-pub mod responses;
-pub mod routes;
-pub mod services;
-pub mod swagger;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct PlaybookResponse {
+    /// The playbook ID in Amphitheatre.
+    pub id: String,
+    /// The title of the playbook.
+    pub title: String,
+    /// The description of the playbook.
+    pub description: String,
+    /// When the playbook was created in Amphitheatre.
+    pub created_at: DateTime<Utc>,
+    /// When the playbook was last updated in Amphitheatre.
+    pub updated_at: DateTime<Utc>,
+}

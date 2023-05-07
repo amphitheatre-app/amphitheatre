@@ -30,7 +30,6 @@ use uuid::Uuid;
 use crate::context::Context;
 use crate::response::{data, ApiError};
 use crate::services::actor::ActorService;
-use crate::services::playbook::PlaybookService;
 
 // The Actors Service Handlers.
 // See [API Documentation: actor](https://docs.amphitheatre.app/api/actor)
@@ -42,19 +41,13 @@ use crate::services::playbook::PlaybookService;
         ("pid" = Uuid, description = "The id of playbook"),
     ),
     responses(
-        (status = 200, description="List all actors of playbook successfully", body = [Actor]),
+        (status = 200, description="List all actors of playbook successfully", body = [ActorResponse]),
         (status = 404, description = "Playbook not found")
     ),
     tag = "Actors"
 )]
-pub async fn list(Path(pid): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::get(&ctx, pid).await?;
-
-    if playbook.is_none() {
-        return Err(ApiError::NotFound);
-    }
-
-    let actors = ActorService::list(&ctx, pid).await?;
+pub async fn list(Path(pid): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
+    let actors = ActorService::list(ctx, pid).await?;
 
     Ok(data(actors))
 }
@@ -66,18 +59,14 @@ pub async fn list(Path(pid): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<imp
         ("id" = Uuid, description = "The id of actor"),
     ),
     responses(
-        (status = 200, description="Actor found successfully", body = Actor),
+        (status = 200, description="Actor found successfully", body = ActorResponse),
         (status = 404, description = "Actor not found")
     ),
     tag = "Actors"
 )]
-pub async fn detail(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let actor = ActorService::get(&ctx, id).await?;
-
-    match actor {
-        Some(actor) => Ok(data(actor)),
-        None => Err(ApiError::NotFound),
-    }
+pub async fn detail(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
+    let actor = ActorService::get(ctx, id).await?;
+    Ok(data(actor))
 }
 
 /// Output the log streams of actor
@@ -94,7 +83,7 @@ pub async fn detail(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<im
 )]
 pub async fn logs(
     Path(_id): Path<Uuid>,
-    ctx: State<Arc<Context>>,
+    State(ctx): State<Arc<Context>>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
     let api: Api<Pod> = Api::namespaced(ctx.k8s.clone(), "default");
     let params = LogParams::default();

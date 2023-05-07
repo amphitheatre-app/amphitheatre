@@ -1,1 +1,0 @@
-RENAME TABLE `playbooks` TO `plays`;

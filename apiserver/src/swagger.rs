@@ -15,7 +15,7 @@
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{handlers, models};
+use crate::{handlers, requests, responses};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -37,8 +37,11 @@ use crate::{handlers, models};
     ),
     components(
         schemas(
-            models::actor::Actor,
-            models::playbook::Playbook,
+            requests::playbook::CreatePlaybookRequest,
+            requests::playbook::UpdatePlaybookRequest,
+            //
+            responses::actor::ActorResponse,
+            responses::playbook::PlaybookResponse,
         )
     ),
     tags(

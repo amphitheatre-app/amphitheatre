@@ -16,24 +16,21 @@ use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
 
-use amp_common::schema::Source;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive};
 use axum::response::{IntoResponse, Sse};
 use axum::Json;
-use chrono::prelude::*;
 use futures::Stream;
 use k8s_openapi::api::core::v1::Event as KEvent;
 use kube::api::ListParams;
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::Api;
-use serde::{Deserialize, Serialize};
 use tokio_stream::StreamExt as _;
-use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::context::Context;
+use crate::requests::playbook::{CreatePlaybookRequest, UpdatePlaybookRequest};
 use crate::response::{data, ApiError};
 use crate::services::playbook::PlaybookService;
 
@@ -44,36 +41,15 @@ use crate::services::playbook::PlaybookService;
 #[utoipa::path(
     get, path = "/v1/playbooks",
     responses(
-        (status = 200, description = "List all playbooks successfully", body = [Playbook]),
+        (status = 200, description = "List all playbooks successfully", body = [PlaybookResponse]),
         (status = 500, description = "Internal Server Error"),
     ),
     tag = "Playbooks"
 )]
-pub async fn list(ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let playbooks = PlaybookService::list(&ctx).await?;
+pub async fn list(State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
+    let playbooks = PlaybookService::list(ctx).await?;
 
     Ok(data(playbooks))
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct CreatePlaybookRequest {
-    pub title: String,
-    pub description: String,
-    pub preface: Source,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct PlaybookResponse {
-    /// The playbook ID in Amphitheatre.
-    pub id: String,
-    /// The title of the playbook.
-    pub title: String,
-    /// The description of the playbook.
-    pub description: String,
-    /// When the playbook was created in Amphitheatre.
-    pub created_at: DateTime<Utc>,
-    /// When the playbook was last updated in Amphitheatre.
-    pub updated_at: DateTime<Utc>,
 }
 
 /// Create a playbook in the current account.
@@ -90,10 +66,10 @@ pub struct PlaybookResponse {
     tag = "Playbooks"
 )]
 pub async fn create(
-    ctx: State<Arc<Context>>,
+    State(ctx): State<Arc<Context>>,
     Json(req): Json<CreatePlaybookRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let response = PlaybookService::create(&ctx, &req).await?;
+    let response = PlaybookService::create(ctx, &req).await?;
     Ok((StatusCode::CREATED, data(response)))
 }
 
@@ -104,25 +80,15 @@ pub async fn create(
         ("id" = Uuid, description = "The id of playbook"),
     ),
     responses(
-        (status = 200, description = "Playbook found successfully", body = Playbook),
+        (status = 200, description = "Playbook found successfully", body = PlaybookResponse),
         (status = 404, description = "Playbook not found"),
         (status = 500, description = "Internal Server Error"),
     ),
     tag = "Playbooks"
 )]
-pub async fn detail(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::get(&ctx, id).await?;
-
-    match playbook {
-        Some(playbook) => Ok(data(playbook)),
-        None => Err(ApiError::NotFound),
-    }
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct UpdatePlaybookRequest {
-    title: Option<String>,
-    description: Option<String>,
+pub async fn detail(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
+    let playbook = PlaybookService::get(ctx, id).await?;
+    Ok(data(playbook))
 }
 
 /// Update a playbook.
@@ -137,17 +103,17 @@ pub struct UpdatePlaybookRequest {
         content_type = "application/json"
     ),
     responses(
-        (status = 200, description = "Playbook updated successfully", body = Playbook),
+        (status = 200, description = "Playbook updated successfully", body = PlaybookResponse),
         (status = 404, description = "Playbook not found")
     ),
     tag = "Playbooks"
 )]
 pub async fn update(
     Path(id): Path<Uuid>,
-    ctx: State<Arc<Context>>,
+    State(ctx): State<Arc<Context>>,
     Json(payload): Json<UpdatePlaybookRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::update(&ctx, id, payload.title, payload.description).await?;
+    let playbook = PlaybookService::update(ctx, id, payload.title, payload.description).await?;
     Ok(data(playbook))
 }
 
@@ -163,14 +129,9 @@ pub async fn update(
     ),
     tag = "Playbooks"
 )]
-pub async fn delete(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::get(&ctx, id).await?;
+pub async fn delete(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
+    PlaybookService::delete(ctx, id).await?;
 
-    if playbook.is_none() {
-        return Err(ApiError::NotFound);
-    }
-
-    PlaybookService::delete(&ctx, id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -188,7 +149,7 @@ pub async fn delete(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<im
 )]
 pub async fn events(
     Path(id): Path<Uuid>,
-    ctx: State<Arc<Context>>,
+    State(ctx): State<Arc<Context>>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
     let namespace = format!("amp-{}", id);
 
@@ -220,14 +181,9 @@ pub async fn events(
     ),
     tag = "Playbooks"
 )]
-pub async fn start(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::get(&ctx, id).await?;
+pub async fn start(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
+    PlaybookService::start(ctx, id).await?;
 
-    if playbook.is_none() {
-        return Err(ApiError::NotFound);
-    }
-
-    PlaybookService::start(&ctx, id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -244,13 +200,8 @@ pub async fn start(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<imp
     ),
     tag = "Playbooks",
 )]
-pub async fn stop(Path(id): Path<Uuid>, ctx: State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::get(&ctx, id).await?;
+pub async fn stop(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
+    PlaybookService::stop(ctx, id).await?;
 
-    if playbook.is_none() {
-        return Err(ApiError::NotFound);
-    }
-
-    PlaybookService::stop(&ctx, id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
