@@ -20,6 +20,7 @@ jobs:
       with:
         toolchain: ${{ env.RUST_TOOLCHAIN }}
         components: rustfmt
+    - uses: Swatinem/rust-cache@v2
     - name: Enforce formatting
       run: cargo fmt --all -- --check
 

@@ -1,8 +1,13 @@
 name: Build & Publish Images
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build-and-push-image:
@@ -16,11 +21,6 @@ jobs:
             dockerfile: ./apiserver/Dockerfile
           - bin: amp-controllers
             dockerfile: ./controllers/Dockerfile
-
-    permissions:
-      contents: read
-      packages: write
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
