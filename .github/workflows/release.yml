@@ -29,6 +29,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        bin: [amp-apiserver, amp-controllers, amp-crdgen]
     steps:
     - uses: actions/checkout@v3
     - uses: dtolnay/rust-toolchain@master
@@ -36,6 +37,6 @@ jobs:
         toolchain: ${{ env.RUST_TOOLCHAIN }}
     - uses: taiki-e/upload-rust-binary-action@v1
       with:
-        bin: amp-apiserver, amp-controllers, amp-crdgen
+        bin: ${{ matrix.bin }}
         target: ${{ matrix.target }}
         token: ${{ secrets.GITHUB_TOKEN }}
