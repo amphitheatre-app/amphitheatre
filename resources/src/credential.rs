@@ -66,11 +66,13 @@ async fn sync_repository_credentials(
 ) -> Result<Vec<Secret>> {
     let mut secrets = vec![];
 
-    for credential in configuration.repositories.iter() {
-        let endpoint = &credential.server;
-        let secret = secret::create_repository_secret(client, namespace, endpoint, credential).await?;
-        info!("Created Secret {} for repository: {} ", secret.name_any(), endpoint);
-        secrets.push(secret.clone());
+    if let Some(repositories) = &configuration.repositories {
+        for credential in repositories.iter() {
+            let endpoint = &credential.server;
+            let secret = secret::create_repository_secret(client, namespace, endpoint, credential).await?;
+            info!("Created Secret {} for repository: {} ", secret.name_any(), endpoint);
+            secrets.push(secret.clone());
+        }
     }
 
     Ok(secrets)
