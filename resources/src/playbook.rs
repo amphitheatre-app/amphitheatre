@@ -17,7 +17,8 @@ use std::time::Duration;
 use amp_common::schema::{ActorSpec, Playbook, PlaybookState};
 use k8s_openapi::apiextensions_apiserver as server;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
-use kube::api::{DeleteParams, Patch, PatchParams, PostParams};
+use kube::api::{DeleteParams, ListParams, Patch, PatchParams, PostParams};
+use kube::core::ObjectList;
 use kube::{Api, Client, CustomResourceExt, ResourceExt};
 use serde_json::{json, to_string_pretty};
 use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
@@ -139,4 +140,11 @@ pub async fn replace_status_with(
     _after: Condition,
 ) -> Result<()> {
     todo!()
+}
+
+/// List all playbooks
+pub async fn list(client: &Client) -> Result<ObjectList<Playbook>> {
+    let api: Api<Playbook> = Api::all(client.clone());
+    let resources = api.list(&ListParams::default()).await.map_err(Error::KubeError)?;
+    Ok(resources)
 }

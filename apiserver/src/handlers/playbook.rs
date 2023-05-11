@@ -48,7 +48,6 @@ use crate::services::playbook::PlaybookService;
 )]
 pub async fn list(State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
     let playbooks = PlaybookService::list(ctx).await?;
-
     Ok(data(playbooks))
 }
 

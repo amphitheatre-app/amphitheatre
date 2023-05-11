@@ -34,8 +34,22 @@ impl PlaybookService {
         unimplemented!()
     }
 
-    pub async fn list(_ctx: Arc<Context>) -> Result<Vec<PlaybookResponse>> {
-        unimplemented!()
+    pub async fn list(ctx: Arc<Context>) -> Result<Vec<PlaybookResponse>> {
+        let resources = playbook::list(&ctx.k8s).await.map_err(|err| {
+            error!("{:?}", err);
+            ApiError::KubernetesError
+        })?;
+
+        Ok(resources
+            .iter()
+            .map(|playbook| PlaybookResponse {
+                id: playbook.name_any(),
+                title: playbook.spec.title.clone(),
+                description: playbook.spec.description.clone(),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            })
+            .collect())
     }
 
     pub async fn start(_ctx: Arc<Context>, _id: Uuid) -> Result<()> {
