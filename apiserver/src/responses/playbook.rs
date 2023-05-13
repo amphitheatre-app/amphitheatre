@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use amp_common::schema::Playbook;
 use chrono::{DateTime, Utc};
+use kube::ResourceExt;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -28,4 +30,16 @@ pub struct PlaybookResponse {
     pub created_at: DateTime<Utc>,
     /// When the playbook was last updated in Amphitheatre.
     pub updated_at: DateTime<Utc>,
+}
+
+impl From<Playbook> for PlaybookResponse {
+    fn from(playbook: Playbook) -> Self {
+        Self {
+            id: playbook.name_any(),
+            title: playbook.spec.title,
+            description: playbook.spec.description,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
 }

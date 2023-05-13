@@ -148,3 +148,10 @@ pub async fn list(client: &Client) -> Result<ObjectList<Playbook>> {
     let resources = api.list(&ListParams::default()).await.map_err(Error::KubeError)?;
     Ok(resources)
 }
+
+/// Get a playbook by name
+pub async fn get(client: &Client, name: &str) -> Result<Playbook> {
+    let api: Api<Playbook> = Api::all(client.clone());
+    let resources = api.get(name).await.map_err(Error::KubeError)?;
+    Ok(resources)
+}

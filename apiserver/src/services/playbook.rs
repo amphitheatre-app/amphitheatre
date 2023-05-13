@@ -30,8 +30,13 @@ use crate::services::Result;
 pub struct PlaybookService;
 
 impl PlaybookService {
-    pub async fn get(_ctx: Arc<Context>, _id: Uuid) -> Result<PlaybookResponse> {
-        unimplemented!()
+    pub async fn get(ctx: Arc<Context>, id: Uuid) -> Result<PlaybookResponse> {
+        let resource = playbook::get(&ctx.k8s, &id.to_string()).await.map_err(|err| {
+            error!("{:?}", err);
+            ApiError::KubernetesError
+        })?;
+
+        Ok(resource.into())
     }
 
     pub async fn list(ctx: Arc<Context>) -> Result<Vec<PlaybookResponse>> {
@@ -40,16 +45,7 @@ impl PlaybookService {
             ApiError::KubernetesError
         })?;
 
-        Ok(resources
-            .iter()
-            .map(|playbook| PlaybookResponse {
-                id: playbook.name_any(),
-                title: playbook.spec.title.clone(),
-                description: playbook.spec.description.clone(),
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            })
-            .collect())
+        Ok(resources.iter().map(|playbook| playbook.to_owned().into()).collect())
     }
 
     pub async fn start(_ctx: Arc<Context>, _id: Uuid) -> Result<()> {
