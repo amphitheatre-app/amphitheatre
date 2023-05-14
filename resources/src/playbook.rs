@@ -155,3 +155,22 @@ pub async fn get(client: &Client, name: &str) -> Result<Playbook> {
     let resources = api.get(name).await.map_err(Error::KubeError)?;
     Ok(resources)
 }
+
+/// Delete a playbook by name
+pub async fn delete(client: &Client, name: &str) -> Result<()> {
+    let api: Api<Playbook> = Api::all(client.clone());
+    let params = DeleteParams::default();
+
+    // Ignore delete error if not exists
+    let _ = api
+        .delete(name, &params)
+        .await
+        .map_err(Error::KubeError)?
+        .map_left(|o| tracing::debug!("Deleting Playbook: {:?}", o.status))
+        .map_right(|s| tracing::debug!("Deleted Playbook: {:?}", s));
+
+    // Wait for the delete to take place (map-left case or delete from previous run)
+    sleep(Duration::from_secs(2)).await;
+
+    Ok(())
+}

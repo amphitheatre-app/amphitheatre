@@ -56,8 +56,13 @@ impl PlaybookService {
         unimplemented!()
     }
 
-    pub async fn delete(_ctx: Arc<Context>, _id: Uuid) -> Result<()> {
-        unimplemented!()
+    pub async fn delete(ctx: Arc<Context>, id: Uuid) -> Result<()> {
+        playbook::delete(&ctx.k8s, &id.to_string()).await.map_err(|err| {
+            error!("{:?}", err);
+            ApiError::KubernetesError
+        })?;
+
+        Ok(())
     }
 
     pub async fn create(ctx: Arc<Context>, req: &CreatePlaybookRequest) -> Result<PlaybookResponse> {
