@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - v[0-9]+.*
+    paths-ignore:
+      - .github/**
+      - README.md
 
 permissions:
   contents: read
