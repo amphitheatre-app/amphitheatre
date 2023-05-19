@@ -8,6 +8,9 @@
 # Base image as the foundation for the other build stages in this file.
 FROM rust:slim AS chef
 
+# Set the environment variables for the build.
+ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+
 # We only pay the installation cost once,
 # it will be cached from the second build onwards
 RUN rustup default nightly-2022-12-01
