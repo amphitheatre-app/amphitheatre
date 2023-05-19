@@ -9,6 +9,7 @@
 FROM rust:slim AS chef
 
 # Set the environment variables for the build.
+ENV CARGO_UNSTABLE_SPARSE_REGISTRY=true
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
 # We only pay the installation cost once,
