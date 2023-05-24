@@ -87,11 +87,6 @@ jobs:
         name: digests
         path: /tmp/digests
 
-    - name: Merge digests
-      run: |
-        mkdir -p /tmp/digests
-        cat /tmp/digests/* > /tmp/digests/digests.txt
-
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
