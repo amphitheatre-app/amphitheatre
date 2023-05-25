@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use amp_common::schema::{Actor, ActorSpec};
 use k8s_openapi::api::batch::v1::{Job, JobSpec};
@@ -150,24 +150,31 @@ fn context(spec: &ActorSpec) -> String {
 }
 
 fn new_kaniko_container(spec: &ActorSpec) -> Result<Container> {
-    let args: HashMap<String, String> = HashMap::from([
-        ("context".into(), context(spec)),
-        ("destination".into(), spec.docker_tag()),
-        ("verbosity".into(), "trace".into()),
-        ("cache".into(), "false".into()),
-    ]);
+    let mut args: Vec<String> = vec![
+        ("context", context(spec)),
+        ("destination", spec.docker_tag()),
+        ("verbosity", "trace".to_string()),
+        ("cache", "true".to_string()),
+    ]
+    .iter()
+    .map(|(key, value)| format!("--{}={}", key, value))
+    .collect();
+
+    if let Some(argments) = spec.build_args() {
+        args.extend(argments);
+    }
 
     let container = Container {
         name: "build".to_string(),
         image: Some(DEFAULT_KANIKO_IMAGE.to_string()),
         image_pull_policy: Some("Always".into()),
-        args: Some(args.iter().map(|(key, value)| format!("--{}={}", key, value)).collect()),
+        args: Some(args),
+        env: spec.build_env(),
         volume_mounts: Some(vec![VolumeMount {
             name: "kaniko-secret".to_string(),
             mount_path: "/kaniko/.docker".to_string(),
             ..Default::default()
         }]),
-        env: spec.build_env(),
         ..Default::default()
     };
 
