@@ -82,7 +82,7 @@ dependencies = [
 [[package]]
 name = "amp-common"
 version = "0.1.0"
-source = "git+https://github.com/amphitheatre-app/common#42eef573294d06384249606a11af3eb6e1b04133"
+source = "git+https://github.com/amphitheatre-app/common#3864df4fa2bbd5c99fcdc37cafb1765be2dd5332"
 dependencies = [
  "anyhow",
  "chrono",
@@ -99,6 +99,7 @@ dependencies = [
  "thiserror",
  "tracing",
  "ureq",
+ "url",
  "validator",
 ]
 

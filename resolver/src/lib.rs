@@ -12,40 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::client::ClientError;
 use amp_common::config::{Credential, CredentialConfiguration};
 use amp_common::schema::{ActorSpec, Manifest, Source};
 use amp_common::scm::client::Client;
-use amp_common::scm::content::ContentService;
-use amp_common::scm::driver::{github, Driver};
-use amp_common::scm::git::GitService;
-use amp_common::scm::repo::RepositoryService;
-use thiserror::Error;
+use errors::{ResolveError, Result};
 use tracing::debug;
 use url::Url;
 
-#[derive(Debug, Error)]
-pub enum ResolveError {
-    #[error("ClientError: {0}")]
-    ClientError(#[source] ClientError),
-
-    #[error("InvalidRepoAddress: {0}")]
-    InvalidRepoAddress(#[source] url::ParseError),
-
-    #[error("FetchingError: {0}")]
-    FetchingError(String),
-
-    #[error("TomlParseFailed: {0}")]
-    TomlParseFailed(String),
-
-    #[error("InvalidRegistryAddress: {0}")]
-    InvalidRegistryAddress(#[source] url::ParseError),
-
-    #[error("EmptyRegistryAddress")]
-    EmptyRegistryAddress,
-}
-
-pub type Result<T, E = ResolveError> = std::result::Result<T, E>;
+pub mod errors;
 
 /// Resolve the repo from the URL.
 fn repo(url: &str) -> Result<String> {
@@ -56,7 +30,7 @@ fn repo(url: &str) -> Result<String> {
     Ok(repo)
 }
 
-fn patch<T: Driver>(client: &Client<T>, source: &Source) -> Result<Source> {
+fn patch(client: &Client, source: &Source) -> Result<Source> {
     let mut actual = source.clone();
 
     // Return it if revision was provided.
@@ -97,14 +71,14 @@ fn patch<T: Driver>(client: &Client<T>, source: &Source) -> Result<Source> {
 
 /// Read real actor information from remote VCS (like github).
 pub fn load(configuration: &CredentialConfiguration, source: &Source) -> Result<ActorSpec> {
-    let client = Client::new(github::default());
-
+    // Initialize the client by source host.
+    let client = Client::init(configuration, source).map_err(ResolveError::SCMError)?;
     let source = patch(&client, source)?;
     let repo = repo(&source.repo)?;
     let path = source.path.clone().unwrap_or(".amp.toml".into());
 
     let content = client
-        .conetnts()
+        .contents()
         .find(&repo, &path, source.rev())
         .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
     debug!("The `.amp.toml` content of {} is:\n{:?}", repo, content);

@@ -28,7 +28,7 @@ pub enum Error {
     FinalizerError(#[source] Box<kube::runtime::finalizer::Error<Error>>),
 
     #[error("ResolveError: {0}")]
-    ResolveError(#[source] amp_resolver::ResolveError),
+    ResolveError(#[source] amp_resolver::errors::ResolveError),
 
     #[error("DockerRegistryExistsFailed: {0}")]
     DockerRegistryExistsFailed(#[source] anyhow::Error),
