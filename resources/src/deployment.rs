@@ -102,7 +102,7 @@ fn new(actor: &Actor) -> Result<Deployment> {
         name: name.clone(),
         image: Some(actor.spec.docker_tag()),
         image_pull_policy: Some("Always".into()),
-        env: actor.spec.environments(),
+        env: actor.spec.env(),
         ports: actor.spec.container_ports(),
         ..Default::default()
     };

@@ -12,96 +12,55 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::config::{Credential, CredentialConfiguration};
-use amp_common::schema::{ActorSpec, Manifest, Source};
+use amp_common::config::CredentialConfiguration;
+use amp_common::schema::{ActorSpec, EitherCharacter, GitReference, Manifest};
 use amp_common::scm::client::Client;
 use errors::{ResolveError, Result};
 use tracing::debug;
-use url::Url;
 
 pub mod errors;
+pub mod patches;
+pub mod utils;
 
-/// Resolve the repo from the URL.
-fn repo(url: &str) -> Result<String> {
-    let url = Url::parse(url).map_err(ResolveError::InvalidRepoAddress)?;
-    let mut repo = url.path().replace(".git", "");
-    repo = repo.trim_start_matches('/').to_string();
-
-    Ok(repo)
+/// Load mainfest from different sources and return the actor spec.
+pub fn load(configuration: &CredentialConfiguration, character: &EitherCharacter) -> Result<ActorSpec> {
+    match character {
+        EitherCharacter::Manifest(content) => load_from_manifest(configuration, content.as_bytes()),
+        EitherCharacter::Name(name) => load_from_cluster(name),
+        EitherCharacter::Git(reference) => load_from_source(configuration, reference),
+    }
 }
 
-fn patch(client: &Client, source: &Source) -> Result<Source> {
-    let mut actual = source.clone();
+/// Read Character manifest from original manifest content and return the actor spec.
+pub fn load_from_manifest(configuration: &CredentialConfiguration, content: &[u8]) -> Result<ActorSpec> {
+    let manifest: Manifest = toml::from_slice(content).map_err(|e| ResolveError::TomlParseFailed(e.to_string()))?;
+    let client = Client::init(configuration, &manifest.repository).map_err(ResolveError::SCMError)?;
 
-    // Return it if revision was provided.
-    if actual.rev.is_some() {
-        return Ok(actual);
-    }
+    let mut spec = ActorSpec::from(&manifest);
+    spec.source = patches::source(&client, &spec.source)?;
+    spec.image = patches::image(configuration, &spec)?;
 
-    let repo = repo(&actual.repo)?;
-    let reference: String;
-
-    debug!("the repo name parsed from repository address is: {}", repo);
-
-    // Check which reference is primary (branch or tag),
-    // prioritize the tag first, then the branch,
-    // otherwise read the remote repository and get its default branch
-    if let Some(tag) = &actual.tag {
-        reference = tag.to_string();
-    } else if let Some(branch) = &actual.branch {
-        reference = branch.to_string();
-    } else {
-        let repository = client
-            .repositories()
-            .find(&repo)
-            .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
-        reference = repository.unwrap().branch;
-
-        // Save it for other purposes,
-        // such as a reference value when re-modifying
-        actual.branch = Some(reference.to_string());
-    }
-
-    // Get its real latest revision according to the reference
-    let commit = client.git().find_commit(&repo, &reference).unwrap();
-    actual.rev = Some(commit.unwrap().sha);
-
-    Ok(actual)
+    Ok(spec)
 }
 
-/// Read real actor information from remote VCS (like github).
-pub fn load(configuration: &CredentialConfiguration, source: &Source) -> Result<ActorSpec> {
-    // Initialize the client by source host.
-    let client = Client::init(configuration, source).map_err(ResolveError::SCMError)?;
-    let source = patch(&client, source)?;
-    let repo = repo(&source.repo)?;
+/// @TODO: Load mainfest from Kubernetes cluster and return the actor spec.
+pub fn load_from_cluster(_name: &str) -> Result<ActorSpec> {
+    todo!()
+}
+
+/// Load mainfest from remote VCS (like github) and return the actor spec.
+pub fn load_from_source(configuration: &CredentialConfiguration, reference: &GitReference) -> Result<ActorSpec> {
+    let client = Client::init(configuration, &reference.repo).map_err(ResolveError::SCMError)?;
+
+    let source = patches::source(&client, reference)?;
     let path = source.path.clone().unwrap_or(".amp.toml".into());
+    let repo = utils::repo(&source.repo)?;
 
     let content = client
         .contents()
-        .find(&repo, &path, source.rev())
+        .find(&repo, &path, &reference.rev())
         .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
     debug!("The `.amp.toml` content of {} is:\n{:?}", repo, content);
 
-    let manifest: Manifest =
-        toml::from_slice(content.data.as_slice()).map_err(|e| ResolveError::TomlParseFailed(e.to_string()))?;
-
-    let mut spec = ActorSpec::from(&manifest);
-    spec.source = source;
-
-    // Generate image name based on the current registry and character name.
-    if manifest.character.image.is_none() {
-        if let Some(credential) = configuration.default_registry() {
-            let mut registry = credential.server.as_str();
-            if registry.eq("https://index.docker.io/v1/") {
-                registry = "index.docker.io";
-            }
-
-            spec.image = format!("{}/{}/{}", registry, credential.username_any(), spec.name);
-        } else {
-            return Err(ResolveError::EmptyRegistryAddress);
-        }
-    }
-
-    Ok(spec)
+    load_from_manifest(configuration, content.data.as_slice())
 }

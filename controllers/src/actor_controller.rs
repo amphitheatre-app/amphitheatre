@@ -25,7 +25,7 @@ use kube::api::ListParams;
 use kube::runtime::controller::Action;
 use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
-use kube::runtime::Controller;
+use kube::runtime::{watcher, Controller};
 use kube::{Api, Resource, ResourceExt};
 
 use crate::context::Context;
@@ -41,7 +41,7 @@ pub async fn new(ctx: &Arc<Context>) {
         std::process::exit(1);
     }
 
-    Controller::new(api, ListParams::default())
+    Controller::new(api, watcher::Config::default())
         .run(reconcile, error_policy, ctx.clone())
         .for_each(|_| future::ready(()))
         .await

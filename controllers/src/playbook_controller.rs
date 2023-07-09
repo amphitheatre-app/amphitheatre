@@ -16,7 +16,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
-use amp_common::schema::{Playbook, PlaybookState, Source};
+use amp_common::schema::{EitherCharacter, Playbook, PlaybookState};
 use amp_resolver as resolver;
 use amp_resources::event::trace;
 use amp_resources::{actor, namespace, playbook};
@@ -26,7 +26,7 @@ use kube::api::ListParams;
 use kube::runtime::controller::Action;
 use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
-use kube::runtime::Controller;
+use kube::runtime::{watcher, Controller};
 use kube::{Api, Resource, ResourceExt};
 
 use crate::context::Context;
@@ -42,7 +42,7 @@ pub async fn new(ctx: &Arc<Context>) {
         std::process::exit(1);
     }
 
-    Controller::new(api, ListParams::default())
+    Controller::new(api, watcher::Config::default())
         .run(reconcile, error_policy, ctx.clone())
         .for_each(|_| future::ready(()))
         .await
@@ -101,7 +101,7 @@ async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> R
 }
 
 async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    let mut fetches: HashSet<Source> = HashSet::new();
+    let mut fetches: HashSet<EitherCharacter> = HashSet::new();
 
     if let Some(actors) = &playbook.spec.actors {
         let exists: HashSet<&String> = actors.iter().map(|actor| &actor.name).collect();
@@ -126,9 +126,8 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
     tracing::debug!("The repositories to be fetched are: {fetches:?}");
     let configuration = ctx.configuration.read().await;
 
-    for source in fetches.iter() {
-        tracing::info!("fetching partner with source: {}", source.uri());
-        let actor = resolver::load(&configuration, source).map_err(Error::ResolveError)?;
+    for character in fetches.iter() {
+        let actor = resolver::load(&configuration, character).map_err(Error::ResolveError)?;
 
         let message = "Fetch and add the actor to this playbook";
         trace(recorder, message).await.map_err(Error::ResourceError)?;

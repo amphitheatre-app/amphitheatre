@@ -18,7 +18,6 @@ use amp_common::config::CredentialConfiguration;
 use amp_resources::credential;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::ConfigMap;
-use kube::api::ListParams;
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::{Api, ResourceExt};
 use tracing::{debug, error, info};
@@ -30,13 +29,11 @@ pub async fn new(ctx: &Arc<Context>) {
     debug!("namespace = {}", namespace);
 
     let api = Api::<ConfigMap>::namespaced(ctx.k8s.clone(), &namespace);
-
-    let params = ListParams::default().fields("metadata.name=amp-configurations");
-    let mut obs = watcher(api, params).applied_objects().boxed();
+    let config = watcher::Config::default().fields("metadata.name=amp-configurations");
+    let mut obs = watcher(api, config).applied_objects().boxed();
 
     loop {
         let config_map = obs.try_next().await;
-
         match config_map {
             Ok(Some(cm)) => {
                 if let Err(err) = handle(ctx, &cm).await {

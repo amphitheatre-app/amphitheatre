@@ -17,24 +17,30 @@ use std::io::Write;
 use std::path::Path;
 use std::{env, fs};
 
-use amp_common::schema::{Actor, Playbook};
+use amp_common::schema::{Actor, Character, Playbook};
 use kube::CustomResourceExt;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let playbook_definition = serde_yaml::to_string(&Playbook::crd()).unwrap();
     let actor_definition = serde_yaml::to_string(&Actor::crd()).unwrap();
+    let character_definition = serde_yaml::to_string(&Character::crd()).unwrap();
+    let playbook_definition = serde_yaml::to_string(&Playbook::crd()).unwrap();
 
     if args.len() == 2 {
         let dir = Path::new(&args[1]);
 
-        write(&dir.join("playbook.yaml"), playbook_definition);
         write(&dir.join("actor.yaml"), actor_definition);
+        write(&dir.join("character.yaml"), character_definition);
+        write(&dir.join("playbook.yaml"), playbook_definition);
+
         return;
     }
 
-    print!("{}\n---\n{}", playbook_definition, actor_definition)
+    print!(
+        "{}\n---\n{}\n---\n{}",
+        actor_definition, character_definition, playbook_definition
+    )
 }
 
 fn write(path: &Path, data: String) {

@@ -12,20 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::schema::EitherCharacter;
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use url::Url;
 
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct CreatePlaybookRequest {
-    pub title: String,
-    pub description: String,
-    pub preface: EitherCharacter,
-    pub live: bool,
-}
+use crate::errors::{ResolveError, Result};
 
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct UpdatePlaybookRequest {
-    pub title: Option<String>,
-    pub description: Option<String>,
+/// Resolve the repo from the URL.
+pub fn repo(url: &str) -> Result<String> {
+    let url = Url::parse(url).map_err(ResolveError::InvalidRepoAddress)?;
+    let mut repo = url.path().replace(".git", "");
+    repo = repo.trim_start_matches('/').to_string();
+
+    Ok(repo)
 }

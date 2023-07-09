@@ -17,7 +17,6 @@ use std::sync::Arc;
 use amp_resources::credential;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Namespace;
-use kube::api::ListParams;
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::{Api, ResourceExt};
 use tracing::{error, info};
@@ -26,12 +25,11 @@ use crate::context::Context;
 
 pub async fn new(ctx: &Arc<Context>) {
     let api = Api::<Namespace>::all(ctx.k8s.clone());
-    let params = ListParams::default().labels("syncer.amphitheatre.app/sync=true");
-    let mut obs = watcher(api, params).applied_objects().boxed();
+    let config = watcher::Config::default().labels("syncer.amphitheatre.app/sync=true");
+    let mut obs = watcher(api, config).applied_objects().boxed();
 
     loop {
         let namespace = obs.try_next().await;
-
         match namespace {
             Ok(Some(ns)) => {
                 // Ignore the namespace being terminated

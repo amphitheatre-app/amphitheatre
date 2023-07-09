@@ -23,7 +23,6 @@ use axum::response::{IntoResponse, Sse};
 use axum::Json;
 use futures::Stream;
 use k8s_openapi::api::core::v1::Event as KEvent;
-use kube::api::ListParams;
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::Api;
 use tokio_stream::StreamExt as _;
@@ -151,11 +150,8 @@ pub async fn events(
     State(ctx): State<Arc<Context>>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
     let namespace = format!("amp-{}", id);
-
     let api: Api<KEvent> = Api::namespaced(ctx.k8s.clone(), namespace.as_str());
-    let params = ListParams::default();
-
-    let stream = watcher(api, params)
+    let stream = watcher(api, watcher::Config::default())
         .applied_objects()
         .map(|result| match result {
             Ok(event) => Event::default().json_data(event).unwrap(),
