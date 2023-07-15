@@ -28,7 +28,7 @@ pub enum ResolveError {
     FetchingError(String),
 
     #[error("TomlParseFailed: {0}")]
-    TomlParseFailed(String),
+    TomlParseFailed(toml::de::Error),
 
     #[error("InvalidRegistryAddress: {0}")]
     InvalidRegistryAddress(#[source] url::ParseError),
@@ -38,6 +38,9 @@ pub enum ResolveError {
 
     #[error("SCMError")]
     SCMError(#[source] SCMError),
+
+    #[error("ResourceError")]
+    ResourceError(#[source] amp_resources::error::Error),
 }
 
 pub type Result<T, E = ResolveError> = std::result::Result<T, E>;

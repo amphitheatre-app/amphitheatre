@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/amphitheatre-app/amphitheatre"
@@ -19,7 +19,7 @@ members = [
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
 [workspace.dependencies]
 anyhow = "1.0"
-amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.2.1" }
+amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.2.2" }
 amp-resolver = { path = "resolver", version = "0.1.0" }
 amp-resources = { path = "resources", version = "0.1.0" }
 clap = { version = "4.0.29", features = ["derive", "env"] }

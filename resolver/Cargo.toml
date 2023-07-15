@@ -10,6 +10,7 @@ description = "Dependency Resolution"
 
 [dependencies]
 amp-common = { workspace = true, optional = false }
+amp-resources = { workspace = true, optional = false }
 kube = { workspace = true, optional = false }
 k8s-openapi = { workspace = true, optional = false }
 thiserror = { workspace = true, optional = false }

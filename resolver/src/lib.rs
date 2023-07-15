@@ -14,8 +14,10 @@
 
 use amp_common::config::CredentialConfiguration;
 use amp_common::schema::{ActorSpec, EitherCharacter, GitReference, Manifest};
-use amp_common::scm::client::Client;
+use amp_common::scm::client::Client as ScmClient;
+use amp_resources::character;
 use errors::{ResolveError, Result};
+use kube::Client as KubeClient;
 use tracing::debug;
 
 pub mod errors;
@@ -23,18 +25,24 @@ pub mod patches;
 pub mod utils;
 
 /// Load mainfest from different sources and return the actor spec.
-pub fn load(configuration: &CredentialConfiguration, character: &EitherCharacter) -> Result<ActorSpec> {
+pub async fn load(
+    client: &KubeClient,
+    configuration: &CredentialConfiguration,
+    character: &EitherCharacter,
+) -> Result<ActorSpec> {
     match character {
-        EitherCharacter::Manifest(content) => load_from_manifest(configuration, content.as_bytes()),
-        EitherCharacter::Name(name) => load_from_cluster(name),
+        EitherCharacter::Manifest(content) => {
+            let manifest: Manifest = toml::from_str(content).map_err(ResolveError::TomlParseFailed)?;
+            load_from_manifest(configuration, manifest)
+        }
+        EitherCharacter::Name(name) => load_from_cluster(client, configuration, name).await,
         EitherCharacter::Git(reference) => load_from_source(configuration, reference),
     }
 }
 
 /// Read Character manifest from original manifest content and return the actor spec.
-pub fn load_from_manifest(configuration: &CredentialConfiguration, content: &[u8]) -> Result<ActorSpec> {
-    let manifest: Manifest = toml::from_slice(content).map_err(|e| ResolveError::TomlParseFailed(e.to_string()))?;
-    let client = Client::init(configuration, &manifest.repository).map_err(ResolveError::SCMError)?;
+pub fn load_from_manifest(configuration: &CredentialConfiguration, manifest: Manifest) -> Result<ActorSpec> {
+    let client = ScmClient::init(configuration, &manifest.repository).map_err(ResolveError::SCMError)?;
 
     let mut spec = ActorSpec::from(&manifest);
     spec.source = patches::source(&client, &spec.source)?;
@@ -43,14 +51,21 @@ pub fn load_from_manifest(configuration: &CredentialConfiguration, content: &[u8
     Ok(spec)
 }
 
-/// @TODO: Load mainfest from Kubernetes cluster and return the actor spec.
-pub fn load_from_cluster(_name: &str) -> Result<ActorSpec> {
-    todo!()
+/// Load mainfest from Kubernetes cluster and return the actor spec.
+pub async fn load_from_cluster(
+    client: &KubeClient,
+    configuration: &CredentialConfiguration,
+    name: &str,
+) -> Result<ActorSpec> {
+    let character = character::get(client, name)
+        .await
+        .map_err(ResolveError::ResourceError)?;
+    load_from_manifest(configuration, character.spec)
 }
 
 /// Load mainfest from remote VCS (like github) and return the actor spec.
 pub fn load_from_source(configuration: &CredentialConfiguration, reference: &GitReference) -> Result<ActorSpec> {
-    let client = Client::init(configuration, &reference.repo).map_err(ResolveError::SCMError)?;
+    let client = ScmClient::init(configuration, &reference.repo).map_err(ResolveError::SCMError)?;
 
     let source = patches::source(&client, reference)?;
     let path = source.path.clone().unwrap_or(".amp.toml".into());
@@ -62,5 +77,6 @@ pub fn load_from_source(configuration: &CredentialConfiguration, reference: &Git
         .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
     debug!("The `.amp.toml` content of {} is:\n{:?}", repo, content);
 
-    load_from_manifest(configuration, content.data.as_slice())
+    let manifest: Manifest = toml::from_slice(content.data.as_slice()).map_err(ResolveError::TomlParseFailed)?;
+    load_from_manifest(configuration, manifest)
 }

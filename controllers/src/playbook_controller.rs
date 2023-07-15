@@ -127,7 +127,9 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
     let configuration = ctx.configuration.read().await;
 
     for character in fetches.iter() {
-        let actor = resolver::load(&configuration, character).map_err(Error::ResolveError)?;
+        let actor = resolver::load(&ctx.k8s, &configuration, character)
+            .await
+            .map_err(Error::ResolveError)?;
 
         let message = "Fetch and add the actor to this playbook";
         trace(recorder, message).await.map_err(Error::ResourceError)?;

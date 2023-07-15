@@ -46,7 +46,7 @@ dependencies = [
 
 [[package]]
 name = "amp-apiserver"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -81,8 +81,8 @@ dependencies = [
 
 [[package]]
 name = "amp-common"
-version = "0.2.1"
-source = "git+https://github.com/amphitheatre-app/common?tag=v0.2.1#8e4d7fa1367eceb7716b86300734d4c99c683b07"
+version = "0.2.2"
+source = "git+https://github.com/amphitheatre-app/common?tag=v0.2.2#8318d64cf97ce4f1972850ce40552d3bcbb3f491"
 dependencies = [
  "anyhow",
  "chrono",
@@ -106,7 +106,7 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -142,9 +142,10 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "amp-common",
+ "amp-resources",
  "k8s-openapi",
  "kube",
  "thiserror",
@@ -155,7 +156,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "amp-common",
  "k8s-openapi",
