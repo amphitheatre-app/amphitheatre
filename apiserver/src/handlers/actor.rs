@@ -18,8 +18,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::extract::{Path, State};
+use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive};
 use axum::response::{IntoResponse, Sse};
+use axum::Json;
 use futures::Stream;
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::LogParams;
@@ -28,6 +30,7 @@ use tokio_stream::StreamExt as _;
 use uuid::Uuid;
 
 use crate::context::Context;
+use crate::requests::actor::SynchronizationRequest;
 use crate::response::{data, ApiError};
 use crate::services::actor::ActorService;
 
@@ -54,9 +57,10 @@ pub async fn list(Path(pid): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Res
 
 /// Returns a actor detail.
 #[utoipa::path(
-    get, path = "/v1/actors/{id}",
+    get, path = "/v1/playbooks/{pid}/actors/{name}",
     params(
-        ("id" = Uuid, description = "The id of actor"),
+        ("pid" = Uuid, description = "The id of playbook"),
+        ("name" = String, description = "The name of actor"),
     ),
     responses(
         (status = 200, description="Actor found successfully", body = ActorResponse),
@@ -64,16 +68,21 @@ pub async fn list(Path(pid): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Res
     ),
     tag = "Actors"
 )]
-pub async fn detail(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let actor = ActorService::get(ctx, id).await?;
+pub async fn detail(
+    Path(pid): Path<Uuid>,
+    Path(name): Path<String>,
+    State(ctx): State<Arc<Context>>,
+) -> Result<impl IntoResponse, ApiError> {
+    let actor = ActorService::get(ctx, pid, name).await?;
     Ok(data(actor))
 }
 
 /// Output the log streams of actor
 #[utoipa::path(
-    get, path = "/v1/actors/{id}/logs",
+    get, path = "/v1/playbooks/{pid}/actors/{name}/logs",
     params(
-        ("id" = Uuid, description = "The id of actor"),
+        ("pid" = Uuid, description = "The id of playbook"),
+        ("name" = String, description = "The name of actor"),
     ),
     responses(
         (status = 200, description="Actor's logs found successfully"),
@@ -82,14 +91,15 @@ pub async fn detail(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Re
     tag = "Actors"
 )]
 pub async fn logs(
-    Path(_id): Path<Uuid>,
+    Path(pid): Path<Uuid>,
+    Path(name): Path<String>,
     State(ctx): State<Arc<Context>>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
-    let api: Api<Pod> = Api::namespaced(ctx.k8s.clone(), "default");
+    let api: Api<Pod> = Api::namespaced(ctx.k8s.clone(), &pid.to_string());
     let params = LogParams::default();
 
     let stream = api
-        .log_stream("getting-started", &params)
+        .log_stream(&name, &params)
         .await
         .unwrap()
         .map(|result| match result {
@@ -104,9 +114,10 @@ pub async fn logs(
 
 /// Returns a actor's info, including environments, volumes...
 #[utoipa::path(
-    get, path = "/v1/actors/{id}/info",
+    get, path = "/v1/playbooks/{pid}/actors/{name}/info",
     params(
-        ("id" = Uuid, description = "The id of actor"),
+        ("pid" = Uuid, description = "The id of playbook"),
+        ("name" = String, description = "The name of actor"),
     ),
     responses(
         (status = 200, description="Actor's info found successfully"),
@@ -114,7 +125,7 @@ pub async fn logs(
     ),
     tag = "Actors"
 )]
-pub async fn info(Path(_id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> {
+pub async fn info(Path(_pid): Path<Uuid>, Path(_name): Path<String>) -> Result<impl IntoResponse, ApiError> {
     Ok(data(HashMap::from([
         (
             "environments",
@@ -155,9 +166,10 @@ pub async fn info(Path(_id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> 
 
 /// Returns a actor's stats.
 #[utoipa::path(
-    get, path = "/v1/actors/{id}/stats",
+    get, path = "/v1/playbooks/{pid}/actors/{name}/stats",
     params(
-        ("id" = Uuid, description = "The id of actor"),
+        ("pid" = Uuid, description = "The id of playbook"),
+        ("name" = String, description = "The name of actor"),
     ),
     responses(
         (status = 200, description="Actor's stats found successfully"),
@@ -165,11 +177,37 @@ pub async fn info(Path(_id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> 
     ),
     tag = "Actors"
 )]
-pub async fn stats(Path(_id): Path<Uuid>) -> Result<impl IntoResponse, ApiError> {
+pub async fn stats(Path(_pid): Path<Uuid>, Path(_name): Path<String>) -> Result<impl IntoResponse, ApiError> {
     Ok(data(HashMap::from([
         ("CPU USAGE", "1.98%"),
         ("MEMORY USAGE", "65.8MB"),
         ("DISK READ/WRITE", "5.3MB / 43.7 MB"),
         ("NETWORK I/O", "5.7 kB / 3 kB"),
     ])))
+}
+
+/// Recive a actor's sources and publish them to Message Queue.
+#[utoipa::path(
+    post, path = "/v1/playbooks/{pid}/actors/{name}/sync",
+    params(
+        ("pid" = Uuid, description = "The id of playbook"),
+        ("name" = String, description = "The name of actor"),
+    ),
+    request_body(
+        content = inline(SynchronizationRequest),
+        description = "Create playbook request",
+        content_type = "application/json"
+    ),
+    responses(
+        (status = 200, description="Sync the actor's sources successfully"),
+        (status = 404, description = "Actor not found")
+    ),
+    tag = "Actors"
+)]
+pub fn sync(
+    Path(_pid): Path<Uuid>,
+    Path(_name): Path<String>,
+    Json(_req): Json<SynchronizationRequest>,
+) -> Result<impl IntoResponse, ApiError> {
+    Ok(StatusCode::CREATED)
 }

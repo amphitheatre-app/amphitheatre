@@ -1,10 +1,12 @@
-use amp_common::schema::Source;
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub struct CreatePlaybookRequest {
-    pub title: String,
-    pub description: String,
-    pub preface: Source,
+pub struct SynchronizationRequest {
+    pub kind: String,
+    pub paths: Vec<String>,
+    pub attributes: HashMap<String, String>,
+    pub payload: Vec<u8>,
 }

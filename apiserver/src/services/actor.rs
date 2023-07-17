@@ -23,7 +23,7 @@ use crate::services::Result;
 pub struct ActorService;
 
 impl ActorService {
-    pub async fn get(_ctx: Arc<Context>, _id: Uuid) -> Result<ActorResponse> {
+    pub async fn get(_ctx: Arc<Context>, _pid: Uuid, _name: String) -> Result<ActorResponse> {
         unimplemented!()
     }
 
