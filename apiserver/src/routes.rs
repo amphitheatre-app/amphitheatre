@@ -23,10 +23,11 @@ use crate::handlers;
 pub fn build() -> Router<Arc<Context>> {
     Router::new()
         // actors
-        .route("/v1/actors/:id", get(handlers::actor::detail))
-        .route("/v1/actors/:id/logs", get(handlers::actor::logs))
-        .route("/v1/actors/:id/info", get(handlers::actor::info))
-        .route("/v1/actors/:id/stats", get(handlers::actor::stats))
+        .route("/v1/actors/:pid/:name", get(handlers::actor::detail))
+        .route("/v1/actors/:pid/:name/logs", get(handlers::actor::logs))
+        .route("/v1/actors/:pid/:name/info", get(handlers::actor::info))
+        .route("/v1/actors/:pid/:name/stats", get(handlers::actor::stats))
+        .route("/v1/actors/:pid/:name/sync", post(handlers::actor::sync))
         //
         // playbooks
         .route("/v1/playbooks", get(handlers::playbook::list))

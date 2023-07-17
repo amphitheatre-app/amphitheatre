@@ -16,6 +16,7 @@ path = "src/lib.rs"
 amp-common = { workspace = true, optional = false }
 amp-resolver = { workspace = true, optional = false }
 amp-resources = { workspace = true, optional = false }
+async-nats = { workspace = true, optional = false }
 anyhow = { workspace = true, optional = false }
 axum = { version = "0.6", features = ["headers"] }
 clap = { workspace = true, optional = false }

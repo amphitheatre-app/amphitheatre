@@ -57,7 +57,7 @@ pub async fn list(Path(pid): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Res
 
 /// Returns a actor detail.
 #[utoipa::path(
-    get, path = "/v1/playbooks/{pid}/actors/{name}",
+    get, path = "/v1/actors/{pid}/{name}",
     params(
         ("pid" = Uuid, description = "The id of playbook"),
         ("name" = String, description = "The name of actor"),
@@ -69,9 +69,8 @@ pub async fn list(Path(pid): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Res
     tag = "Actors"
 )]
 pub async fn detail(
-    Path(pid): Path<Uuid>,
-    Path(name): Path<String>,
     State(ctx): State<Arc<Context>>,
+    Path((pid, name)): Path<(Uuid, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let actor = ActorService::get(ctx, pid, name).await?;
     Ok(data(actor))
@@ -79,7 +78,7 @@ pub async fn detail(
 
 /// Output the log streams of actor
 #[utoipa::path(
-    get, path = "/v1/playbooks/{pid}/actors/{name}/logs",
+    get, path = "/v1/actors/{pid}/{name}/logs",
     params(
         ("pid" = Uuid, description = "The id of playbook"),
         ("name" = String, description = "The name of actor"),
@@ -91,9 +90,8 @@ pub async fn detail(
     tag = "Actors"
 )]
 pub async fn logs(
-    Path(pid): Path<Uuid>,
-    Path(name): Path<String>,
     State(ctx): State<Arc<Context>>,
+    Path((pid, name)): Path<(Uuid, String)>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
     let api: Api<Pod> = Api::namespaced(ctx.k8s.clone(), &pid.to_string());
     let params = LogParams::default();
@@ -114,7 +112,7 @@ pub async fn logs(
 
 /// Returns a actor's info, including environments, volumes...
 #[utoipa::path(
-    get, path = "/v1/playbooks/{pid}/actors/{name}/info",
+    get, path = "/v1/actors/{pid}/{name}/info",
     params(
         ("pid" = Uuid, description = "The id of playbook"),
         ("name" = String, description = "The name of actor"),
@@ -125,7 +123,7 @@ pub async fn logs(
     ),
     tag = "Actors"
 )]
-pub async fn info(Path(_pid): Path<Uuid>, Path(_name): Path<String>) -> Result<impl IntoResponse, ApiError> {
+pub async fn info(Path((_pid, _name)): Path<(Uuid, String)>) -> Result<impl IntoResponse, ApiError> {
     Ok(data(HashMap::from([
         (
             "environments",
@@ -166,7 +164,7 @@ pub async fn info(Path(_pid): Path<Uuid>, Path(_name): Path<String>) -> Result<i
 
 /// Returns a actor's stats.
 #[utoipa::path(
-    get, path = "/v1/playbooks/{pid}/actors/{name}/stats",
+    get, path = "/v1/actors/{pid}/{name}/stats",
     params(
         ("pid" = Uuid, description = "The id of playbook"),
         ("name" = String, description = "The name of actor"),
@@ -177,7 +175,7 @@ pub async fn info(Path(_pid): Path<Uuid>, Path(_name): Path<String>) -> Result<i
     ),
     tag = "Actors"
 )]
-pub async fn stats(Path(_pid): Path<Uuid>, Path(_name): Path<String>) -> Result<impl IntoResponse, ApiError> {
+pub async fn stats(Path((_pid, _name)): Path<(Uuid, String)>) -> Result<impl IntoResponse, ApiError> {
     Ok(data(HashMap::from([
         ("CPU USAGE", "1.98%"),
         ("MEMORY USAGE", "65.8MB"),
@@ -188,7 +186,7 @@ pub async fn stats(Path(_pid): Path<Uuid>, Path(_name): Path<String>) -> Result<
 
 /// Recive a actor's sources and publish them to Message Queue.
 #[utoipa::path(
-    post, path = "/v1/playbooks/{pid}/actors/{name}/sync",
+    post, path = "/v1/actors/{pid}/{name}/sync",
     params(
         ("pid" = Uuid, description = "The id of playbook"),
         ("name" = String, description = "The name of actor"),
@@ -204,10 +202,21 @@ pub async fn stats(Path(_pid): Path<Uuid>, Path(_name): Path<String>) -> Result<
     ),
     tag = "Actors"
 )]
-pub fn sync(
-    Path(_pid): Path<Uuid>,
-    Path(_name): Path<String>,
-    Json(_req): Json<SynchronizationRequest>,
+pub async fn sync(
+    State(ctx): State<Arc<Context>>,
+    Path((pid, name)): Path<(Uuid, String)>,
+    Json(req): Json<SynchronizationRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
+    let client = async_nats::connect(&ctx.config.nats_url)
+        .await
+        .map_err(|err| ApiError::NatsConnectError(err.to_string()))?;
+
+    let subject = format!("{}/{}", pid, name);
+    let payload = serde_json::to_vec(&req).map_err(|err| ApiError::SerializeError(err.to_string()))?;
+    client
+        .publish(subject, payload.into())
+        .await
+        .map_err(|err| ApiError::NetsPublishError(err.to_string()))?;
+
     Ok(StatusCode::CREATED)
 }

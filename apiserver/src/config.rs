@@ -31,4 +31,8 @@ pub struct Config {
     /// The Server port.
     #[clap(long, env = "AMP_PORT")]
     pub port: u16,
+
+    /// The NATS URL.
+    #[clap(long, env = "AMP_NATS_URL")]
+    pub nats_url: String,
 }

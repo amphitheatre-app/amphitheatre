@@ -18,6 +18,7 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use thiserror::Error;
+use tracing::error;
 
 /// Represents the response from an API call
 #[derive(Serialize, Deserialize, Debug)]
@@ -79,6 +80,12 @@ pub enum ApiError {
     NotFound,
     #[error("Resolve Error")]
     ResolveError,
+    #[error("Nats Connect Error: {0}")]
+    NatsConnectError(String),
+    #[error("Nats Publish Error: {0}")]
+    NetsPublishError(String),
+    #[error("Serialize Error: {0}")]
+    SerializeError(String),
 }
 
 impl IntoResponse for ApiError {
@@ -89,7 +96,11 @@ impl IntoResponse for ApiError {
             Self::InternalServerError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             Self::NotFound => (StatusCode::NOT_FOUND, self.to_string()),
             Self::ResolveError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Self::NatsConnectError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Self::NetsPublishError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Self::SerializeError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
         };
+        error!("{} - {}", status, message);
         (status, Json(json!({ "message": message }))).into_response()
     }
 }
