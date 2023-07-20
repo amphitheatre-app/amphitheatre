@@ -32,7 +32,6 @@ pub mod service;
 pub mod service_account;
 
 const LAST_APPLIED_HASH_KEY: &str = "amphitheatre.app/last-applied-hash";
-const DEFAULT_KANIKO_IMAGE: &str = "gcr.io/kaniko-project/executor:v1.9.1";
 
 pub fn hash<T>(resource: &T) -> Result<String>
 where
@@ -42,4 +41,18 @@ where
     let hash = Sha256::digest(data);
 
     Ok(format!("{:x}", hash))
+}
+
+/// Returns a list of arguments in one-dash or two-dash style.
+#[inline]
+pub fn args(args: &[(&str, &str)], dash: i8) -> Vec<String> {
+    args.iter()
+        .map(|(key, value)| {
+            if dash == 1 {
+                format!("-{}={}", key, value)
+            } else {
+                format!("--{}={}", key, value)
+            }
+        })
+        .collect()
 }

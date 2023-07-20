@@ -17,9 +17,8 @@ use std::time::Duration;
 
 use amp_common::docker::{self, registry, DockerConfig};
 use amp_common::schema::{Actor, ActorState};
-use amp_resources::builder::{kaniko, kpack};
 use amp_resources::event::trace;
-use amp_resources::{actor, deployment, service};
+use amp_resources::{actor, builder, deployment, service};
 use futures::{future, StreamExt};
 use k8s_openapi::api::core::v1::Namespace;
 use kube::api::ListParams;
@@ -127,24 +126,30 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
         return Ok(Action::await_change());
     }
 
-    // Prefer to use Kaniko to build images with Dockerfile,
-    // else, build the image with Cloud Native Buildpacks
-    if actor.spec.has_dockerfile() {
-        tracing::debug!("Found dockerfile, build it with kaniko");
-        build_with_kaniko(actor, ctx, recorder).await?;
+    // Build the image
+    match builder::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
+        true => {
+            // Build job already exists, update it if there are new changes
+            let message = format!("Try to refresh an existing build Job {}", actor.spec.build_name());
+            trace(recorder, message).await.map_err(Error::ResourceError)?;
 
-        // Check If the build Job has not completed, requeue the reconciler.
-        if !kaniko::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
-            return Ok(Action::requeue(Duration::from_secs(60)));
+            builder::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
-    } else {
-        tracing::debug!("Build the image with Cloud Native Buildpacks");
-        build_with_kpack(actor, ctx, recorder).await?;
+        false => {
+            // Create a new build job
+            let message = format!("Create new build Job: {}", actor.spec.build_name());
+            trace(recorder, message).await.map_err(Error::ResourceError)?;
 
-        // Check If the build Image has not completed, requeue the reconciler.
-        if !kpack::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
-            return Ok(Action::requeue(Duration::from_secs(60)));
+            builder::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
+    }
+
+    // Check If the build Job has not completed, requeue the reconciler.
+    if !builder::completed(&ctx.k8s, actor)
+        .await
+        .map_err(Error::ResourceError)?
+    {
+        return Ok(Action::requeue(Duration::from_secs(60)));
     }
 
     // Once the image is built, it is deployed to the cluster with the
@@ -158,48 +163,6 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
         .map_err(Error::ResourceError)?;
 
     Ok(Action::await_change())
-}
-
-async fn build_with_kaniko(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    match kaniko::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
-        true => {
-            // Build job already exists, update it if there are new changes
-            let message = format!("Try to refresh an existing build Job {}", actor.spec.build_name());
-            trace(recorder, message).await.map_err(Error::ResourceError)?;
-
-            kaniko::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
-        }
-        false => {
-            // Create a new build job
-            let message = format!("Create new build Job: {}", actor.spec.build_name());
-            trace(recorder, message).await.map_err(Error::ResourceError)?;
-
-            kaniko::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
-        }
-    }
-
-    Ok(())
-}
-
-async fn build_with_kpack(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    match kpack::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
-        true => {
-            // Image already exists, update it if there are new changes
-            let message = format!("Try to refresh an existing Image {}", actor.spec.build_name());
-            trace(recorder, message).await.map_err(Error::ResourceError)?;
-
-            kpack::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
-        }
-        false => {
-            // Create a new image
-            let message = format!("Create new image: {}", actor.spec.build_name());
-            trace(recorder, message).await.map_err(Error::ResourceError)?;
-
-            kpack::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
-        }
-    }
-
-    Ok(())
 }
 
 async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {

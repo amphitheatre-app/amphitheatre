@@ -13,9 +13,9 @@
 // limitations under the License.
 
 use amp_common::schema::ActorSpec;
-use k8s_openapi::api::core::v1::{Container, KeyToPath, PodSpec, SecretVolumeSource, Volume, VolumeMount};
+use k8s_openapi::api::core::v1::{Container, EnvVar, PodSpec};
 
-use super::{git_sync, DEFAULT_KANIKO_IMAGE};
+use super::{git_sync, workspace_mount, workspace_volume, DEFAULT_BP_BUILDER};
 use crate::args;
 
 pub fn pod(spec: &ActorSpec) -> PodSpec {
@@ -25,58 +25,38 @@ pub fn pod(spec: &ActorSpec) -> PodSpec {
         init_containers: Some(vec![git_sync::container(&spec.source)]),
         containers: vec![container(spec)],
         service_account_name: Some(service_account_name),
-        volumes: Some(vec![kaniko_secret_volume(), kaniko_secret_volume()]),
+        volumes: Some(vec![workspace_volume()]),
         ..Default::default()
     }
 }
 
 pub fn container(spec: &ActorSpec) -> Container {
     // Parse the arguments for the container
-    let destination = spec.docker_tag();
-    let arguments = vec![
-        ("context", "/workspace/app"),
-        ("destination", destination.as_str()),
-        ("verbosity", "trace"),
-        ("cache", "true"),
-    ];
-    let mut arguments = args(&arguments, 2);
+    let arguments = vec![("app", "/workspace/app")];
+    let mut arguments = args(&arguments, 1);
     if let Some(argments) = spec.build_args() {
         arguments.extend(argments);
+    }
+    arguments.push(spec.docker_tag());
+
+    // Parse the environment variables for the container
+    let mut environment = vec![EnvVar {
+        name: "CNB_PLATFORM_API".into(),
+        value: Some("0.11".into()),
+        ..Default::default()
+    }];
+    if let Some(env) = spec.build_env() {
+        environment.extend(env)
     }
 
     Container {
         name: "builder".to_string(),
-        image: Some(DEFAULT_KANIKO_IMAGE.into()),
+        image: Some(DEFAULT_BP_BUILDER.into()),
         image_pull_policy: Some("IfNotPresent".into()),
+        command: Some(vec!["/cnb/lifecycle/creator".into()]),
         args: Some(arguments),
-        env: spec.build_env(),
-        volume_mounts: Some(vec![kaniko_secret_mount()]),
-        ..Default::default()
-    }
-}
-
-#[inline]
-fn kaniko_secret_volume() -> Volume {
-    Volume {
-        name: "kaniko-secret".to_string(),
-        secret: Some(SecretVolumeSource {
-            secret_name: Some("amp-registry-credentials".into()),
-            items: Some(vec![KeyToPath {
-                key: ".dockerconfigjson".into(),
-                path: "config.json".into(),
-                ..Default::default()
-            }]),
-            ..Default::default()
-        }),
-        ..Default::default()
-    }
-}
-
-#[inline]
-fn kaniko_secret_mount() -> VolumeMount {
-    VolumeMount {
-        name: "kaniko-secret".into(),
-        mount_path: "/kaniko/.docker".into(),
+        env: Some(environment),
+        volume_mounts: Some(vec![workspace_mount()]),
         ..Default::default()
     }
 }
