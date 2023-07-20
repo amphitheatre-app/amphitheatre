@@ -15,7 +15,7 @@
 use amp_common::schema::ActorSpec;
 use k8s_openapi::api::core::v1::{Container, EnvVar, PodSpec};
 
-use super::{git_sync, workspace_mount, workspace_volume, DEFAULT_BP_BUILDER};
+use super::{git_sync, workspace_mount, workspace_volume};
 use crate::args;
 
 pub fn pod(spec: &ActorSpec) -> PodSpec {
@@ -51,7 +51,7 @@ pub fn container(spec: &ActorSpec) -> Container {
 
     Container {
         name: "builder".to_string(),
-        image: Some(DEFAULT_BP_BUILDER.into()),
+        image: Some(spec.builder()),
         image_pull_policy: Some("IfNotPresent".into()),
         command: Some(vec!["/cnb/lifecycle/creator".into()]),
         args: Some(arguments),

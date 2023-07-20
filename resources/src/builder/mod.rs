@@ -31,7 +31,6 @@ use crate::{hash, LAST_APPLIED_HASH_KEY};
 
 const DEFAULT_KANIKO_IMAGE: &str = "gcr.io/kaniko-project/executor:v1.9.1";
 const DEFAULT_GIT_SYNC_IMAGE: &str = "registry.k8s.io/git-sync/git-sync:v4.0.0-rc3";
-const DEFAULT_BP_BUILDER: &str = "gcr.io/buildpacks/builder:v1";
 
 pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
     let namespace = actor
