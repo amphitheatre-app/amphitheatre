@@ -17,8 +17,9 @@ use std::time::Duration;
 
 use amp_common::docker::{self, registry, DockerConfig};
 use amp_common::schema::{Actor, ActorState};
+use amp_resources::builder::{kaniko, kpack};
 use amp_resources::event::trace;
-use amp_resources::{actor, deployment, image, job, service};
+use amp_resources::{actor, deployment, service};
 use futures::{future, StreamExt};
 use k8s_openapi::api::core::v1::Namespace;
 use kube::api::ListParams;
@@ -133,7 +134,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
         build_with_kaniko(actor, ctx, recorder).await?;
 
         // Check If the build Job has not completed, requeue the reconciler.
-        if !job::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
+        if !kaniko::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
             return Ok(Action::requeue(Duration::from_secs(60)));
         }
     } else {
@@ -141,7 +142,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
         build_with_kpack(actor, ctx, recorder).await?;
 
         // Check If the build Image has not completed, requeue the reconciler.
-        if !image::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
+        if !kpack::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
             return Ok(Action::requeue(Duration::from_secs(60)));
         }
     }
@@ -160,20 +161,20 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
 }
 
 async fn build_with_kaniko(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    match job::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
+    match kaniko::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
         true => {
             // Build job already exists, update it if there are new changes
             let message = format!("Try to refresh an existing build Job {}", actor.spec.build_name());
             trace(recorder, message).await.map_err(Error::ResourceError)?;
 
-            job::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
+            kaniko::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
         false => {
             // Create a new build job
             let message = format!("Create new build Job: {}", actor.spec.build_name());
             trace(recorder, message).await.map_err(Error::ResourceError)?;
 
-            job::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
+            kaniko::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
     }
 
@@ -181,20 +182,20 @@ async fn build_with_kaniko(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorde
 }
 
 async fn build_with_kpack(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
-    match image::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
+    match kpack::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
         true => {
             // Image already exists, update it if there are new changes
             let message = format!("Try to refresh an existing Image {}", actor.spec.build_name());
             trace(recorder, message).await.map_err(Error::ResourceError)?;
 
-            image::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
+            kpack::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
         false => {
             // Create a new image
             let message = format!("Create new image: {}", actor.spec.build_name());
             trace(recorder, message).await.map_err(Error::ResourceError)?;
 
-            image::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
+            kpack::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
     }
 

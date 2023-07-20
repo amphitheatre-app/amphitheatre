@@ -20,7 +20,7 @@ use kube::discovery::ApiResource;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::{from_value, json};
 
-use super::error::{Error, Result};
+use crate::error::{Error, Result};
 
 pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
     let namespace = actor

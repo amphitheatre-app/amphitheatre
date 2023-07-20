@@ -19,13 +19,12 @@ use sha2::{Digest, Sha256};
 use self::error::{Error, Result};
 
 pub mod actor;
+pub mod builder;
 pub mod character;
 pub mod credential;
 pub mod deployment;
 pub mod error;
 pub mod event;
-pub mod image;
-pub mod job;
 pub mod namespace;
 pub mod playbook;
 pub mod secret;

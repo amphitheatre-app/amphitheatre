@@ -23,8 +23,8 @@ use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
 
-use super::error::{Error, Result};
-use super::{hash, DEFAULT_KANIKO_IMAGE, LAST_APPLIED_HASH_KEY};
+use crate::error::{Error, Result};
+use crate::{hash, DEFAULT_KANIKO_IMAGE, LAST_APPLIED_HASH_KEY};
 
 pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
     let namespace = actor
