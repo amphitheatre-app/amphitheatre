@@ -17,6 +17,7 @@ use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
 
+use amp_common::sync::Synchronization;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive};
@@ -30,7 +31,6 @@ use tokio_stream::StreamExt as _;
 use uuid::Uuid;
 
 use crate::context::Context;
-use crate::requests::actor::SynchronizationRequest;
 use crate::response::{data, ApiError};
 use crate::services::actor::ActorService;
 
@@ -192,8 +192,8 @@ pub async fn stats(Path((_pid, _name)): Path<(Uuid, String)>) -> Result<impl Int
         ("name" = String, description = "The name of actor"),
     ),
     request_body(
-        content = inline(SynchronizationRequest),
-        description = "Create playbook request",
+        content = inline(Synchronization),
+        description = "File synchronization request body",
         content_type = "application/json"
     ),
     responses(
@@ -205,7 +205,7 @@ pub async fn stats(Path((_pid, _name)): Path<(Uuid, String)>) -> Result<impl Int
 pub async fn sync(
     State(ctx): State<Arc<Context>>,
     Path((pid, name)): Path<(Uuid, String)>,
-    Json(req): Json<SynchronizationRequest>,
+    Json(req): Json<Synchronization>,
 ) -> Result<impl IntoResponse, ApiError> {
     let client = async_nats::connect(&ctx.config.nats_url)
         .await

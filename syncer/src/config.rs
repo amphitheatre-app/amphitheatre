@@ -34,4 +34,7 @@ pub struct Config {
     /// The NATS subject will be used to subscribe to messages.
     #[clap(long, env = "AMP_SUBJECT")]
     pub subject: String,
+    /// The workspace path.
+    #[clap(long, env = "AMP_WORKSPACE")]
+    pub workspace: String,
 }

@@ -12,27 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
+use std::path::Path;
 
+use amp_common::sync::EventKinds::*;
+use amp_common::sync::Synchronization;
 use clap::Parser;
 use config::Config;
 use futures::StreamExt;
-use serde::{Deserialize, Serialize};
 use tracing::metadata::LevelFilter;
 use tracing::{debug, error};
 use tracing_subscriber::EnvFilter;
 
-pub mod config;
-
-#[derive(Serialize, Deserialize)]
-pub struct Synchronization {
-    pub kind: String,
-    pub paths: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<HashMap<String, String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payload: Option<Vec<u8>>,
-}
+mod config;
+mod handle;
 
 #[tokio::main]
 async fn main() -> Result<(), async_nats::Error> {
@@ -50,10 +42,12 @@ async fn main() -> Result<(), async_nats::Error> {
     let config = Config::parse();
     debug!("the nats url: {:?}", config.nats_url);
     debug!("the subject: {:?}", config.subject);
+    debug!("the workspace: {:?}", config.workspace);
 
     let client = async_nats::connect(&config.nats_url).await?;
     let mut subscriber = client.subscribe(config.subject).await?;
 
+    let workspace = Path::new(&config.workspace);
     while let Some(message) = subscriber.next().await {
         let synchronization = serde_json::from_slice::<Synchronization>(message.payload.as_ref());
         if let Err(err) = synchronization {
@@ -63,6 +57,15 @@ async fn main() -> Result<(), async_nats::Error> {
 
         let req = synchronization.unwrap();
         debug!("Received valid message: kind={:?} paths={:?}", req.kind, req.paths);
+
+        match req.kind {
+            Create => handle::create(workspace, req),
+            Modify => handle::modify(workspace, req),
+            Rename => handle::rename(workspace, req),
+            Remove => handle::remove(workspace, req),
+            Override => handle::override_all(workspace, req),
+            Other => debug!("Received other event, nothing to do!"),
+        }
     }
 
     Ok(())

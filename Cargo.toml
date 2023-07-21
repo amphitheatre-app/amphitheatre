@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/amphitheatre-app/amphitheatre"
@@ -20,7 +20,7 @@ members = [
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
 [workspace.dependencies]
 anyhow = "1.0"
-amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.2.3" }
+amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.3.0" }
 amp-resolver = { path = "resolver" }
 amp-resources = { path = "resources" }
 async-nats = "0.29.0"
