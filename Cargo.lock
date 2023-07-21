@@ -176,6 +176,17 @@ dependencies = [
 [[package]]
 name = "amp-syncer"
 version = "0.2.1"
+dependencies = [
+ "async-nats",
+ "clap",
+ "dotenv",
+ "futures",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "android_system_properties"
