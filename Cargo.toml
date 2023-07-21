@@ -14,6 +14,7 @@ members = [
     "crdgen",
     "resolver",
     "resources",
+    "syncer",
 ]
 
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
