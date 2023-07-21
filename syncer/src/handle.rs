@@ -14,8 +14,8 @@
 
 use std::path::Path;
 
-use amp_common::sync::Synchronization;
-use tracing::{debug, error};
+use amp_common::sync::{self, Synchronization};
+use tracing::{debug, error, warn};
 
 /// Handle an override event.
 /// Override workspace's files with payload tarball.
@@ -25,6 +25,34 @@ pub fn override_all(workspace: &Path, req: Synchronization) {
 
 pub fn create(workspace: &Path, req: Synchronization) {
     debug!("Received create event, workspace: {:?}, req: {:?}", workspace, req);
+    for path in req.paths {
+        match path {
+            sync::Path::File(file) => {
+                let path = workspace.join(file);
+                if path.exists() {
+                    warn!("Path already exists: {:?}", path);
+                    continue;
+                }
+
+                if let Some(parent) = path.parent() {
+                    if !parent.exists() {
+                        std::fs::create_dir_all(parent).unwrap();
+                    }
+                }
+
+                std::fs::File::create(path).unwrap();
+            }
+            sync::Path::Directory(path) => {
+                let path = workspace.join(path);
+                if path.exists() {
+                    warn!("Path already exists: {:?}", path);
+                    continue;
+                }
+
+                std::fs::create_dir_all(path).unwrap();
+            }
+        }
+    }
 }
 
 pub fn modify(workspace: &Path, req: Synchronization) {
