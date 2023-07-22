@@ -17,13 +17,16 @@ use std::path::Path;
 use amp_common::sync::{self, Synchronization};
 use tracing::{debug, error, trace, warn};
 
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
 /// Handle an override event.
 /// Override workspace's files with payload tarball.
-pub fn override_all(workspace: &Path, req: Synchronization) {
+pub fn replace(workspace: &Path, req: Synchronization) -> Result<()> {
     debug!("Received override event, workspace: {:?}, req: {:?}", workspace, req);
+    Ok(())
 }
 
-pub fn create(workspace: &Path, req: Synchronization) {
+pub fn create(workspace: &Path, req: Synchronization) -> Result<()> {
     debug!("Received create event, workspace: {:?}, req: {:?}", workspace, req);
     for path in req.paths {
         match path {
@@ -36,11 +39,11 @@ pub fn create(workspace: &Path, req: Synchronization) {
 
                 if let Some(parent) = path.parent() {
                     if !parent.exists() {
-                        std::fs::create_dir_all(parent).unwrap();
+                        std::fs::create_dir_all(parent)?;
                     }
                 }
 
-                std::fs::File::create(path).unwrap();
+                std::fs::File::create(path)?;
             }
             sync::Path::Directory(path) => {
                 let path = workspace.join(path);
@@ -49,21 +52,25 @@ pub fn create(workspace: &Path, req: Synchronization) {
                     continue;
                 }
 
-                std::fs::create_dir_all(path).unwrap();
+                std::fs::create_dir_all(path)?;
             }
         }
     }
+
+    Ok(())
 }
 
-pub fn modify(workspace: &Path, req: Synchronization) {
+pub fn modify(workspace: &Path, req: Synchronization) -> Result<()> {
     debug!("Received modify event, workspace: {:?}, req: {:?}", workspace, req);
+    Ok(())
 }
 
-pub fn rename(_workspace: &Path, _req: Synchronization) {
-    error!("Received rename event, nothing to do!")
+pub fn rename(_workspace: &Path, _req: Synchronization) -> Result<()> {
+    error!("Received rename event, nothing to do!");
+    Ok(())
 }
 
-pub fn remove(workspace: &Path, req: Synchronization) {
+pub fn remove(workspace: &Path, req: Synchronization) -> Result<()> {
     debug!("Received remove event, workspace: {:?}, req: {:?}", workspace, req);
     for path in req.paths {
         match path {
@@ -74,7 +81,7 @@ pub fn remove(workspace: &Path, req: Synchronization) {
                     continue;
                 }
 
-                std::fs::remove_file(path).unwrap();
+                std::fs::remove_file(path)?;
             }
             sync::Path::Directory(path) => {
                 let path = workspace.join(path);
@@ -84,8 +91,10 @@ pub fn remove(workspace: &Path, req: Synchronization) {
                 }
 
                 trace!("Removing directory: {:?}", path);
-                std::fs::remove_dir_all(path).unwrap();
+                std::fs::remove_dir_all(path)?;
             }
         }
     }
+
+    Ok(())
 }

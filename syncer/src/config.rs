@@ -26,7 +26,7 @@
 /// directory where the application is started.
 ///
 /// See `.env.sample` in the repository root for details.
-#[derive(Clone, clap::Parser)]
+#[derive(Clone, Debug, clap::Parser)]
 pub struct Config {
     /// The NATS URL.
     #[clap(long, env = "AMP_NATS_URL")]

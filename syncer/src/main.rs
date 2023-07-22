@@ -16,13 +16,13 @@ use std::path::Path;
 
 use amp_common::sync::EventKinds::*;
 use amp_common::sync::Synchronization;
-use async_nats::jetstream::consumer::pull;
+use async_nats::jetstream::consumer::{pull, PullConsumer};
 use async_nats::jetstream::{self, stream};
 use clap::Parser;
 use config::Config;
 use futures::StreamExt;
 use tracing::metadata::LevelFilter;
-use tracing::{debug, error};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 mod config;
@@ -31,7 +31,7 @@ mod handle;
 #[tokio::main]
 async fn main() -> Result<(), async_nats::Error> {
     let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::TRACE.into())
+        .with_default_directive(LevelFilter::INFO.into())
         .from_env_lossy();
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
@@ -42,20 +42,62 @@ async fn main() -> Result<(), async_nats::Error> {
     // Parse our configuration from the environment.
     // This will exit with a help message if something is wrong.
     let config = Config::parse();
-    debug!("the nats url: {:?}", config.nats_url);
-    debug!("the subject: {:?}", config.subject);
+    info!("Configuration: {:#?}", config);
 
-    debug!("the workspace: {:?}", config.workspace);
+    // initialize some variables
     let workspace = Path::new(&config.workspace);
 
+    info!("Connecting to NATS server: {}", config.nats_url);
+    let consumer = connect(&config).await?;
+
+    // Consume messages from the consumer
+    let mut messages = consumer.messages().await?;
+    while let Some(Ok(message)) = messages.next().await {
+        let synchronization = serde_json::from_slice(message.payload.as_ref());
+        if let Err(err) = synchronization {
+            error!("Received invalid message: {:?} with error: {:?}", message.payload, err);
+            continue;
+        }
+
+        let req: Synchronization = synchronization.unwrap();
+        debug!("Received valid message: kind={:?} paths={:?}", req.kind, req.paths);
+
+        // Handle the message
+        if let Err(err) = match req.kind {
+            Create => handle::create(workspace, req),
+            Modify => handle::modify(workspace, req),
+            Rename => handle::rename(workspace, req),
+            Remove => handle::remove(workspace, req),
+            Override => handle::replace(workspace, req),
+            Other => {
+                warn!("Received other event, nothing to do!");
+                Ok(())
+            }
+        } {
+            // If we failed to handle the message, log the error and continue.
+            // We don't want to crash the application because of a single message.
+            // We can always retry later, but the next time retry,
+            // the original intent may no longer be valid!!!
+            error!("Failed to handle message: {:?}", err);
+            continue;
+        }
+        // Acknowledge the message if we handled it successfully.
+        if let Err(err) = message.ack().await {
+            error!("Failed to acknowledge message: {:?}", err);
+        }
+    }
+
+    Ok(())
+}
+
+/// Connect to NATS server and return a consumer.
+async fn connect(config: &Config) -> Result<PullConsumer, async_nats::Error> {
     // Connect to NATS server and create a JetStream instance.
     let client = async_nats::connect(&config.nats_url).await?;
-
     let jetstream = jetstream::new(client);
 
     // get or create a stream and a consumer
     let name = format!("consumers-{}", config.subject);
-    // First, we create a stream and bind to it.
     let consumer = jetstream
         .get_or_create_stream(stream::Config {
             name: config.subject.clone(),
@@ -71,31 +113,7 @@ async fn main() -> Result<(), async_nats::Error> {
             },
         )
         .await?;
+    info!("Subscribed to subject: {}", config.subject);
 
-    // Consume messages from the consumer
-    let mut messages = consumer.messages().await?;
-    while let Some(Ok(message)) = messages.next().await {
-        let synchronization = serde_json::from_slice::<Synchronization>(message.payload.as_ref());
-        if let Err(err) = synchronization {
-            error!("Received invalid message: {:?} with error: {:?}", message.payload, err);
-            continue;
-        }
-
-        let req = synchronization.unwrap();
-        debug!("Received valid message: kind={:?} paths={:?}", req.kind, req.paths);
-
-        match req.kind {
-            Create => handle::create(workspace, req),
-            Modify => handle::modify(workspace, req),
-            Rename => handle::rename(workspace, req),
-            Remove => handle::remove(workspace, req),
-            Override => handle::override_all(workspace, req),
-            Other => debug!("Received other event, nothing to do!"),
-        }
-
-        // Acknowledge the message
-        message.ack().await?;
-    }
-
-    Ok(())
+    Ok(consumer)
 }
