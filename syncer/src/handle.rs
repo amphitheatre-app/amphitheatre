@@ -15,7 +15,7 @@
 use std::path::Path;
 
 use amp_common::sync::{self, Synchronization};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, trace, warn};
 
 /// Handle an override event.
 /// Override workspace's files with payload tarball.
@@ -65,4 +65,27 @@ pub fn rename(_workspace: &Path, _req: Synchronization) {
 
 pub fn remove(workspace: &Path, req: Synchronization) {
     debug!("Received remove event, workspace: {:?}, req: {:?}", workspace, req);
+    for path in req.paths {
+        match path {
+            sync::Path::File(file) => {
+                let path = workspace.join(file);
+                if !path.exists() {
+                    warn!("Path does not exist: {:?}", path);
+                    continue;
+                }
+
+                std::fs::remove_file(path).unwrap();
+            }
+            sync::Path::Directory(path) => {
+                let path = workspace.join(path);
+                if !path.exists() {
+                    warn!("Path does not exist: {:?}", path);
+                    continue;
+                }
+
+                trace!("Removing directory: {:?}", path);
+                std::fs::remove_dir_all(path).unwrap();
+            }
+        }
+    }
 }
