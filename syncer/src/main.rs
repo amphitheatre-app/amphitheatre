@@ -16,6 +16,8 @@ use std::path::Path;
 
 use amp_common::sync::EventKinds::*;
 use amp_common::sync::Synchronization;
+use async_nats::jetstream::consumer::pull;
+use async_nats::jetstream::{self, stream};
 use clap::Parser;
 use config::Config;
 use futures::StreamExt;
@@ -42,13 +44,37 @@ async fn main() -> Result<(), async_nats::Error> {
     let config = Config::parse();
     debug!("the nats url: {:?}", config.nats_url);
     debug!("the subject: {:?}", config.subject);
+
     debug!("the workspace: {:?}", config.workspace);
-
-    let client = async_nats::connect(&config.nats_url).await?;
-    let mut subscriber = client.subscribe(config.subject).await?;
-
     let workspace = Path::new(&config.workspace);
-    while let Some(message) = subscriber.next().await {
+
+    // Connect to NATS server and create a JetStream instance.
+    let client = async_nats::connect(&config.nats_url).await?;
+
+    let jetstream = jetstream::new(client);
+
+    // get or create a stream and a consumer
+    let name = format!("consumers-{}", config.subject);
+    // First, we create a stream and bind to it.
+    let consumer = jetstream
+        .get_or_create_stream(stream::Config {
+            name: config.subject.clone(),
+            ..Default::default()
+        })
+        .await?
+        // Then, on that `Stream` use method to create Consumer and bind to it.
+        .get_or_create_consumer(
+            &name,
+            pull::Config {
+                durable_name: Some(name.clone()),
+                ..Default::default()
+            },
+        )
+        .await?;
+
+    // Consume messages from the consumer
+    let mut messages = consumer.messages().await?;
+    while let Some(Ok(message)) = messages.next().await {
         let synchronization = serde_json::from_slice::<Synchronization>(message.payload.as_ref());
         if let Err(err) = synchronization {
             error!("Received invalid message: {:?} with error: {:?}", message.payload, err);
@@ -66,6 +92,9 @@ async fn main() -> Result<(), async_nats::Error> {
             Override => handle::override_all(workspace, req),
             Other => debug!("Received other event, nothing to do!"),
         }
+
+        // Acknowledge the message
+        message.ack().await?;
     }
 
     Ok(())

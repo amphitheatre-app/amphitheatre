@@ -18,6 +18,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use amp_common::sync::Synchronization;
+use async_nats::jetstream;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive};
@@ -207,14 +208,16 @@ pub async fn sync(
     Path((pid, name)): Path<(Uuid, String)>,
     Json(req): Json<Synchronization>,
 ) -> Result<impl IntoResponse, ApiError> {
+    // Connect to NATS server and create a JetStream instance
     let client = async_nats::connect(&ctx.config.nats_url)
         .await
         .map_err(|err| ApiError::NatsConnectError(err.to_string()))?;
+    let jetstream = jetstream::new(client);
 
-    let subject = format!("{}/{}", pid, name);
+    // Publish a message to the stream
     let payload = serde_json::to_vec(&req).map_err(|err| ApiError::SerializeError(err.to_string()))?;
-    client
-        .publish(subject, payload.into())
+    jetstream
+        .publish(format!("{}-{}", pid, name), payload.into())
         .await
         .map_err(|err| ApiError::NetsPublishError(err.to_string()))?;
 
