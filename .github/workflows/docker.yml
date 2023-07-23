@@ -17,12 +17,14 @@ jobs:
       fail-fast: false
       matrix:
         platform: [linux/amd64, linux/arm64]
-        bin: [amp-apiserver, amp-controllers]
+        bin: [amp-apiserver, amp-controllers, amp-syncer]
         include:
           - bin: amp-apiserver
             dockerfile: ./apiserver/Dockerfile
           - bin: amp-controllers
             dockerfile: ./controllers/Dockerfile
+          - bin: amp-syncer
+            dockerfile: ./syncer/Dockerfile
     steps:
     - name: Set environment variable
       run: echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.bin }}" >> $GITHUB_ENV
@@ -80,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        bin: [amp-apiserver, amp-controllers]
+        bin: [amp-apiserver, amp-controllers, amp-syncer]
     steps:
     - name: Set environment variable
       run: echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.bin }}" >> $GITHUB_ENV
