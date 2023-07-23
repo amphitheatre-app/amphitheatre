@@ -14,6 +14,7 @@ async-nats = { workspace = true, optional = false }
 clap = { workspace = true, optional = false }
 dotenv = { workspace = true, optional = false }
 futures = { workspace = true, optional = false }
+tar = "0.4.39"
 tokio = { workspace = true, optional = false }
 tracing = { workspace = true, optional = false }
 tracing-subscriber = { workspace = true, optional = false }

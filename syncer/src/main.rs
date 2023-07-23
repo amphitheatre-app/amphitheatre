@@ -68,7 +68,7 @@ async fn main() -> Result<(), async_nats::Error> {
             Modify => handle::modify(workspace, req),
             Rename => handle::rename(workspace, req),
             Remove => handle::remove(workspace, req),
-            Override => handle::replace(workspace, req),
+            Overwrite => handle::overwrite(workspace, req),
             Other => {
                 warn!("Received other event, nothing to do!");
                 Ok(())
@@ -99,6 +99,7 @@ async fn connect(config: &Config) -> Result<PullConsumer, async_nats::Error> {
     // get or create a stream and a consumer
     let name = format!("consumers-{}", config.subject);
     let consumer = jetstream
+        // First, on the `JetStream` instance, use method to create Stream.
         .get_or_create_stream(stream::Config {
             name: config.subject.clone(),
             ..Default::default()
