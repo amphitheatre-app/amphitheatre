@@ -86,6 +86,8 @@ pub enum ApiError {
     NetsPublishError(String),
     #[error("Serialize Error: {0}")]
     SerializeError(String),
+    #[error("Failed to create stream: {0}")]
+    FailedCreateStream(String),
 }
 
 impl IntoResponse for ApiError {
@@ -99,6 +101,7 @@ impl IntoResponse for ApiError {
             Self::NatsConnectError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             Self::NetsPublishError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             Self::SerializeError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Self::FailedCreateStream(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
         };
         error!("{} - {}", status, message);
         (status, Json(json!({ "message": message }))).into_response()

@@ -18,7 +18,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use amp_common::sync::Synchronization;
-use async_nats::jetstream;
+use async_nats::jetstream::{self, stream};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive};
@@ -214,12 +214,25 @@ pub async fn sync(
         .map_err(|err| ApiError::NatsConnectError(err.to_string()))?;
     let jetstream = jetstream::new(client);
 
+    // Must create a stream before publishing, otherwise the publish will fail.
+    jetstream
+        .create_stream(stream::Config {
+            name: format!("{}-{}", pid, name),
+            ..Default::default()
+        })
+        .await
+        .map_err(|err| ApiError::FailedCreateStream(err.to_string()))?;
+
     // Publish a message to the stream
     let payload = serde_json::to_vec(&req).map_err(|err| ApiError::SerializeError(err.to_string()))?;
     jetstream
         .publish(format!("{}-{}", pid, name), payload.into())
+        // publish
+        .await
+        .map_err(|err| ApiError::NetsPublishError(err.to_string()))?
+        // wait for the ack
         .await
         .map_err(|err| ApiError::NetsPublishError(err.to_string()))?;
 
-    Ok(StatusCode::CREATED)
+    Ok(StatusCode::ACCEPTED)
 }
