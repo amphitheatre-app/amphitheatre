@@ -31,10 +31,13 @@ pub struct Config {
     /// The NATS URL.
     #[clap(long, env = "AMP_NATS_URL")]
     pub nats_url: String,
-    /// The NATS subject will be used to subscribe to messages.
-    #[clap(long, env = "AMP_SUBJECT")]
-    pub subject: String,
     /// The workspace path.
     #[clap(long, env = "AMP_WORKSPACE")]
     pub workspace: String,
+    /// The playbook identifier.
+    #[clap(long, env = "AMP_PLAYBOOK")]
+    pub playbook: String,
+    /// The actor name.
+    #[clap(long, env = "AMP_ACTOR")]
+    pub actor: String,
 }

@@ -33,16 +33,27 @@ impl ActorService {
         unimplemented!()
     }
 
-    pub async fn sync(ctx: Arc<Context>, subject: String, req: Synchronization) -> Result<(), async_nats::Error> {
+    pub async fn sync(
+        ctx: Arc<Context>,
+        pid: Uuid,
+        name: String,
+        req: Synchronization,
+    ) -> Result<(), async_nats::Error> {
         // Connect to NATS server and create a JetStream instance
         let client = async_nats::connect(&ctx.config.nats_url).await?;
         let jetstream = jetstream::new(client);
 
         // Must create a stream before publishing, otherwise the publish will fail.
-        let config = stream::Config::from(subject.as_str());
-        jetstream.create_stream(config).await?;
+        jetstream
+            .get_or_create_stream(stream::Config {
+                name: pid.to_string(),
+                subjects: vec![format!("{}.*", pid)],
+                ..Default::default()
+            })
+            .await?;
 
         // Publish a message to the stream
+        let subject = format!("{}.{}", pid, name);
         let payload = serde_json::to_vec(&req)?;
         jetstream.publish(subject, payload.into()).await?.await?;
 

@@ -31,7 +31,7 @@ mod handle;
 #[tokio::main]
 async fn main() -> Result<(), async_nats::Error> {
     let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
+        .with_default_directive(LevelFilter::TRACE.into())
         .from_env_lossy();
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
@@ -97,24 +97,27 @@ async fn connect(config: &Config) -> Result<PullConsumer, async_nats::Error> {
     let jetstream = jetstream::new(client);
 
     // get or create a stream and a consumer
-    let name = format!("consumers-{}", config.subject);
+    let subject = format!("{}.{}", config.playbook, config.actor);
+    let name = "amp-syncer";
     let consumer = jetstream
         // First, on the `JetStream` instance, use method to create Stream.
         .get_or_create_stream(stream::Config {
-            name: config.subject.clone(),
+            name: config.playbook.to_string(),
+            subjects: vec![format!("{}.*", config.playbook)],
             ..Default::default()
         })
         .await?
         // Then, on that `Stream` use method to create Consumer and bind to it.
         .get_or_create_consumer(
-            &name,
+            name,
             pull::Config {
-                durable_name: Some(name.clone()),
+                durable_name: Some(name.to_string()),
+                filter_subject: subject.clone(),
                 ..Default::default()
             },
         )
         .await?;
-    info!("Subscribed to subject: {}", config.subject);
+    info!("Subscribed to stream {} and subject: {}", config.playbook, subject);
 
     Ok(consumer)
 }
