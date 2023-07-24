@@ -20,6 +20,7 @@ use amp_common::schema::{EitherCharacter, Playbook, PlaybookState};
 use amp_resolver as resolver;
 use amp_resources::event::trace;
 use amp_resources::{actor, namespace, playbook};
+use async_nats::jetstream;
 use futures::{future, StreamExt};
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::api::ListParams;
@@ -173,8 +174,23 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
     Ok(())
 }
 
-pub async fn cleanup(_playbook: &Playbook, _ctx: &Arc<Context>, _recorder: &Recorder) -> Result<Action> {
+pub async fn cleanup(playbook: &Playbook, ctx: &Arc<Context>, _recorder: &Recorder) -> Result<Action> {
+    // Delete the NATS stream for this playbook.
+    delete_nats_stream(ctx, playbook).await.map_err(Error::NatsError)?;
+
     Ok(Action::await_change())
+}
+
+/// Delete the NATS stream for this playbook.
+async fn delete_nats_stream(ctx: &Arc<Context>, _playbook: &Playbook) -> Result<(), async_nats::Error> {
+    // Connect to NATS and create a JetStream instance.
+    let client = async_nats::connect(&ctx.config.nats_url).await?;
+    let jetstream = jetstream::new(client);
+
+    // Delete the stream if it exists.
+    jetstream.delete_stream(_playbook.name_any()).await?;
+
+    Ok(())
 }
 
 #[inline]

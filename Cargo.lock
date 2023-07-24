@@ -46,7 +46,7 @@ dependencies = [
 
 [[package]]
 name = "amp-apiserver"
-version = "0.3.9"
+version = "0.3.10"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -109,12 +109,13 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.3.9"
+version = "0.3.10"
 dependencies = [
  "amp-common",
  "amp-resolver",
  "amp-resources",
  "anyhow",
+ "async-nats",
  "clap",
  "dotenv",
  "futures",
@@ -145,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.3.9"
+version = "0.3.10"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -159,7 +160,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.3.9"
+version = "0.3.10"
 dependencies = [
  "amp-common",
  "k8s-openapi",
@@ -177,7 +178,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.3.9"
+version = "0.3.10"
 dependencies = [
  "amp-common",
  "async-nats",

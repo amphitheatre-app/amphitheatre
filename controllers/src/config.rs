@@ -37,4 +37,8 @@ pub struct Config {
     /// currently using, the default is `default`.
     #[clap(long, env = "AMP_SERVICE_ACCOUNT_NAME", default_value = "default")]
     pub service_account_name: String,
+
+    /// The NATS URL.
+    #[clap(long, env = "AMP_NATS_URL")]
+    pub nats_url: String,
 }
