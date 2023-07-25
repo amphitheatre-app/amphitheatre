@@ -46,7 +46,7 @@ dependencies = [
 
 [[package]]
 name = "amp-apiserver"
-version = "0.3.11"
+version = "0.4.0"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -82,8 +82,8 @@ dependencies = [
 
 [[package]]
 name = "amp-common"
-version = "0.3.3"
-source = "git+https://github.com/amphitheatre-app/common?tag=v0.3.3#f1750580ee0febc126bf5d26b777e0e278ed8438"
+version = "0.3.4"
+source = "git+https://github.com/amphitheatre-app/common?tag=v0.3.4#03eef81aad31f85bd67f35963aee9ef5612134b4"
 dependencies = [
  "anyhow",
  "chrono",
@@ -109,7 +109,7 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.3.11"
+version = "0.4.0"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -146,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.3.11"
+version = "0.4.0"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -160,7 +160,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.3.11"
+version = "0.4.0"
 dependencies = [
  "amp-common",
  "k8s-openapi",
@@ -178,7 +178,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.3.11"
+version = "0.4.0"
 dependencies = [
  "amp-common",
  "async-nats",

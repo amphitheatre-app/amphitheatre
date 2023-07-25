@@ -124,7 +124,7 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
     }
 
     tracing::debug!("The repositories to be fetched are: {fetches:?}");
-    let configuration = ctx.configuration.read().await;
+    let configuration = ctx.credentials.read().await;
 
     for character in fetches.iter() {
         let actor = resolver::load(&ctx.k8s, &configuration, character)

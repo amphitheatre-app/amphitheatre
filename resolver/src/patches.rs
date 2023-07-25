@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::config::{Credential, CredentialConfiguration};
+use amp_common::config::{Credential, Credentials};
 use amp_common::schema::{ActorSpec, GitReference};
 use amp_common::scm::client::Client;
 use tracing::debug;
@@ -59,13 +59,13 @@ pub fn source(client: &Client, source: &GitReference) -> Result<GitReference> {
     Ok(actual)
 }
 
-pub fn image(configuration: &CredentialConfiguration, spec: &ActorSpec) -> Result<String> {
+pub fn image(credentials: &Credentials, spec: &ActorSpec) -> Result<String> {
     if !spec.image.is_empty() {
         return Ok(spec.image.clone());
     }
 
     // Generate image name based on the current registry and character name.
-    if let Some(credential) = configuration.default_registry() {
+    if let Some(credential) = credentials.default_registry() {
         let mut registry = credential.server.as_str();
         if registry.eq("https://index.docker.io/v1/") {
             registry = "index.docker.io";

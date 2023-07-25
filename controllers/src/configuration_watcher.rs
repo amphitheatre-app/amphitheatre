@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use amp_common::config::CredentialConfiguration;
+use amp_common::config::Credentials;
 use amp_resources::credential;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::ConfigMap;
@@ -57,10 +57,10 @@ async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
         debug!("Recived configmap data is: {:?}", data);
         if let Some(content) = data.get("configuration.toml") {
             debug!("The content of configuration.toml: {:?}", content);
-            let value: CredentialConfiguration = toml::from_str(content)?;
+            let value: Credentials = toml::from_str(content)?;
 
-            let mut configuration = ctx.configuration.write().await;
-            *configuration = value;
+            let mut credentials = ctx.credentials.write().await;
+            *credentials = value;
 
             // Refresh the credentials under the amp platform's own namespace.
             debug!("Refresh the credentials under the amp platform's own namespace.");
@@ -68,7 +68,7 @@ async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
                 &ctx.k8s,
                 &ctx.config.namespace,
                 &ctx.config.service_account_name,
-                &configuration,
+                &credentials,
             )
             .await?;
 

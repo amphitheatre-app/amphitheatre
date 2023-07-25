@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::config::CredentialConfiguration;
+use amp_common::config::Credentials;
 use async_nats::jetstream;
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::events::Recorder;
@@ -31,7 +31,7 @@ use crate::config::Config;
 /// judgement call.
 pub struct Context {
     pub k8s: Client,
-    pub configuration: RwLock<CredentialConfiguration>,
+    pub credentials: RwLock<Credentials>,
     pub config: Config,
     pub jetstream: jetstream::Context,
 }
@@ -39,7 +39,7 @@ pub struct Context {
 impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
         let k8s = Client::try_default().await?;
-        let configuration = RwLock::new(CredentialConfiguration::default());
+        let credentials = RwLock::new(Credentials::default());
 
         // Connect to NATS and create a JetStream instance.
         let client = async_nats::connect(&config.nats_url).await?;
@@ -47,7 +47,7 @@ impl Context {
 
         Ok(Context {
             k8s,
-            configuration,
+            credentials,
             config,
             jetstream,
         })

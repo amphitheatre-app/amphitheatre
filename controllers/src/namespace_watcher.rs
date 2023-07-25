@@ -57,8 +57,8 @@ async fn handle(ctx: &Arc<Context>, ns: &Namespace) -> anyhow::Result<()> {
     info!("Handle an added Namespace from k8s: {:?}", ns.name_any());
 
     // Inject dependent credentials for this namespace.
-    let configuration = ctx.configuration.read().await;
-    credential::sync(&ctx.k8s, &ns.name_any(), "default", &configuration).await?;
+    let credentials = ctx.credentials.read().await;
+    credential::sync(&ctx.k8s, &ns.name_any(), "default", &credentials).await?;
 
     Ok(())
 }

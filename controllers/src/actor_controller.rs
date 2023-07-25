@@ -101,8 +101,8 @@ async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<
 
 async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
     // Return if the image already exists
-    let configuration = ctx.configuration.read().await;
-    let config = DockerConfig::from(&configuration.registries);
+    let credentials = ctx.credentials.read().await;
+    let config = DockerConfig::from(&credentials.registries);
 
     let credential = docker::get_credential(&config, &actor.spec.image);
     let credential = match credential {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::config::CredentialConfiguration;
+use amp_common::config::Credentials;
 use amp_common::docker::DockerConfig;
 use k8s_openapi::api::core::v1::Secret;
 use kube::{Client, ResourceExt};
@@ -21,19 +21,19 @@ use tracing::{debug, info};
 use super::error::Result;
 use crate::{secret, service_account};
 
-pub async fn sync(client: &Client, namespace: &str, name: &str, configuration: &CredentialConfiguration) -> Result<()> {
-    debug!("The current configuration reads: {:?}", configuration);
+pub async fn sync(client: &Client, namespace: &str, name: &str, credentials: &Credentials) -> Result<()> {
+    debug!("The current configuration reads: {:?}", credentials);
 
     let mut secrets = vec![];
 
     // Patch the image pull secrets to service account
     info!("Patch the image pull secrets to Service Account {}", name);
-    secrets.extend(sync_registry_credentials(client, namespace, configuration).await?);
+    secrets.extend(sync_registry_credentials(client, namespace, credentials).await?);
     service_account::patch(client, namespace, name, &secrets, false, true).await?;
 
     // Patch the secrets to service account
     info!("Patch the secrets to Service Account {}", name);
-    secrets.extend(sync_repository_credentials(client, namespace, configuration).await?);
+    secrets.extend(sync_repository_credentials(client, namespace, credentials).await?);
     service_account::patch(client, namespace, name, &secrets, true, false).await?;
 
     // @TODO: Clean up unused secrets
@@ -42,14 +42,10 @@ pub async fn sync(client: &Client, namespace: &str, name: &str, configuration: &
 }
 
 /// Sync Docker registry credentials.
-async fn sync_registry_credentials(
-    client: &Client,
-    namespace: &str,
-    configuration: &CredentialConfiguration,
-) -> Result<Vec<Secret>> {
+async fn sync_registry_credentials(client: &Client, namespace: &str, credentials: &Credentials) -> Result<Vec<Secret>> {
     let mut secrets = vec![];
 
-    let config = DockerConfig::from(&configuration.registries);
+    let config = DockerConfig::from(&credentials.registries);
     let secret = secret::create_registry_secret(client, namespace, config).await?;
 
     info!("Created Secret {} for Docker Registries", secret.name_any());
@@ -62,11 +58,11 @@ async fn sync_registry_credentials(
 async fn sync_repository_credentials(
     client: &Client,
     namespace: &str,
-    configuration: &CredentialConfiguration,
+    credentials: &Credentials,
 ) -> Result<Vec<Secret>> {
     let mut secrets = vec![];
 
-    if let Some(repositories) = &configuration.repositories {
+    if let Some(repositories) = &credentials.repositories {
         for credential in repositories.iter() {
             let endpoint = &credential.server;
             let secret = secret::create_repository_secret(client, namespace, endpoint, credential).await?;
