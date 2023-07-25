@@ -13,9 +13,9 @@
 // limitations under the License.
 
 use amp_common::schema::ActorSpec;
-use k8s_openapi::api::core::v1::{Container, KeyToPath, PodSpec, SecretVolumeSource, Volume, VolumeMount};
+use k8s_openapi::api::core::v1::{Container, PodSpec, VolumeMount};
 
-use super::{git_sync, DEFAULT_KANIKO_IMAGE};
+use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume, DEFAULT_KANIKO_IMAGE};
 use crate::args;
 
 pub fn pod(spec: &ActorSpec) -> PodSpec {
@@ -23,7 +23,7 @@ pub fn pod(spec: &ActorSpec) -> PodSpec {
         restart_policy: Some("Never".into()),
         init_containers: Some(vec![git_sync::container(&spec.source)]),
         containers: vec![container(spec)],
-        volumes: Some(vec![kaniko_secret_volume(), kaniko_secret_volume()]),
+        volumes: Some(vec![workspace_volume(), docker_config_volume()]),
         ..Default::default()
     }
 }
@@ -34,7 +34,7 @@ pub fn container(spec: &ActorSpec) -> Container {
     let arguments = vec![
         ("context", "/workspace/app"),
         ("destination", destination.as_str()),
-        ("verbosity", "trace"),
+        ("verbosity", "info"),
         ("cache", "true"),
     ];
     let mut arguments = args(&arguments, 2);
@@ -48,32 +48,15 @@ pub fn container(spec: &ActorSpec) -> Container {
         image_pull_policy: Some("IfNotPresent".into()),
         args: Some(arguments),
         env: spec.build_env(),
-        volume_mounts: Some(vec![kaniko_secret_mount()]),
+        volume_mounts: Some(vec![workspace_mount(), docker_config_mount()]),
         ..Default::default()
     }
 }
 
 #[inline]
-fn kaniko_secret_volume() -> Volume {
-    Volume {
-        name: "kaniko-secret".to_string(),
-        secret: Some(SecretVolumeSource {
-            secret_name: Some("amp-registry-credentials".into()),
-            items: Some(vec![KeyToPath {
-                key: ".dockerconfigjson".into(),
-                path: "config.json".into(),
-                ..Default::default()
-            }]),
-            ..Default::default()
-        }),
-        ..Default::default()
-    }
-}
-
-#[inline]
-fn kaniko_secret_mount() -> VolumeMount {
+fn docker_config_mount() -> VolumeMount {
     VolumeMount {
-        name: "kaniko-secret".into(),
+        name: "docker-config".into(),
         mount_path: "/kaniko/.docker".into(),
         ..Default::default()
     }

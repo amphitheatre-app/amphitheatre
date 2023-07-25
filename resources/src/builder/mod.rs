@@ -20,7 +20,7 @@ use std::collections::BTreeMap;
 
 use amp_common::schema::Actor;
 use k8s_openapi::api::batch::v1::{Job, JobSpec};
-use k8s_openapi::api::core::v1::{PodTemplateSpec, Volume, VolumeMount};
+use k8s_openapi::api::core::v1::{KeyToPath, PodTemplateSpec, SecretVolumeSource, Volume, VolumeMount};
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
@@ -171,6 +171,23 @@ pub fn workspace_mount() -> VolumeMount {
     VolumeMount {
         name: "workspace".to_string(),
         mount_path: "/workspace".to_string(),
+        ..Default::default()
+    }
+}
+
+#[inline]
+pub fn docker_config_volume() -> Volume {
+    Volume {
+        name: "docker-config".to_string(),
+        secret: Some(SecretVolumeSource {
+            secret_name: Some("amp-registry-credentials".into()),
+            items: Some(vec![KeyToPath {
+                key: ".dockerconfigjson".into(),
+                path: "config.json".into(),
+                ..Default::default()
+            }]),
+            ..Default::default()
+        }),
         ..Default::default()
     }
 }

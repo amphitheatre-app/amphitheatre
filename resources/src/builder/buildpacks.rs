@@ -13,9 +13,9 @@
 // limitations under the License.
 
 use amp_common::schema::ActorSpec;
-use k8s_openapi::api::core::v1::{Container, EnvVar, PodSpec};
+use k8s_openapi::api::core::v1::{Container, EnvVar, PodSpec, VolumeMount};
 
-use super::{git_sync, workspace_mount, workspace_volume};
+use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume};
 use crate::args;
 
 pub fn pod(spec: &ActorSpec) -> PodSpec {
@@ -23,7 +23,7 @@ pub fn pod(spec: &ActorSpec) -> PodSpec {
         restart_policy: Some("Never".into()),
         init_containers: Some(vec![git_sync::container(&spec.source)]),
         containers: vec![container(spec)],
-        volumes: Some(vec![workspace_volume()]),
+        volumes: Some(vec![workspace_volume(), docker_config_volume()]),
         ..Default::default()
     }
 }
@@ -38,11 +38,18 @@ pub fn container(spec: &ActorSpec) -> Container {
     arguments.push(spec.docker_tag());
 
     // Parse the environment variables for the container
-    let mut environment = vec![EnvVar {
-        name: "CNB_PLATFORM_API".into(),
-        value: Some("0.11".into()),
-        ..Default::default()
-    }];
+    let mut environment = vec![
+        EnvVar {
+            name: "CNB_PLATFORM_API".into(),
+            value: Some("0.11".into()),
+            ..Default::default()
+        },
+        EnvVar {
+            name: "DOCKER_CONFIG".into(),
+            value: Some("/workspace/.docker".into()),
+            ..Default::default()
+        },
+    ];
     if let Some(env) = spec.build_env() {
         environment.extend(env)
     }
@@ -54,7 +61,16 @@ pub fn container(spec: &ActorSpec) -> Container {
         command: Some(vec!["/cnb/lifecycle/creator".into()]),
         args: Some(arguments),
         env: Some(environment),
-        volume_mounts: Some(vec![workspace_mount()]),
+        volume_mounts: Some(vec![workspace_mount(), docker_config_mount()]),
+        ..Default::default()
+    }
+}
+
+#[inline]
+pub fn docker_config_mount() -> VolumeMount {
+    VolumeMount {
+        name: "docker-config".into(),
+        mount_path: "/workspace/.docker".into(),
         ..Default::default()
     }
 }

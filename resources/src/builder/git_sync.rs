@@ -28,7 +28,6 @@ pub fn container(source: &GitReference) -> Container {
         ("repo", &source.repo),
         ("root", "/workspace/src"),
         ("link", "/workspace/app"),
-        ("verbose", "9"),
     ];
 
     Container {
