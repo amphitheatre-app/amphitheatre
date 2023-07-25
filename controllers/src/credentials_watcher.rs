@@ -17,7 +17,7 @@ use std::sync::Arc;
 use amp_common::config::Credentials;
 use amp_resources::credential;
 use futures::{StreamExt, TryStreamExt};
-use k8s_openapi::api::core::v1::ConfigMap;
+use k8s_openapi::api::core::v1::Secret;
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::{Api, ResourceExt};
 use tracing::{debug, error, info};
@@ -28,36 +28,35 @@ pub async fn new(ctx: &Arc<Context>) {
     let namespace = ctx.config.namespace.clone();
     debug!("namespace = {}", namespace);
 
-    let api = Api::<ConfigMap>::namespaced(ctx.k8s.clone(), &namespace);
-    let config = watcher::Config::default().fields("metadata.name=amp-configurations");
+    let api = Api::<Secret>::namespaced(ctx.k8s.clone(), &namespace);
+    let config = watcher::Config::default().fields("metadata.name=amp-credentials");
     let mut obs = watcher(api, config).applied_objects().boxed();
 
     loop {
-        let config_map = obs.try_next().await;
-        match config_map {
-            Ok(Some(cm)) => {
-                if let Err(err) = handle(ctx, &cm).await {
-                    error!("Handle config map failed: {}", err.to_string());
+        let secret = obs.try_next().await;
+        match secret {
+            Ok(Some(secret)) => {
+                if let Err(err) = handle(ctx, &secret).await {
+                    error!("Handle secret failed: {}", err.to_string());
                 }
             }
             Ok(None) => continue,
             Err(err) => {
-                error!("Resolve config config stream failed: {}", err.to_string());
+                error!("Resolve secret stream failed: {}", err.to_string());
                 continue;
             }
         }
     }
 }
 
-// This function lets the app handle an added/modified configmap from k8s.
-async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
-    info!("Handle an added/modified configmap from k8s: {}", cm.name_any());
+// This function lets the app handle an added/modified secret from k8s.
+async fn handle(ctx: &Arc<Context>, secret: &Secret) -> anyhow::Result<()> {
+    info!("Handle an added/modified secret from k8s: {}", secret.name_any());
 
-    if let Some(data) = &cm.data {
-        debug!("Recived configmap data is: {:?}", data);
-        if let Some(content) = data.get("configuration.toml") {
-            debug!("The content of configuration.toml: {:?}", content);
-            let value: Credentials = toml::from_str(content)?;
+    if let Some(data) = &secret.data {
+        if let Some(content) = data.get("credentials") {
+            debug!("The credentials is: {:?}", String::from_utf8(content.0.clone())?);
+            let value: Credentials = toml::from_slice(&content.0)?;
 
             let mut credentials = ctx.credentials.write().await;
             *credentials = value;
@@ -72,7 +71,7 @@ async fn handle(ctx: &Arc<Context>, cm: &ConfigMap) -> anyhow::Result<()> {
             )
             .await?;
 
-            info!("The latest configuration has been successfully applied!");
+            info!("The latest credentials has been successfully applied!");
         }
     }
 
