@@ -68,12 +68,9 @@ pub async fn create_repository_secret(
         Scheme::Unknown => {}
     }
 
-    let annotations = BTreeMap::from([("kpack.io/git".to_string(), endpoint.to_owned())]);
-
     let resource = Secret {
         metadata: ObjectMeta {
             name: Some(secret_name(endpoint)?),
-            annotations: Some(annotations),
             ..ObjectMeta::default()
         },
         type_: Some(secret_type),

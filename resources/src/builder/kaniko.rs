@@ -19,12 +19,10 @@ use super::{git_sync, DEFAULT_KANIKO_IMAGE};
 use crate::args;
 
 pub fn pod(spec: &ActorSpec) -> PodSpec {
-    let service_account_name = std::env::var("AMP_SERVICE_ACCOUNT_NAME").unwrap_or("default".into());
     PodSpec {
         restart_policy: Some("Never".into()),
         init_containers: Some(vec![git_sync::container(&spec.source)]),
         containers: vec![container(spec)],
-        service_account_name: Some(service_account_name),
         volumes: Some(vec![kaniko_secret_volume(), kaniko_secret_volume()]),
         ..Default::default()
     }
