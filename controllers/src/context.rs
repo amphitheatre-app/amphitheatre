@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use amp_common::config::Credentials;
+use amp_resources::credential;
 use async_nats::jetstream;
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::events::Recorder;
@@ -39,7 +40,8 @@ pub struct Context {
 impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
         let k8s = Client::try_default().await?;
-        let credentials = RwLock::new(Credentials::default());
+        let credentials = credential::load(&k8s, &config.namespace).await?;
+        let credentials = RwLock::new(credentials.unwrap_or_default());
 
         // Connect to NATS and create a JetStream instance.
         let client = async_nats::connect(&config.nats_url).await?;

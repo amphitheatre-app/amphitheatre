@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.4.4"
+version = "0.4.5"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/amphitheatre-app/amphitheatre"
@@ -34,6 +34,7 @@ serde_json = "1.0.89"
 serde_yaml = "0.9.14"
 thiserror = "1.0.43"
 tokio = { version = "1.22.0", features = ["full"] }
+toml = "0.5"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 url = "2.3.1"

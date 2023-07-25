@@ -46,7 +46,7 @@ dependencies = [
 
 [[package]]
 name = "amp-apiserver"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -109,7 +109,7 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -146,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -160,7 +160,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "amp-common",
  "k8s-openapi",
@@ -171,6 +171,7 @@ dependencies = [
  "sha2 0.10.6",
  "thiserror",
  "tokio",
+ "toml 0.5.11",
  "tracing",
  "tracing-subscriber",
  "url",
@@ -178,7 +179,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "amp-common",
  "async-nats",

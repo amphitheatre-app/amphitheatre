@@ -109,3 +109,10 @@ pub async fn create(client: &Client, namespace: &str, resource: Secret) -> Resul
     tracing::info!("Added Secret {:?}", secret.name_any());
     Ok(secret)
 }
+
+/// Get a secret by name
+pub async fn get_opt(client: &Client, namespace: &str, name: &str) -> Result<Option<Secret>> {
+    let api: Api<Secret> = Api::namespaced(client.clone(), namespace);
+    let resources = api.get_opt(name).await.map_err(Error::KubeError)?;
+    Ok(resources)
+}

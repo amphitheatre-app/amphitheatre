@@ -20,4 +20,5 @@ thiserror = { workspace = true, optional = false }
 tracing = { workspace = true, optional = false }
 tracing-subscriber = { workspace = true, optional = false }
 tokio = { workspace = true, optional = false }
+toml = { workspace = true, optional = false }
 url = { workspace = true, optional = false }

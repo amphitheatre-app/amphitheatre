@@ -73,3 +73,37 @@ async fn sync_repository_credentials(
 
     Ok(secrets)
 }
+
+/// Load the credentials from the Kubernetes secret.
+pub async fn load(client: &Client, namespace: &str) -> Result<Option<Credentials>> {
+    let result = secret::get_opt(client, namespace, "amp-credentials").await?;
+    if result.is_none() {
+        debug!("the amp-credentails was not found.");
+        return Ok(None);
+    }
+    let secret = result.unwrap();
+    if secret.data.is_none() {
+        debug!("the amp-credentails does not contain any data.");
+        return Ok(None);
+    }
+    let data = secret.data.unwrap();
+    if !data.contains_key("credentials") {
+        debug!("the amp-credentails does not contain the credentials key.");
+        return Ok(None);
+    }
+
+    let bytes = data.get("credentials").unwrap();
+    if let Ok(content) = String::from_utf8(bytes.0.clone()) {
+        debug!("The credentials is: {:?}", content);
+        let credentails = toml::from_str::<Credentials>(&content);
+        if let Ok(credentails) = credentails {
+            info!("Loaded the credentials from the Kubernetes secret.");
+            return Ok(Some(credentails));
+        }
+        debug!("The credentials is not a valid TOML sequence");
+    } else {
+        debug!("The credentials is not a valid UTF-8 sequence");
+    }
+
+    Ok(None)
+}
