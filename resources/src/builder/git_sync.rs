@@ -26,7 +26,7 @@ pub fn container(source: &GitReference) -> Container {
         ("one-time", "true"),
         ("ref", &revision),
         ("repo", &source.repo),
-        ("root", "/workspace"),
+        ("root", "/workspace/src"),
         ("link", "/workspace/app"),
         ("verbose", "9"),
     ];
@@ -35,7 +35,6 @@ pub fn container(source: &GitReference) -> Container {
         name: "syncer".to_string(),
         image: Some(DEFAULT_GIT_SYNC_IMAGE.to_string()),
         image_pull_policy: Some("IfNotPresent".to_string()),
-        command: Some(vec!["git-sync".to_string()]),
         args: Some(args(&arguments, 2)),
         volume_mounts: Some(vec![workspace_mount()]),
         ..Default::default()
