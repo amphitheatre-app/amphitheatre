@@ -1,5 +1,5 @@
-group_imports = "StdExternalCrate"
-imports_granularity = "Module"
-error_on_unformatted = true
-format_code_in_doc_comments = true
+# group_imports = "StdExternalCrate"
+# imports_granularity = "Module"
+# error_on_unformatted = true
+# format_code_in_doc_comments = true
 max_width = 120

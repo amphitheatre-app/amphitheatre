@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::client::ClientError;
+use amp_common::http::HTTPError;
 use amp_common::scm::errors::SCMError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ResolveError {
     #[error("ClientError: {0}")]
-    ClientError(#[source] ClientError),
+    ClientError(#[source] HTTPError),
 
     #[error("InvalidRepoAddress: {0}")]
     InvalidRepoAddress(#[source] url::ParseError),

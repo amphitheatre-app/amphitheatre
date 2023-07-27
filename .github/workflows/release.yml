@@ -10,7 +10,6 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN: nightly-2022-12-01
 
 jobs:
   create-release:
@@ -32,9 +31,7 @@ jobs:
         bin: [amp-apiserver, amp-controllers, amp-crdgen, amp-syncer]
     steps:
     - uses: actions/checkout@v3
-    - uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: ${{ env.RUST_TOOLCHAIN }}
+    - uses: dtolnay/rust-toolchain@stable
     - uses: taiki-e/upload-rust-binary-action@v1
       with:
         bin: ${{ matrix.bin }}

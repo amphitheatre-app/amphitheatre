@@ -14,7 +14,7 @@ ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
 # We only pay the installation cost once,
 # it will be cached from the second build onwards
-RUN rustup default nightly-2022-12-01
+RUN rustup default stable
 RUN rustup component add cargo rust-std rustc
 RUN cargo install cargo-chef
 
