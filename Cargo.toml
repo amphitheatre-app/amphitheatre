@@ -20,7 +20,7 @@ members = [
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
 [workspace.dependencies]
 anyhow = "1.0"
-amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.3.8" }
+amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.3.9" }
 amp-resolver = { path = "resolver" }
 amp-resources = { path = "resources" }
 async-nats = "0.29.0"
