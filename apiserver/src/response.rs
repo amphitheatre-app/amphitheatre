@@ -72,8 +72,8 @@ pub fn paginate<T>(data: T, pagination: Pagination) -> Response<T> {
 pub enum ApiError {
     #[error("Database Error")]
     DatabaseError,
-    #[error("Kubernetes Error")]
-    KubernetesError,
+    #[error("Kubernetes Error: {0}")]
+    KubernetesError(String),
     #[error("Internal Server Error")]
     InternalServerError,
     #[error("Not Found")]
@@ -88,7 +88,7 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, message) = match self {
             Self::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
-            Self::KubernetesError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Self::KubernetesError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             Self::InternalServerError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             Self::NotFound => (StatusCode::NOT_FOUND, self.to_string()),
             Self::ResolveError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),

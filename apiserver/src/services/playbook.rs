@@ -18,7 +18,6 @@ use amp_common::schema::{Playbook as PlaybookResource, PlaybookSpec};
 use amp_resources::playbook;
 use chrono::Utc;
 use kube::ResourceExt;
-use tracing::error;
 use uuid::Uuid;
 
 use crate::context::Context;
@@ -31,19 +30,17 @@ pub struct PlaybookService;
 
 impl PlaybookService {
     pub async fn get(ctx: Arc<Context>, id: Uuid) -> Result<PlaybookResponse> {
-        let resource = playbook::get(&ctx.k8s, &id.to_string()).await.map_err(|err| {
-            error!("{:?}", err);
-            ApiError::KubernetesError
-        })?;
+        let resource = playbook::get(&ctx.k8s, &id.to_string())
+            .await
+            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
         Ok(resource.into())
     }
 
     pub async fn list(ctx: Arc<Context>) -> Result<Vec<PlaybookResponse>> {
-        let resources = playbook::list(&ctx.k8s).await.map_err(|err| {
-            error!("{:?}", err);
-            ApiError::KubernetesError
-        })?;
+        let resources = playbook::list(&ctx.k8s)
+            .await
+            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
         Ok(resources.iter().map(|playbook| playbook.to_owned().into()).collect())
     }
@@ -57,10 +54,9 @@ impl PlaybookService {
     }
 
     pub async fn delete(ctx: Arc<Context>, id: Uuid) -> Result<()> {
-        playbook::delete(&ctx.k8s, &id.to_string()).await.map_err(|err| {
-            error!("{:?}", err);
-            ApiError::KubernetesError
-        })?;
+        playbook::delete(&ctx.k8s, &id.to_string())
+            .await
+            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
         Ok(())
     }
@@ -78,10 +74,9 @@ impl PlaybookService {
             },
         );
 
-        let playbook = playbook::create(&ctx.k8s, &resource).await.map_err(|err| {
-            error!("{:?}", err);
-            ApiError::KubernetesError
-        })?;
+        let playbook = playbook::create(&ctx.k8s, &resource)
+            .await
+            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
         Ok(PlaybookResponse {
             id: playbook.name_any(),

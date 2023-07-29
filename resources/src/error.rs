@@ -31,6 +31,8 @@ pub enum Error {
     UrlParseError(#[source] url::ParseError),
     // #[error("ApiError: {0}")]
     // ApiError(#[source] ApiError),
+    #[error("Metrics not available at the moment")]
+    MetricsNotAvailable,
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

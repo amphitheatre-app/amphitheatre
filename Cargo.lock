@@ -46,7 +46,7 @@ dependencies = [
 
 [[package]]
 name = "amp-apiserver"
-version = "0.4.7"
+version = "0.4.8"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -109,7 +109,7 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.4.7"
+version = "0.4.8"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -146,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.4.7"
+version = "0.4.8"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -160,9 +160,10 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.4.7"
+version = "0.4.8"
 dependencies = [
  "amp-common",
+ "k8s-metrics",
  "k8s-openapi",
  "kube",
  "serde",
@@ -179,7 +180,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.4.7"
+version = "0.4.8"
 dependencies = [
  "amp-common",
  "async-nats",
@@ -1152,6 +1153,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "go-parse-duration"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "558b88954871f5e5b2af0e62e2e176c8bde7a6c2c4ed41b13d138d96da2e2cbd"
+
+[[package]]
 name = "governor"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1578,6 +1585,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "k8s-metrics"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97de0b29fe27c7f879397e5cb69c75435021c11e7e1c175dae716f3904b9dc51"
+dependencies = [
+ "go-parse-duration",
+ "k8s-openapi",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "k8s-openapi"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1586,10 +1605,13 @@ dependencies = [
  "base64 0.21.0",
  "bytes",
  "chrono",
+ "http",
+ "percent-encoding",
  "schemars",
  "serde",
  "serde-value",
  "serde_json",
+ "url",
 ]
 
 [[package]]

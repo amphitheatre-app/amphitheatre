@@ -13,8 +13,9 @@
 // limitations under the License.
 
 use amp_common::schema::{Actor, ActorSpec, ActorState, Playbook};
+use k8s_metrics::v1beta1::PodMetrics;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
-use kube::api::{Patch, PatchParams, PostParams};
+use kube::api::{ListParams, Patch, PatchParams, PostParams};
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
 
@@ -101,4 +102,31 @@ pub async fn patch_status(client: &Client, actor: &Actor, condition: Condition) 
     tracing::info!("Patched status {:?} for Actor {}", actor.status, actor.name_any());
 
     Ok(())
+}
+
+pub async fn metrics(client: &Client, namespace: &str, name: &str) -> Result<PodMetrics> {
+    let api: Api<PodMetrics> = Api::namespaced(client.clone(), namespace);
+    let params = ListParams::default()
+        .labels(&format!("app.kubernetes.io/name={}", name))
+        .limit(1);
+    let resources = api.list(&params).await;
+
+    match resources {
+        Ok(resources) => Ok(resources
+            .items
+            .first()
+            .ok_or_else(|| Error::MetricsNotAvailable)?
+            .clone()),
+        Err(err) => {
+            // check if the error is NotFound
+            if let kube::Error::Api(error_response) = &err {
+                if error_response.code == 404 {
+                    tracing::error!("No metrics found for Actor {}", name);
+                    return Err(Error::MetricsNotAvailable);
+                }
+            }
+            tracing::error!("Failed to get metrics for Actor {}: {}", name, err);
+            Err(Error::KubeError(err))
+        }
+    }
 }

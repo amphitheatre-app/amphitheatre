@@ -50,9 +50,7 @@ use crate::services::actor::ActorService;
     tag = "Actors"
 )]
 pub async fn list(Path(pid): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let actors = ActorService::list(ctx, pid).await?;
-
-    Ok(data(actors))
+    Ok(data(ActorService::list(ctx, pid).await?))
 }
 
 /// Returns a actor detail.
@@ -72,8 +70,7 @@ pub async fn detail(
     State(ctx): State<Arc<Context>>,
     Path((pid, name)): Path<(Uuid, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let actor = ActorService::get(ctx, pid, name).await?;
-    Ok(data(actor))
+    Ok(data(ActorService::get(ctx, pid, name).await?))
 }
 
 /// Output the log streams of actor
@@ -175,13 +172,11 @@ pub async fn info(Path((_pid, _name)): Path<(Uuid, String)>) -> Result<impl Into
     ),
     tag = "Actors"
 )]
-pub async fn stats(Path((_pid, _name)): Path<(Uuid, String)>) -> Result<impl IntoResponse, ApiError> {
-    Ok(data(HashMap::from([
-        ("CPU USAGE", "1.98%"),
-        ("MEMORY USAGE", "65.8MB"),
-        ("DISK READ/WRITE", "5.3MB / 43.7 MB"),
-        ("NETWORK I/O", "5.7 kB / 3 kB"),
-    ])))
+pub async fn stats(
+    State(ctx): State<Arc<Context>>,
+    Path((pid, name)): Path<(Uuid, String)>,
+) -> Result<impl IntoResponse, ApiError> {
+    Ok(data(ActorService::stats(ctx, pid, name).await?))
 }
 
 /// Recive a actor's sources and publish them to Message Queue.
