@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use amp_common::schema::Actor;
+use kube::ResourceExt;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -23,4 +25,14 @@ pub struct ActorResponse {
     pub title: String,
     /// The description of the actor.
     pub description: String,
+}
+
+impl From<&Actor> for ActorResponse {
+    fn from(value: &Actor) -> Self {
+        Self {
+            id: value.name_any(),
+            title: value.spec.name.clone(),
+            description: value.spec.description.clone().unwrap_or_default(),
+        }
+    }
 }

@@ -130,3 +130,15 @@ pub async fn metrics(client: &Client, namespace: &str, name: &str) -> Result<Pod
         }
     }
 }
+
+pub async fn get(client: &Client, namespace: &str, name: &str) -> Result<Actor> {
+    let api: Api<Actor> = Api::namespaced(client.clone(), namespace);
+    let actor = api.get(name).await.map_err(Error::KubeError)?;
+    Ok(actor)
+}
+
+pub async fn list(client: &Client, namespace: &str) -> Result<Vec<Actor>> {
+    let api: Api<Actor> = Api::namespaced(client.clone(), namespace);
+    let actors = api.list(&ListParams::default()).await.map_err(Error::KubeError)?;
+    Ok(actors.items)
+}

@@ -29,12 +29,19 @@ use amp_resources::actor;
 pub struct ActorService;
 
 impl ActorService {
-    pub async fn get(_ctx: Arc<Context>, _pid: Uuid, _name: String) -> Result<ActorResponse> {
-        unimplemented!()
+    pub async fn get(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<ActorResponse> {
+        let actor = actor::get(&ctx.k8s, &pid.to_string(), &name)
+            .await
+            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+
+        Ok(ActorResponse::from(&actor))
     }
 
-    pub async fn list(_ctx: Arc<Context>, _pid: Uuid) -> Result<Vec<ActorResponse>> {
-        unimplemented!()
+    pub async fn list(ctx: Arc<Context>, pid: Uuid) -> Result<Vec<ActorResponse>> {
+        let actors = actor::list(&ctx.k8s, &pid.to_string())
+            .await
+            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        Ok(actors.iter().map(ActorResponse::from).collect())
     }
 
     pub async fn sync(
@@ -86,5 +93,18 @@ impl ActorService {
         );
 
         Ok(stats)
+    }
+
+    pub async fn info(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<HashMap<String, HashMap<String, String>>> {
+        let actor = actor::get(&ctx.k8s, &pid.to_string(), &name)
+            .await
+            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+
+        let mut info = HashMap::new();
+        if let Some(env) = actor.spec.env {
+            info.insert("environments".to_string(), env);
+        }
+
+        Ok(info)
     }
 }

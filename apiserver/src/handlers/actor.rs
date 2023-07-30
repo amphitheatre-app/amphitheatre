@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
@@ -120,43 +119,11 @@ pub async fn logs(
     ),
     tag = "Actors"
 )]
-pub async fn info(Path((_pid, _name)): Path<(Uuid, String)>) -> Result<impl IntoResponse, ApiError> {
-    Ok(data(HashMap::from([
-        (
-            "environments",
-            HashMap::from([
-                ("K3S_TOKEN", "RdqNLMXRiRsHJhmxKurR"),
-                ("K3S_KUBECONFIG_OUTPUT", "/output/kubeconfig.yaml"),
-                (
-                    "PATH",
-                    "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/bin/aux",
-                ),
-                ("CRI_CONFIG_FILE", "/var/lib/rancher/k3s/agent/etc/crictl.yaml"),
-            ]),
-        ),
-        (
-            "mounts",
-            HashMap::from([
-                (
-                    "/VAR/LIB/CNI",
-                    "/var/lib/docker/volumes/00f49631b07ccd74de44d3047d5f889395ac871e05b622890b6dd788d34a59f4/_data",
-                ),
-                (
-                    "/VAR/LIB/KUBELET",
-                    "/var/lib/docker/volumes/bc1b16d39a0e204841695de857122412cfdefd0f672af185b1fa43e635397848/_data",
-                ),
-                (
-                    "/VAR/LIB/RANCHER/K3S",
-                    "/var/lib/docker/volumes/a78bcb9f7654701e0cfaef4447ef61ced4864e5b93dee7102ec639afb5cf2e1d/_data",
-                ),
-                (
-                    "/VAR/LOG",
-                    "/var/lib/docker/volumes/f64c2f2cf81cfde89879f2a17924b31bd2f2e6a6a738f7df949bf6bd57102d25/_data",
-                ),
-            ]),
-        ),
-        ("port", HashMap::from([("6443/tcp", "0.0.0.0:42397")])),
-    ])))
+pub async fn info(
+    State(ctx): State<Arc<Context>>,
+    Path((pid, name)): Path<(Uuid, String)>,
+) -> Result<impl IntoResponse, ApiError> {
+    Ok(data(ActorService::info(ctx, pid, name).await?))
 }
 
 /// Returns a actor's stats.
