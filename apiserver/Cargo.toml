@@ -26,7 +26,7 @@ headers = "0.3"
 kube = { workspace = true, optional = false }
 k8s-openapi = { workspace = true, optional = false }
 pin-project = "1.0.12"
-quote = "1.0.21"
+quote = "1.0.32"
 serde = { workspace = true, optional = false }
 serde_json = { workspace = true, optional = false }
 serde_yaml = { workspace = true, optional = false }
