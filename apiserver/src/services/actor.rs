@@ -72,7 +72,7 @@ impl ActorService {
     }
 
     pub async fn stats(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<HashMap<String, String>> {
-        let metrics = actor::metrics(&ctx.k8s, &pid.to_string(), &name)
+        let metrics = actor::metrics(&ctx.k8s, &format!("amp-{}", pid), &name)
             .await
             .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
@@ -83,14 +83,8 @@ impl ActorService {
         })?;
 
         let mut stats = HashMap::new();
-        stats.insert(
-            "CPU USAGE".to_string(),
-            container.usage.cpu().unwrap_or_default().to_string(),
-        );
-        stats.insert(
-            "MEMORY USAGE".to_string(),
-            container.usage.memory().unwrap_or_default().to_string(),
-        );
+        stats.insert("CPU USAGE".to_string(), container.usage.cpu.0.to_string());
+        stats.insert("MEMORY USAGE".to_string(), container.usage.memory.0.to_string());
 
         Ok(stats)
     }

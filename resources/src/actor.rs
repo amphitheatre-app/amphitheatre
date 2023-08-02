@@ -18,6 +18,7 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{ListParams, Patch, PatchParams, PostParams};
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
+use tracing::debug;
 
 use super::error::{Error, Result};
 
@@ -110,6 +111,7 @@ pub async fn metrics(client: &Client, namespace: &str, name: &str) -> Result<Pod
         .labels(&format!("app.kubernetes.io/name={}", name))
         .limit(1);
     let resources = api.list(&params).await;
+    debug!("Metrics for Actor {}:\n{:?}", name, resources);
 
     match resources {
         Ok(resources) => Ok(resources
