@@ -55,9 +55,10 @@ async fn handle(ctx: &Arc<Context>, secret: &Secret) -> anyhow::Result<()> {
 
     if let Some(data) = &secret.data {
         if let Some(content) = data.get("credentials") {
-            debug!("The credentials is: {:?}", String::from_utf8(content.0.clone())?);
-            let value: Credentials = toml::from_slice(&content.0)?;
+            let content = std::str::from_utf8(&content.0)?;
+            debug!("The credentials is: {:?}", content);
 
+            let value: Credentials = toml::from_str(content)?;
             let mut credentials = ctx.credentials.write().await;
             *credentials = value;
 
