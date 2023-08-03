@@ -67,8 +67,9 @@ pub fn load_from_source(credentials: &Credentials, reference: &GitReference) -> 
         .contents()
         .find(&repo, &path, &reference.rev())
         .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
-    debug!("The `.amp.toml` content of {} is:\n{:?}", repo, content);
+    let data = std::str::from_utf8(&content.data).map_err(ResolveError::ConvertBytesError)?;
+    debug!("The `.amp.toml` content of {} is:\n{:?}", repo, data);
 
-    let manifest: Manifest = toml::from_slice(content.data.as_slice()).map_err(ResolveError::TomlParseFailed)?;
+    let manifest: Manifest = toml::from_str(data).map_err(ResolveError::TomlParseFailed)?;
     load_from_manifest(credentials, manifest)
 }

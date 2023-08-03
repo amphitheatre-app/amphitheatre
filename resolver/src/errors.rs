@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::str::Utf8Error;
+
 use amp_common::http::HTTPError;
 use amp_common::scm::errors::SCMError;
 use thiserror::Error;
@@ -41,6 +43,9 @@ pub enum ResolveError {
 
     #[error("ResourceError")]
     ResourceError(#[source] amp_resources::error::Error),
+
+    #[error("ConvertBytesError")]
+    ConvertBytesError(Utf8Error),
 }
 
 pub type Result<T, E = ResolveError> = std::result::Result<T, E>;
