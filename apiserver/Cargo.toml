@@ -34,7 +34,7 @@ thiserror = { workspace = true, optional = false }
 tokio = { workspace = true, optional = false }
 tokio-stream = "0.1"
 tower = { version = "0.4.13", features = ["full"] }
-tower-http = { version = "0.3.5", features = ["full"] }
+tower-http = { version = "0.4.1", features = ["full"] }
 tower_governor = { git = "https://github.com/benwis/tower-governor", rev="01e1a107" }
 tracing = { workspace = true, optional = false }
 tracing-subscriber = { workspace = true, optional = false }
