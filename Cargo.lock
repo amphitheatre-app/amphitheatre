@@ -49,7 +49,6 @@ name = "amp-apiserver"
 version = "0.4.10"
 dependencies = [
  "amp-common",
- "amp-resolver",
  "amp-resources",
  "anyhow",
  "async-nats",
@@ -61,8 +60,6 @@ dependencies = [
  "headers",
  "k8s-openapi",
  "kube",
- "pin-project",
- "quote",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -174,7 +171,6 @@ dependencies = [
  "tokio",
  "toml 0.7.6",
  "tracing",
- "tracing-subscriber",
  "url",
 ]
 
