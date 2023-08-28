@@ -11,7 +11,7 @@ description = "K8s resources manager for the Amphitheatre platform"
 [dependencies]
 amp-common = { workspace = true, optional = false }
 kube = { workspace = true, optional = false }
-k8s-metrics = "0.12.0"
+k8s-metrics = "0.13.0"
 k8s-openapi = { workspace = true, optional = false }
 serde = { workspace = true, optional = false }
 serde_json = { workspace = true, optional = false }
