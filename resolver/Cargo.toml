@@ -14,6 +14,6 @@ amp-resources = { workspace = true, optional = false }
 kube = { workspace = true, optional = false }
 k8s-openapi = { workspace = true, optional = false }
 thiserror = { workspace = true, optional = false }
-toml = "0.7"
+toml = "0.8"
 tracing = { workspace = true, optional = false }
 url = { workspace = true, optional = false }
