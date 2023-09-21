@@ -22,11 +22,14 @@ use axum::http::StatusCode;
 use axum::response::sse::{Event, KeepAlive};
 use axum::response::{IntoResponse, Sse};
 use axum::Json;
+
+use futures::AsyncBufReadExt;
 use futures::Stream;
+use tokio_stream::StreamExt;
+
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::LogParams;
 use kube::Api;
-use tokio_stream::StreamExt as _;
 use uuid::Uuid;
 
 use crate::context::Context;
@@ -96,8 +99,9 @@ pub async fn logs(
         .log_stream(&name, &params)
         .await
         .unwrap()
+        .lines()
         .map(|result| match result {
-            Ok(line) => Event::default().data(String::from_utf8_lossy(&line)),
+            Ok(line) => Event::default().data(line),
             Err(err) => Event::default().event("error").data(err.to_string()),
         })
         .map(Ok)
