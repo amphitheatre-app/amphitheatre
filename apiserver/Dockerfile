@@ -49,7 +49,7 @@ RUN cargo build --release --bin amp-apiserver
 # the smallest image possible. This often means using a different and smaller
 # image than the one used for building the application, but for illustrative
 # purposes the "base" image is used here.
-FROM gcr.io/distroless/cc:nonroot AS runtime
+FROM gcr.io/distroless/cc-debian12:nonroot AS runtime
 
 # Copy the executable from the "building" stage.
 COPY --from=builder \
