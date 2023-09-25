@@ -16,7 +16,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use amp_common::docker::{self, registry, DockerConfig};
-use amp_common::schema::{Actor, ActorState};
+use amp_common::resource::{Actor, ActorState};
 use amp_resources::event::trace;
 use amp_resources::{actor, builder, deployment, service};
 use futures::{future, StreamExt};
@@ -113,7 +113,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
         }
     };
 
-    if registry::exists(&actor.spec.docker_tag(), credential)
+    if registry::exists(&actor.spec.image, credential)
         .await
         .map_err(Error::DockerRegistryExistsFailed)?
     {
@@ -130,14 +130,14 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
     match builder::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
         true => {
             // Build job already exists, update it if there are new changes
-            let message = format!("Try to refresh an existing build Job {}", actor.spec.build_name());
+            let message = format!("Try to refresh an existing build Job {}", actor.spec.name());
             trace(recorder, message).await.map_err(Error::ResourceError)?;
 
             builder::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
         false => {
             // Create a new build job
-            let message = format!("Create new build Job: {}", actor.spec.build_name());
+            let message = format!("Create new build Job: {}", actor.spec.name());
             trace(recorder, message).await.map_err(Error::ResourceError)?;
 
             builder::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
@@ -197,7 +197,7 @@ async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<A
         }
     }
 
-    if actor.spec.service_ports().is_some() {
+    if actor.spec.has_services() {
         match service::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
             true => {
                 // Service already exists, update it if there are new changes

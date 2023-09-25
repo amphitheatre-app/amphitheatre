@@ -46,6 +46,15 @@ pub enum ResolveError {
 
     #[error("ConvertBytesError")]
     ConvertBytesError(Utf8Error),
+
+    #[error("UnknownCharacterRegistry")]
+    UnknownCharacterRegistry(String),
+
+    #[error("UnknownPreface")]
+    UnknownPreface,
+
+    #[error("UnsupportedPartner")]
+    UnsupportedPartner,
 }
 
 pub type Result<T, E = ResolveError> = std::result::Result<T, E>;

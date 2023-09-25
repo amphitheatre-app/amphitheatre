@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::schema::Character;
+use amp_common::resource::Character;
 use kube::{Api, Client};
 
 use super::error::{Error, Result};

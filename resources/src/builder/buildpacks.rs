@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::schema::ActorSpec;
+use amp_common::resource::ActorSpec;
 use k8s_openapi::api::core::v1::{Container, EnvVar, PodSpec, VolumeMount};
 
 use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume};
@@ -21,7 +21,7 @@ use crate::args;
 pub fn pod(spec: &ActorSpec) -> PodSpec {
     PodSpec {
         restart_policy: Some("Never".into()),
-        init_containers: Some(vec![git_sync::container(&spec.source)]),
+        init_containers: Some(vec![git_sync::container(spec.source.as_ref().unwrap())]),
         containers: vec![container(spec)],
         volumes: Some(vec![workspace_volume(), docker_config_volume()]),
         ..Default::default()
@@ -29,13 +29,15 @@ pub fn pod(spec: &ActorSpec) -> PodSpec {
 }
 
 pub fn container(spec: &ActorSpec) -> Container {
+    let build = spec.character.build.clone().unwrap_or_default();
+
     // Parse the arguments for the container
     let arguments = vec![("app", "/workspace/app")];
     let mut arguments = args(&arguments, 1);
-    if let Some(argments) = spec.build_args() {
-        arguments.extend(argments);
+    if let Some(argments) = &build.args {
+        arguments.extend(argments.clone());
     }
-    arguments.push(spec.docker_tag());
+    arguments.push(spec.image.clone());
 
     // Parse the environment variables for the container
     let mut environment = vec![
@@ -50,13 +52,13 @@ pub fn container(spec: &ActorSpec) -> Container {
             ..Default::default()
         },
     ];
-    if let Some(env) = spec.build_env() {
+    if let Some(env) = build.env() {
         environment.extend(env)
     }
 
     Container {
         name: "builder".to_string(),
-        image: Some(spec.builder()),
+        image: Some(build.builder()),
         image_pull_policy: Some("IfNotPresent".into()),
         command: Some(vec!["/cnb/lifecycle/creator".into()]),
         args: Some(arguments),

@@ -18,7 +18,7 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 
-use amp_common::schema::{Actor, Character, Playbook};
+use amp_common::resource::{Actor, Character, Playbook};
 use clap::Parser;
 use kube::CustomResourceExt;
 use serde::Serialize;
@@ -30,11 +30,9 @@ struct Args {
     /// Print the names of the custom resource definition.
     #[arg(short, long)]
     list: bool,
-
     /// Names of the custom resource definition, separated by comma.
     #[arg(short, long)]
     names: Option<String>,
-
     /// Which output path to write to, If not specified, will print to stdout.
     #[arg(short, long)]
     output: Option<String>,

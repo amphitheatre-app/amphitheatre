@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::schema::ActorSpec;
+use amp_common::resource::ActorSpec;
 use k8s_openapi::api::core::v1::{Container, PodSpec, VolumeMount};
 
 use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume, DEFAULT_KANIKO_IMAGE};
@@ -21,7 +21,7 @@ use crate::args;
 pub fn pod(spec: &ActorSpec) -> PodSpec {
     PodSpec {
         restart_policy: Some("Never".into()),
-        init_containers: Some(vec![git_sync::container(&spec.source)]),
+        init_containers: Some(vec![git_sync::container(spec.source.as_ref().unwrap())]),
         containers: vec![container(spec)],
         volumes: Some(vec![workspace_volume(), docker_config_volume()]),
         ..Default::default()
@@ -29,8 +29,10 @@ pub fn pod(spec: &ActorSpec) -> PodSpec {
 }
 
 pub fn container(spec: &ActorSpec) -> Container {
+    let build = spec.character.build.clone().unwrap_or_default();
+
     // Parse the arguments for the container
-    let destination = spec.docker_tag();
+    let destination = spec.image.clone();
     let arguments = vec![
         ("context", "/workspace/app"),
         ("destination", destination.as_str()),
@@ -38,8 +40,8 @@ pub fn container(spec: &ActorSpec) -> Container {
         ("cache", "true"),
     ];
     let mut arguments = args(&arguments, 2);
-    if let Some(argments) = spec.build_args() {
-        arguments.extend(argments);
+    if let Some(argments) = &build.args {
+        arguments.extend(argments.clone());
     }
 
     Container {
@@ -47,7 +49,7 @@ pub fn container(spec: &ActorSpec) -> Container {
         image: Some(DEFAULT_KANIKO_IMAGE.into()),
         image_pull_policy: Some("IfNotPresent".into()),
         args: Some(arguments),
-        env: spec.build_env(),
+        env: build.env(),
         volume_mounts: Some(vec![workspace_mount(), docker_config_mount()]),
         ..Default::default()
     }

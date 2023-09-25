@@ -61,7 +61,7 @@ checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
 
 [[package]]
 name = "amp-apiserver"
-version = "0.4.12"
+version = "0.5.0"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -94,8 +94,8 @@ dependencies = [
 
 [[package]]
 name = "amp-common"
-version = "0.4.1"
-source = "git+https://github.com/amphitheatre-app/common?tag=v0.4.1#60d13baeb42cccad4ce64ceed39bbc5f7faff2f1"
+version = "0.5.0"
+source = "git+https://github.com/amphitheatre-app/common?tag=v0.5.0#cf409c227ecc7e9b15e9a67fb87614a6a3299277"
 dependencies = [
  "anyhow",
  "chrono",
@@ -122,7 +122,7 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.4.12"
+version = "0.5.0"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -159,7 +159,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.4.12"
+version = "0.5.0"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -173,7 +173,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.4.12"
+version = "0.5.0"
 dependencies = [
  "amp-common",
  "k8s-metrics",
@@ -192,7 +192,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.4.12"
+version = "0.5.0"
 dependencies = [
  "amp-common",
  "async-nats",
@@ -942,9 +942,9 @@ dependencies = [
 
 [[package]]
 name = "fastrand"
-version = "2.0.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6999dc1837253364c2ebb0704ba97994bd874e8f195d665c50b7548f6ea92764"
+checksum = "25cbce373ec4653f1a01a31e8a5e5ec0c622dc27ff9c4e6606eefef5cbbed4a5"
 
 [[package]]
 name = "filetime"
@@ -1734,9 +1734,9 @@ dependencies = [
 
 [[package]]
 name = "matchit"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed1202b2a6f884ae56f04cff409ab315c5ce26b5e58d7412e484f01fd52f52ef"
+checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
 
 [[package]]
 name = "memchr"
@@ -2354,7 +2354,7 @@ checksum = "cd8d6c9f025a446bc4d18ad9632e69aec8f287aa84499ee335599fabd20c3fd8"
 dependencies = [
  "log",
  "ring",
- "rustls-webpki 0.101.5",
+ "rustls-webpki 0.101.6",
  "sct",
 ]
 
@@ -2391,9 +2391,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.101.5"
+version = "0.101.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45a27e3b59326c16e23d30aeb7a36a24cc0d29e71d68ff611cdfb4a01d013bed"
+checksum = "3c7d5dece342910d9ba34d259310cae3e0154b873b35408b787b59bce53d34fe"
 dependencies = [
  "ring",
  "untrusted",
@@ -2621,9 +2621,9 @@ dependencies = [
 
 [[package]]
 name = "sha1"
-version = "0.10.5"
+version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f04293dc80c3993519f2d7f6f511707ee7094fe0c6d3406feb330cdb3540eba3"
+checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
 dependencies = [
  "cfg-if",
  "cpufeatures",
@@ -2845,9 +2845,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.28"
+version = "0.3.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17f6bb557fd245c28e6411aa56b6403c689ad95061f50e4be16c274e70a17e48"
+checksum = "426f806f4089c493dcac0d24c29c01e2c38baf8e30f1b716ee37e83d200b18fe"
 dependencies = [
  "deranged",
  "itoa",
@@ -2858,15 +2858,15 @@ dependencies = [
 
 [[package]]
 name = "time-core"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7300fbefb4dadc1af235a9cef3737cea692a9d97e1b9cbcd4ebdae6f8868e6fb"
+checksum = "ef927ca75afb808a4d64dd374f00a2adf8d0fcff8e7b184af886c3c87ec4a3f3"
 
 [[package]]
 name = "time-macros"
-version = "0.2.14"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a942f44339478ef67935ab2bbaec2fb0322496cf3cbe84b261e06ac3814c572"
+checksum = "4ad70d68dba9e1f8aceda7aa6711965dfec1cac869f311a51bd08b3a2ccbce20"
 dependencies = [
  "time-core",
 ]

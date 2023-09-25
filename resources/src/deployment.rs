@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use amp_common::schema::Actor;
+use amp_common::resource::Actor;
 use k8s_openapi::api::apps::v1::{Deployment, DeploymentSpec};
 use k8s_openapi::api::core::v1::{Container, PodSpec, PodTemplateSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
@@ -98,12 +98,20 @@ fn new(actor: &Actor) -> Result<Deployment> {
     ]);
     let annotations = BTreeMap::from([(LAST_APPLIED_HASH_KEY.into(), hash(&actor.spec)?)]);
 
+    // extract the env and ports from the deploy spec
+    let mut env = Some(vec![]);
+    let mut ports = Some(vec![]);
+    if let Some(deploy) = &actor.spec.character.deploy {
+        env = deploy.env().clone();
+        ports = deploy.container_ports();
+    }
+
     let container = Container {
         name: name.clone(),
-        image: Some(actor.spec.docker_tag()),
+        image: Some(actor.spec.image.clone()),
         image_pull_policy: Some("Always".into()),
-        env: actor.spec.env(),
-        ports: actor.spec.container_ports(),
+        env,
+        ports,
         ..Default::default()
     };
 

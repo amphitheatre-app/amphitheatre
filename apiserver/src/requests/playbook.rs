@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::schema::EitherCharacter;
+use amp_common::resource::Preface;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct CreatePlaybookRequest {
     pub title: String,
-    pub description: String,
-    pub preface: EitherCharacter,
+    pub description: Option<String>,
+    pub preface: Preface,
     pub live: bool,
 }
 

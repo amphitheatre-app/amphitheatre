@@ -12,56 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::config::Credentials;
-use amp_common::schema::{ActorSpec, EitherCharacter, GitReference, Manifest};
+use amp_common::resource::CharacterSpec;
+use amp_common::schema::{Character, GitReference};
 use amp_common::scm::client::Client as ScmClient;
+use amp_common::{config::Credentials, resource::ActorSpec};
 use amp_resources::character;
 use errors::{ResolveError, Result};
 use kube::Client as KubeClient;
 use tracing::debug;
 
 pub mod errors;
+pub mod partner;
 pub mod patches;
+pub mod preface;
 pub mod utils;
 
-/// Load mainfest from different sources and return the actor spec.
-pub async fn load(client: &KubeClient, credentials: &Credentials, character: &EitherCharacter) -> Result<ActorSpec> {
-    match character {
-        EitherCharacter::Manifest(content) => {
-            let manifest: Manifest = toml::from_str(content).map_err(ResolveError::TomlParseFailed)?;
-            load_from_manifest(credentials, manifest)
-        }
-        EitherCharacter::Name(name) => load_from_cluster(client, credentials, name).await,
-        EitherCharacter::Git(reference) => load_from_source(credentials, reference),
-    }
-}
+const CATALOG_REPO_URL: &str = "https://github.com/amphitheatre-app/catalog.git";
 
-/// Read Character manifest from original manifest content and return the actor spec.
-pub fn load_from_manifest(credentials: &Credentials, manifest: Manifest) -> Result<ActorSpec> {
-    let client = ScmClient::init(credentials, &manifest.repository).map_err(ResolveError::SCMError)?;
-
-    let mut spec = ActorSpec::from(&manifest);
-    spec.source = patches::source(&client, &spec.source)?;
-    spec.image = patches::image(credentials, &spec)?;
-
-    Ok(spec)
-}
-
-/// Load mainfest from Kubernetes cluster and return the actor spec.
-pub async fn load_from_cluster(client: &KubeClient, credentials: &Credentials, name: &str) -> Result<ActorSpec> {
-    let character = character::get(client, name)
-        .await
-        .map_err(ResolveError::ResourceError)?;
-    load_from_manifest(credentials, character.spec)
+/// Load mainfest from catalog and return the actor spec.
+pub fn load_from_catalog(credentials: &Credentials, name: &str, version: &str) -> Result<CharacterSpec> {
+    let reference = GitReference {
+        repo: CATALOG_REPO_URL.to_string(),
+        path: Some(format!("characters/{}/{}/amp.toml", name, version)),
+        ..GitReference::default()
+    };
+    debug!("Loading character from catalog: {:?}", reference);
+    load_from_source(credentials, &reference)
 }
 
 /// Load mainfest from remote VCS (like github) and return the actor spec.
-pub fn load_from_source(credentials: &Credentials, reference: &GitReference) -> Result<ActorSpec> {
+pub fn load_from_source(credentials: &Credentials, reference: &GitReference) -> Result<CharacterSpec> {
     let client = ScmClient::init(credentials, &reference.repo).map_err(ResolveError::SCMError)?;
 
-    let source = patches::source(&client, reference)?;
-    let path = source.path.clone().unwrap_or(".amp.toml".into());
-    let repo = utils::repo(&source.repo)?;
+    let reference = patches::source(&client, reference)?;
+    let path = reference.path.clone().unwrap_or(".amp.toml".into());
+    let repo = utils::repo(&reference.repo)?;
 
     let content = client
         .contents()
@@ -70,6 +55,25 @@ pub fn load_from_source(credentials: &Credentials, reference: &GitReference) -> 
     let data = std::str::from_utf8(&content.data).map_err(ResolveError::ConvertBytesError)?;
     debug!("The `.amp.toml` content of {} is:\n{:?}", repo, data);
 
-    let manifest: Manifest = toml::from_str(data).map_err(ResolveError::TomlParseFailed)?;
-    load_from_manifest(credentials, manifest)
+    let manifest: Character = toml::from_str(data).map_err(ResolveError::TomlParseFailed)?;
+    Ok(CharacterSpec::from(manifest))
+}
+
+/// Load mainfest from Kubernetes cluster and return the actor spec.
+pub async fn load_from_cluster(client: &KubeClient, name: &str) -> Result<CharacterSpec> {
+    let character = character::get(client, name)
+        .await
+        .map_err(ResolveError::ResourceError)?;
+    Ok(character.spec)
+}
+
+/// Read Character manifest and return the actor spec.
+pub fn to_actor(credentials: &Credentials, manifest: &CharacterSpec) -> Result<ActorSpec> {
+    let client = ScmClient::init(credentials, &manifest.meta.repository).map_err(ResolveError::SCMError)?;
+
+    let mut spec = ActorSpec::from(manifest);
+    spec.source = Some(patches::source(&client, &spec.source.unwrap())?);
+    spec.image = patches::image(credentials, &spec)?;
+
+    Ok(spec)
 }

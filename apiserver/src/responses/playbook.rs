@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::schema::Playbook;
+use amp_common::resource::Playbook;
 use chrono::{DateTime, Utc};
 use kube::ResourceExt;
 use serde::{Deserialize, Serialize};
@@ -37,7 +37,7 @@ impl From<Playbook> for PlaybookResponse {
         Self {
             id: playbook.name_any(),
             title: playbook.spec.title,
-            description: playbook.spec.description,
+            description: playbook.spec.description.unwrap_or_default(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

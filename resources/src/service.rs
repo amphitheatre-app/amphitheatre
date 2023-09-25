@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use amp_common::schema::Actor;
+use amp_common::resource::Actor;
 use k8s_openapi::api::core::v1::{Service, ServiceSpec};
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
@@ -96,6 +96,12 @@ fn new(actor: &Actor) -> Result<Service> {
     ]);
     let annotations = BTreeMap::from([(LAST_APPLIED_HASH_KEY.into(), hash(&actor.spec)?)]);
 
+    // extrace ports from deploy spec.
+    let mut ports = Some(vec![]);
+    if let Some(deploy) = &actor.spec.character.deploy {
+        ports = deploy.service_ports();
+    }
+
     let resource = Service {
         metadata: ObjectMeta {
             name: Some(name),
@@ -106,7 +112,7 @@ fn new(actor: &Actor) -> Result<Service> {
         },
         spec: Some(ServiceSpec {
             selector: Some(labels),
-            ports: actor.spec.service_ports(),
+            ports,
             ..Default::default()
         }),
         ..Default::default()

@@ -95,8 +95,10 @@ impl ActorService {
             .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
         let mut info = HashMap::new();
-        if let Some(env) = actor.spec.env {
-            info.insert("environments".to_string(), env);
+        if let Some(deploy) = actor.spec.character.deploy {
+            if let Some(env) = deploy.env {
+                info.insert("environments".to_string(), env);
+            }
         }
 
         Ok(info)

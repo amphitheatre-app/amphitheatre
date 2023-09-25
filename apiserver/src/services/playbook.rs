@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-use amp_common::schema::{Playbook as PlaybookResource, PlaybookSpec};
+use amp_common::resource::{Playbook as PlaybookResource, PlaybookSpec};
 use amp_resources::playbook;
 use chrono::Utc;
 use kube::ResourceExt;
@@ -67,7 +67,7 @@ impl PlaybookService {
             &uuid.to_string(),
             PlaybookSpec {
                 title: req.title.to_string(),
-                description: req.description.to_string(),
+                description: req.description.clone(),
                 namespace: format!("amp-{}", uuid),
                 preface: req.preface.clone(),
                 ..PlaybookSpec::default()
@@ -81,7 +81,7 @@ impl PlaybookService {
         Ok(PlaybookResponse {
             id: playbook.name_any(),
             title: playbook.spec.title,
-            description: playbook.spec.description,
+            description: playbook.spec.description.unwrap_or_default(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
         })

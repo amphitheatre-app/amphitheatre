@@ -14,7 +14,7 @@
 
 use std::time::Duration;
 
-use amp_common::schema::{ActorSpec, Playbook, PlaybookState};
+use amp_common::resource::{CharacterSpec, Playbook, PlaybookState};
 use k8s_openapi::apiextensions_apiserver as server;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{DeleteParams, ListParams, Patch, PatchParams, PostParams};
@@ -86,17 +86,17 @@ pub async fn create(client: &Client, playbook: &Playbook) -> Result<Playbook> {
     Ok(playbook)
 }
 
-pub async fn add(client: &Client, playbook: &Playbook, actor: ActorSpec) -> Result<()> {
+pub async fn add(client: &Client, playbook: &Playbook, character: CharacterSpec) -> Result<()> {
     let api: Api<Playbook> = Api::all(client.clone());
-    let actor_name = actor.name.clone();
+    let character_name = character.meta.name.clone();
 
-    let mut actors: Vec<ActorSpec> = vec![];
-    if let Some(items) = &playbook.spec.actors {
-        actors = items.clone();
+    let mut characters: Vec<CharacterSpec> = vec![];
+    if let Some(items) = &playbook.spec.characters {
+        characters = items.clone();
     }
-    actors.push(actor);
+    characters.push(character);
 
-    let patch = json!({"spec": { "actors": actors }});
+    let patch = json!({"spec": { "characters": characters }});
     let playbook = api
         .patch(
             playbook.name_any().as_str(),
@@ -106,7 +106,7 @@ pub async fn add(client: &Client, playbook: &Playbook, actor: ActorSpec) -> Resu
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Added actor {:?} for {}", actor_name, playbook.name_any());
+    tracing::info!("Added actor {:?} for {}", character_name, playbook.name_any());
 
     Ok(())
 }

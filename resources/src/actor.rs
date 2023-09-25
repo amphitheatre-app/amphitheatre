@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::schema::{Actor, ActorSpec, ActorState, Playbook};
+use amp_common::resource::{Actor, ActorSpec, ActorState, Playbook};
 use k8s_metrics::v1beta1::PodMetrics;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{ListParams, Patch, PatchParams, PostParams};
@@ -22,12 +22,10 @@ use tracing::debug;
 
 use super::error::{Error, Result};
 
-pub async fn exists(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> Result<bool> {
+pub async fn exists(client: &Client, playbook: &Playbook, name: &str) -> Result<bool> {
     let namespace = playbook.spec.namespace.clone();
-    let name = spec.name.clone();
-
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
-    Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
+    Ok(api.get_opt(name).await.map_err(Error::KubeError)?.is_some())
 }
 
 pub async fn create(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> Result<Actor> {

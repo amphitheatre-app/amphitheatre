@@ -18,7 +18,8 @@ pub mod kaniko;
 
 use std::collections::BTreeMap;
 
-use amp_common::schema::Actor;
+use amp_common::resource::Actor;
+use amp_common::schema::BuildMethod;
 use k8s_openapi::api::batch::v1::{Job, JobSpec};
 use k8s_openapi::api::core::v1::{KeyToPath, PodTemplateSpec, SecretVolumeSource, Volume, VolumeMount};
 use kube::api::{Patch, PatchParams, PostParams};
@@ -36,7 +37,7 @@ pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Job> = Api::namespaced(client.clone(), namespace.as_str());
-    let name = actor.spec.build_name();
+    let name = actor.spec.name();
 
     Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
 }
@@ -64,7 +65,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Job> {
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Job> = Api::namespaced(client.clone(), namespace.as_str());
-    let name = actor.spec.build_name();
+    let name = actor.spec.name();
 
     let mut job = api.get(&name).await.map_err(Error::KubeError)?;
     tracing::debug!("The Job {} already exists: {:?}", &name, job);
@@ -96,7 +97,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Job> {
 
 /// Create a Job for build images
 fn new(actor: &Actor) -> Result<Job> {
-    let name = actor.spec.build_name();
+    let name = actor.spec.name();
     let owner_reference = actor.controller_owner_ref(&()).unwrap();
     let annotations = BTreeMap::from([(LAST_APPLIED_HASH_KEY.into(), hash(&actor.spec)?)]);
     let labels = BTreeMap::from([
@@ -106,12 +107,16 @@ fn new(actor: &Actor) -> Result<Job> {
 
     // Prefer to use Kaniko to build images with Dockerfile,
     // else, build the image with Cloud Native Buildpacks
-    let pod = if actor.spec.has_dockerfile() {
-        tracing::debug!("Found dockerfile, build it with kaniko");
-        kaniko::pod(&actor.spec)
-    } else {
-        tracing::debug!("Build the image with Cloud Native Buildpacks");
-        buildpacks::pod(&actor.spec)
+    let build = actor.spec.character.build.clone().unwrap_or_default();
+    let pod = match build.method.unwrap_or_default() {
+        BuildMethod::Dockerfile(_) => {
+            tracing::debug!("Found dockerfile, build it with kaniko");
+            kaniko::pod(&actor.spec)
+        }
+        BuildMethod::Buildpacks(_) => {
+            tracing::debug!("Build the image with Cloud Native Buildpacks");
+            buildpacks::pod(&actor.spec)
+        }
     };
 
     Ok(Job {
@@ -144,7 +149,7 @@ pub async fn completed(client: &Client, actor: &Actor) -> Result<bool> {
         .namespace()
         .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Job> = Api::namespaced(client.clone(), namespace.as_str());
-    let name = actor.spec.build_name();
+    let name = actor.spec.name();
 
     if let Ok(Some(job)) = api.get_opt(&name).await {
         tracing::debug!("Found Job {}", &name);
