@@ -33,12 +33,21 @@ pub fn container(spec: &ActorSpec) -> Container {
 
     // Parse the arguments for the container
     let destination = spec.image.clone();
-    let arguments = vec![
+    let mut arguments = vec![
         ("context", "/workspace/app"),
         ("destination", destination.as_str()),
-        ("verbosity", "info"),
-        ("cache", "true"),
+        ("verbosity", "trace"),
+        ("cache", "false"),
     ];
+
+    if let Some(context) = &build.context {
+        arguments.push(("context-sub-path", context));
+    }
+
+    if let Some(config) = &build.dockerfile {
+        arguments.push(("dockerfile", &config.dockerfile));
+    }
+
     let mut arguments = args(&arguments, 2);
     if let Some(argments) = &build.args {
         arguments.extend(argments.clone());

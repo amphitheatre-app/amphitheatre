@@ -61,7 +61,7 @@ checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
 
 [[package]]
 name = "amp-apiserver"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -94,8 +94,8 @@ dependencies = [
 
 [[package]]
 name = "amp-common"
-version = "0.5.0"
-source = "git+https://github.com/amphitheatre-app/common?tag=v0.5.0#cf409c227ecc7e9b15e9a67fb87614a6a3299277"
+version = "0.5.1"
+source = "git+https://github.com/amphitheatre-app/common?tag=v0.5.1#5a7fc1faeef295aa331d6d568e1f06cffbd9d7b4"
 dependencies = [
  "anyhow",
  "chrono",
@@ -122,7 +122,7 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -159,7 +159,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -173,7 +173,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "amp-common",
  "k8s-metrics",
@@ -192,7 +192,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "amp-common",
  "async-nats",

@@ -16,7 +16,7 @@ use amp_common::resource::Preface;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreatePlaybookRequest {
     pub title: String,
     pub description: Option<String>,
@@ -24,7 +24,7 @@ pub struct CreatePlaybookRequest {
     pub live: bool,
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdatePlaybookRequest {
     pub title: Option<String>,
     pub description: Option<String>,

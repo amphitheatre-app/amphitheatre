@@ -29,7 +29,7 @@ use kube::{Api, Client, Resource, ResourceExt};
 use crate::error::{Error, Result};
 use crate::{hash, LAST_APPLIED_HASH_KEY};
 
-const DEFAULT_KANIKO_IMAGE: &str = "gcr.io/kaniko-project/executor:v1.9.1";
+const DEFAULT_KANIKO_IMAGE: &str = "gcr.io/kaniko-project/executor:debug";
 const DEFAULT_GIT_SYNC_IMAGE: &str = "registry.k8s.io/git-sync/git-sync:v4.0.0-rc3";
 
 pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
@@ -108,12 +108,12 @@ fn new(actor: &Actor) -> Result<Job> {
     // Prefer to use Kaniko to build images with Dockerfile,
     // else, build the image with Cloud Native Buildpacks
     let build = actor.spec.character.build.clone().unwrap_or_default();
-    let pod = match build.method.unwrap_or_default() {
-        BuildMethod::Dockerfile(_) => {
+    let pod = match build.method() {
+        BuildMethod::Dockerfile => {
             tracing::debug!("Found dockerfile, build it with kaniko");
             kaniko::pod(&actor.spec)
         }
-        BuildMethod::Buildpacks(_) => {
+        BuildMethod::Buildpacks => {
             tracing::debug!("Build the image with Cloud Native Buildpacks");
             buildpacks::pod(&actor.spec)
         }
