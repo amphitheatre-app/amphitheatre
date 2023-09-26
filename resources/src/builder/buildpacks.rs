@@ -15,7 +15,7 @@
 use amp_common::resource::ActorSpec;
 use k8s_openapi::api::core::v1::{Container, EnvVar, PodSpec, VolumeMount};
 
-use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume};
+use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume, WORKSPACE_DIR};
 use crate::args;
 
 pub fn pod(spec: &ActorSpec) -> PodSpec {
@@ -32,7 +32,7 @@ pub fn container(spec: &ActorSpec) -> Container {
     let build = spec.character.build.clone().unwrap_or_default();
 
     // Parse the arguments for the container
-    let arguments = vec![("app", "/workspace/app")];
+    let arguments = vec![("app", WORKSPACE_DIR)];
     let mut arguments = args(&arguments, 1);
     if let Some(argments) = &build.args {
         arguments.extend(argments.clone());

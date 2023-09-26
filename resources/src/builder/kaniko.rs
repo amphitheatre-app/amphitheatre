@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::PathBuf;
+
 use amp_common::resource::ActorSpec;
 use k8s_openapi::api::core::v1::{Container, PodSpec, VolumeMount};
 
-use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume, DEFAULT_KANIKO_IMAGE};
+use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume, DEFAULT_KANIKO_IMAGE, WORKSPACE_DIR};
 use crate::args;
 
 pub fn pod(spec: &ActorSpec) -> PodSpec {
@@ -31,18 +33,20 @@ pub fn pod(spec: &ActorSpec) -> PodSpec {
 pub fn container(spec: &ActorSpec) -> Container {
     let build = spec.character.build.clone().unwrap_or_default();
 
+    // Set the working directory to context.
+    let mut workdir = PathBuf::from(WORKSPACE_DIR);
+    if let Some(context) = &build.context {
+        workdir.push(context);
+    }
+
     // Parse the arguments for the container
     let destination = spec.image.clone();
     let mut arguments = vec![
-        ("context", "/workspace/app"),
+        ("context", workdir.to_str().unwrap()),
         ("destination", destination.as_str()),
-        ("verbosity", "trace"),
-        ("cache", "false"),
+        ("verbosity", "info"),
+        ("cache", "true"),
     ];
-
-    if let Some(context) = &build.context {
-        arguments.push(("context-sub-path", context));
-    }
 
     if let Some(config) = &build.dockerfile {
         arguments.push(("dockerfile", &config.dockerfile));

@@ -15,7 +15,7 @@
 use amp_common::schema::GitReference;
 use k8s_openapi::api::core::v1::Container;
 
-use super::{workspace_mount, DEFAULT_GIT_SYNC_IMAGE};
+use super::{workspace_mount, DEFAULT_GIT_SYNC_IMAGE, WORKSPACE_DIR};
 use crate::args;
 
 pub fn container(source: &GitReference) -> Container {
@@ -27,7 +27,7 @@ pub fn container(source: &GitReference) -> Container {
         ("ref", &revision),
         ("repo", &source.repo),
         ("root", "/workspace/src"),
-        ("link", "/workspace/app"),
+        ("link", WORKSPACE_DIR),
     ];
 
     Container {
