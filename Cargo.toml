@@ -25,7 +25,7 @@ amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.5.1
 amp-resolver = { path = "resolver" }
 amp-resources = { path = "resources" }
 async-nats = "0.29.0"
-clap = { version = "4.4.4", features = ["derive", "env"] }
+clap = { version = "4.4.6", features = ["derive", "env"] }
 dotenv = "0.15.0"
 futures = "0.3"
 kube = { version = "0.86.0", default-features = false, features = ["runtime", "derive", "rustls-tls"] }
