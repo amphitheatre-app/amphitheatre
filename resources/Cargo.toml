@@ -16,7 +16,7 @@ k8s-openapi = { workspace = true, optional = false }
 serde = { workspace = true, optional = false }
 serde_json = { workspace = true, optional = false }
 serde_yaml = { workspace = true, optional = false }
-sha2 = "0.10.7"
+sha2 = "0.10.8"
 thiserror = { workspace = true, optional = false }
 tracing = { workspace = true, optional = false }
 tokio = { workspace = true, optional = false }
