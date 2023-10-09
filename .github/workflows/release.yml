@@ -45,7 +45,7 @@ jobs:
     - uses: taiki-e/install-action@cross
     - uses: taiki-e/upload-rust-binary-action@v1
       with:
-        bin: amp-apiserver, amp-controllers, amp-crdgen, amp-syncer
+        bin: amp-apiserver,amp-controllers,amp-crdgen,amp-syncer
         archive: amphitheatre-$tag-$target
         target: ${{ matrix.target }}
         token: ${{ secrets.GITHUB_TOKEN }}
