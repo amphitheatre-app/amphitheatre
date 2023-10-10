@@ -31,7 +31,7 @@ mod handle;
 #[tokio::main]
 async fn main() -> Result<(), async_nats::Error> {
     let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::TRACE.into())
+        .with_default_directive(LevelFilter::INFO.into())
         .from_env_lossy();
     tracing_subscriber::fmt().with_env_filter(filter).init();
 

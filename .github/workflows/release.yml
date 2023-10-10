@@ -30,22 +30,28 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            platform: linux-amd64
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
+            platform: linux-arm64
           - os: macos-latest
             target: x86_64-apple-darwin
+            platform: darwin-amd64
           - os: macos-latest
             target: aarch64-apple-darwin
+            platform: darwin-arm64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            platform: windows-amd64
 #         - os: windows-latest
 #           target: aarch64-pc-windows-msvc
+#           platform: windows-arm64
     steps:
     - uses: actions/checkout@v4
     - uses: taiki-e/install-action@cross
     - uses: taiki-e/upload-rust-binary-action@v1
       with:
         bin: amp-apiserver,amp-controllers,amp-crdgen,amp-syncer
-        archive: amphitheatre-$tag-$target
+        archive: amphitheatre-${{ matrix.platform }}
         target: ${{ matrix.target }}
         token: ${{ secrets.GITHUB_TOKEN }}
