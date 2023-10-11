@@ -55,3 +55,4 @@ jobs:
         archive: amphitheatre-${{ matrix.platform }}
         target: ${{ matrix.target }}
         token: ${{ secrets.GITHUB_TOKEN }}
+        include: LICENSE,README.md
