@@ -21,7 +21,6 @@ pub struct CreatePlaybookRequest {
     pub title: String,
     pub description: Option<String>,
     pub preface: Preface,
-    pub live: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

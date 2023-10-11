@@ -39,14 +39,14 @@ struct Args {
 }
 
 fn main() {
-    let mapings = HashMap::from([
+    let mappings = HashMap::from([
         ("actor", ("actor.yaml", Actor::crd())),
         ("character", ("character.yaml", Character::crd())),
         ("playbook", ("playbook.yaml", Playbook::crd())),
     ]);
 
     let args = Args::parse();
-    let mut all_names: Vec<&str> = mapings.keys().copied().collect();
+    let mut all_names: Vec<&str> = mappings.keys().copied().collect();
     all_names.sort();
 
     // Print the names of the custom resource definition sorted by name.
@@ -57,12 +57,12 @@ fn main() {
         return;
     }
 
-    // Parse the inputed names, if not specified, use all names.
+    // Parse the inputted names, if not specified, use all names.
     let names: Vec<&str> = args.names.as_ref().map(|s| s.split(',').collect()).unwrap_or(all_names);
 
     // Check the names are valid.
     for name in &names {
-        if !mapings.contains_key(name) {
+        if !mappings.contains_key(name) {
             eprintln!("The given name is not valid: {}", name);
             std::process::exit(1);
         }
@@ -79,7 +79,7 @@ fn main() {
     }
 
     for name in names {
-        let (filename, data) = mapings.get(name).unwrap();
+        let (filename, data) = mappings.get(name).unwrap();
         generate(dir, filename, data);
     }
 }
@@ -114,7 +114,7 @@ mod test {
     #[test]
     fn test_main_with_list() {
         let output = std::process::Command::new("cargo")
-            .args(&["run", "-p", "amp-crdgen", "--", "--list"])
+            .args(["run", "-p", "amp-crdgen", "--", "--list"])
             .output()
             .expect("failed to execute process");
 
@@ -125,7 +125,7 @@ mod test {
     #[test]
     fn test_main_with_names() {
         let output = std::process::Command::new("cargo")
-            .args(&["run", "-p", "amp-crdgen", "--", "--names", "actor,character"])
+            .args(["run", "-p", "amp-crdgen", "--", "--names", "actor,character"])
             .output()
             .expect("failed to execute process");
 
@@ -139,7 +139,7 @@ mod test {
     #[test]
     fn test_main_with_invalid_names() {
         let output = std::process::Command::new("cargo")
-            .args(&["run", "-p", "amp-crdgen", "--", "--names", "invalid"])
+            .args(["run", "-p", "amp-crdgen", "--", "--names", "invalid"])
             .output()
             .expect("failed to execute process");
 
@@ -153,7 +153,7 @@ mod test {
     fn test_main_with_output() {
         let tempdir = tempfile::tempdir().unwrap();
         let output = std::process::Command::new("cargo")
-            .args(&[
+            .args([
                 "run",
                 "-p",
                 "amp-crdgen",
@@ -179,7 +179,7 @@ mod test {
     #[test]
     fn test_main_with_empty_args() {
         let output = std::process::Command::new("cargo")
-            .args(&["run", "-p", "amp-crdgen", "--"])
+            .args(["run", "-p", "amp-crdgen", "--"])
             .output()
             .expect("failed to execute process");
 
