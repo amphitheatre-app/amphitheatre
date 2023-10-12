@@ -21,5 +21,6 @@ use super::error::{Error, Result};
 pub async fn get(client: &Client, name: &str) -> Result<Character> {
     let api: Api<Character> = Api::all(client.clone());
     let resources = api.get(name).await.map_err(Error::KubeError)?;
+
     Ok(resources)
 }

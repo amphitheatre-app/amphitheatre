@@ -20,6 +20,7 @@ use k8s_openapi::api::core::v1::{Container, PodSpec, VolumeMount};
 use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume, DEFAULT_KANIKO_IMAGE, WORKSPACE_DIR};
 use crate::args;
 
+/// Build and return the pod spec for the kaniko builder job
 pub fn pod(spec: &ActorSpec) -> PodSpec {
     PodSpec {
         restart_policy: Some("Never".into()),
@@ -30,7 +31,8 @@ pub fn pod(spec: &ActorSpec) -> PodSpec {
     }
 }
 
-pub fn container(spec: &ActorSpec) -> Container {
+/// Build and return the container spec for the kaniko container
+fn container(spec: &ActorSpec) -> Container {
     let build = spec.character.build.clone().unwrap_or_default();
 
     // Set the working directory to context.
@@ -53,8 +55,8 @@ pub fn container(spec: &ActorSpec) -> Container {
     }
 
     let mut arguments = args(&arguments, 2);
-    if let Some(argments) = &build.args {
-        arguments.extend(argments.clone());
+    if let Some(args) = &build.args {
+        arguments.extend(args.clone());
     }
 
     Container {
@@ -68,6 +70,7 @@ pub fn container(spec: &ActorSpec) -> Container {
     }
 }
 
+/// Build and return the volume mount for the kaniko docker config
 #[inline]
 fn docker_config_mount() -> VolumeMount {
     VolumeMount {

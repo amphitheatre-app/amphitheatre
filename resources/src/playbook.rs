@@ -15,21 +15,25 @@
 use std::time::Duration;
 
 use amp_common::resource::{CharacterSpec, Playbook, PlaybookState};
+
 use k8s_openapi::apiextensions_apiserver as server;
+use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
+
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::api::{DeleteParams, ListParams, Patch, PatchParams, PostParams};
 use kube::core::ObjectList;
 use kube::{Api, Client, CustomResourceExt, ResourceExt};
+
 use serde_json::{json, to_string_pretty};
-use server::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use tokio::time::sleep;
+use tracing::{debug, info};
 
 use super::error::{Error, Result};
 
 pub async fn install(client: &Client) -> Result<()> {
     let api: Api<CustomResourceDefinition> = Api::all(client.clone());
     let crd = Playbook::crd();
-    tracing::debug!(
+    debug!(
         "Creating the Playbook CustomResourceDefinition: {}",
         to_string_pretty(&crd).unwrap()
     );
@@ -37,8 +41,8 @@ pub async fn install(client: &Client) -> Result<()> {
     let params = PostParams::default();
     match api.create(&params, &crd).await {
         Ok(o) => {
-            tracing::debug!("Created {} ({:?})", o.name_any(), o.status.unwrap());
-            tracing::debug!("Created CRD: {:?}", o.spec);
+            debug!("Created {} ({:?})", o.name_any(), o.status.unwrap());
+            debug!("Created CRD: {:?}", o.spec);
         }
         Err(kube::Error::Api(err)) => assert_eq!(err.code, 409), /* if you skipped delete, for instance */
         Err(err) => return Err(Error::KubeError(err)),
@@ -60,8 +64,8 @@ pub async fn uninstall(client: &Client) -> Result<()> {
         .delete(name, &params)
         .await
         .map_err(Error::KubeError)?
-        .map_left(|o| tracing::debug!("Deleting CRD: {:?}", o.status))
-        .map_right(|s| tracing::debug!("Deleted CRD: {:?}", s));
+        .map_left(|o| debug!("Deleting CRD: {:?}", o.status))
+        .map_right(|s| debug!("Deleted CRD: {:?}", s));
 
     // Wait for the delete to take place (map-left case or delete from previous run)
     sleep(Duration::from_secs(2)).await;
@@ -72,14 +76,14 @@ pub async fn uninstall(client: &Client) -> Result<()> {
 pub async fn create(client: &Client, playbook: &Playbook) -> Result<Playbook> {
     let api: Api<Playbook> = Api::all(client.clone());
 
-    tracing::debug!("The playbook resource:\n {:?}\n", playbook);
+    debug!("The playbook resource:\n {:?}\n", playbook);
 
     let playbook = api
         .create(&PostParams::default(), playbook)
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Created playbook: {}", playbook.name_any());
+    info!("Created playbook: {}", playbook.name_any());
 
     // Patch this playbook as initial Pending status
     patch_status(client, &playbook, PlaybookState::pending()).await?;
@@ -96,17 +100,14 @@ pub async fn add(client: &Client, playbook: &Playbook, character: CharacterSpec)
     }
     characters.push(character);
 
+    let params = &PatchParams::apply("amp-controllers");
     let patch = json!({"spec": { "characters": characters }});
     let playbook = api
-        .patch(
-            playbook.name_any().as_str(),
-            &PatchParams::apply("amp-controllers"),
-            &Patch::Merge(&patch),
-        )
+        .patch(&playbook.name_any(), params, &Patch::Merge(&patch))
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Added actor {:?} for {}", character_name, playbook.name_any());
+    info!("Added character {:?} to {}", character_name, playbook.name_any());
 
     Ok(())
 }
@@ -124,28 +125,16 @@ pub async fn patch_status(client: &Client, playbook: &Playbook, condition: Condi
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Patched status {:?} for {}", playbook.status, playbook.name_any());
+    info!("Patched status {:?} for {}", playbook.status, playbook.name_any());
 
     Ok(())
-}
-
-pub async fn replace_status(_client: &Client, _playbook: &Playbook, _condition: Condition) -> Result<()> {
-    todo!()
-}
-
-pub async fn replace_status_with(
-    _client: &Client,
-    _playbook: &Playbook,
-    _before: Condition,
-    _after: Condition,
-) -> Result<()> {
-    todo!()
 }
 
 /// List all playbooks
 pub async fn list(client: &Client) -> Result<ObjectList<Playbook>> {
     let api: Api<Playbook> = Api::all(client.clone());
     let resources = api.list(&ListParams::default()).await.map_err(Error::KubeError)?;
+
     Ok(resources)
 }
 
@@ -153,6 +142,7 @@ pub async fn list(client: &Client) -> Result<ObjectList<Playbook>> {
 pub async fn get(client: &Client, name: &str) -> Result<Playbook> {
     let api: Api<Playbook> = Api::all(client.clone());
     let resources = api.get(name).await.map_err(Error::KubeError)?;
+
     Ok(resources)
 }
 
@@ -166,8 +156,8 @@ pub async fn delete(client: &Client, name: &str) -> Result<()> {
         .delete(name, &params)
         .await
         .map_err(Error::KubeError)?
-        .map_left(|o| tracing::debug!("Deleting Playbook: {:?}", o.status))
-        .map_right(|s| tracing::debug!("Deleted Playbook: {:?}", s));
+        .map_left(|o| debug!("Deleting Playbook: {:?}", o.status))
+        .map_right(|s| debug!("Deleted Playbook: {:?}", s));
 
     // Wait for the delete to take place (map-left case or delete from previous run)
     sleep(Duration::from_secs(2)).await;

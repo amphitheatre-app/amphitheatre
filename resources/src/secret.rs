@@ -22,6 +22,7 @@ use kube::api::{Patch, PatchParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, ResourceExt};
 use serde_json::to_string;
+use tracing::{debug, info};
 use url::Url;
 
 use super::error::{Error, Result};
@@ -39,7 +40,7 @@ pub async fn create_registry_secret(client: &Client, namespace: &str, config: Do
         )])),
         ..Default::default()
     };
-    tracing::debug!("The secret resource:\n {:?}\n", to_string(&resource));
+    debug!("The secret resource:\n {:?}\n", to_string(&resource));
 
     create(client, namespace, resource).await
 }
@@ -77,7 +78,7 @@ pub async fn create_repository_secret(
         string_data: Some(data),
         ..Secret::default()
     };
-    tracing::debug!("The secret resource:\n {:?}\n", resource);
+    debug!("The secret resource:\n {:?}\n", resource);
 
     create(client, namespace, resource).await
 }
@@ -96,17 +97,15 @@ fn secret_name(endpoint: &str) -> Result<String> {
 
 pub async fn create(client: &Client, namespace: &str, resource: Secret) -> Result<Secret> {
     let api: Api<Secret> = Api::namespaced(client.clone(), namespace);
+    let name = resource.name_any();
 
+    let params = &PatchParams::apply("amp-controllers").force();
     let secret = api
-        .patch(
-            &resource.name_any(),
-            &PatchParams::apply("amp-controllers").force(),
-            &Patch::Apply(&resource),
-        )
+        .patch(&name, params, &Patch::Apply(&resource))
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Added Secret {:?}", secret.name_any());
+    info!("Added Secret {:?}", name);
     Ok(secret)
 }
 
@@ -114,5 +113,6 @@ pub async fn create(client: &Client, namespace: &str, resource: Secret) -> Resul
 pub async fn get_opt(client: &Client, namespace: &str, name: &str) -> Result<Option<Secret>> {
     let api: Api<Secret> = Api::namespaced(client.clone(), namespace);
     let resources = api.get_opt(name).await.map_err(Error::KubeError)?;
+
     Ok(resources)
 }

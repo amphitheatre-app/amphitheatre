@@ -19,37 +19,42 @@ use k8s_openapi::api::core::v1::Namespace;
 use kube::api::{Patch, PatchParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
+use tracing::{debug, info};
 
 use super::error::{Error, Result};
 
 pub async fn create(client: &Client, playbook: &Playbook) -> Result<Namespace> {
     let api: Api<Namespace> = Api::all(client.clone());
-
     let name = playbook.spec.namespace.clone();
-    let owner_reference = playbook.controller_owner_ref(&()).unwrap();
-    let resource = Namespace {
-        metadata: ObjectMeta {
-            name: Some(name.clone()),
-            owner_references: Some(vec![owner_reference]),
-            labels: Some(BTreeMap::from([
-                ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),
-                ("syncer.amphitheatre.app/sync".into(), "true".into()),
-            ])),
-            ..ObjectMeta::default()
-        },
-        ..Namespace::default()
-    };
-    tracing::debug!("The namespace resource:\n {:?}\n", resource);
 
+    let resource = new(playbook);
+    debug!("The namespace resource:\n {:?}\n", resource);
+
+    let params = &PatchParams::apply("amp-controllers").force();
     let namespace = api
-        .patch(
-            &name,
-            &PatchParams::apply("amp-controllers").force(),
-            &Patch::Apply(&resource),
-        )
+        .patch(&name, params, &Patch::Apply(&resource))
         .await
         .map_err(Error::KubeError)?;
 
-    tracing::info!("Added namespace: {}", namespace.name_any());
+    info!("Added namespace: {}", namespace.name_any());
     Ok(namespace)
+}
+
+fn new(playbook: &Playbook) -> Namespace {
+    let name = playbook.spec.namespace.clone();
+    let owner_reference = playbook.controller_owner_ref(&()).unwrap();
+    let labels = BTreeMap::from([
+        ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),
+        ("syncer.amphitheatre.app/sync".into(), "true".into()),
+    ]);
+
+    Namespace {
+        metadata: ObjectMeta {
+            name: Some(name.clone()),
+            owner_references: Some(vec![owner_reference]),
+            labels: Some(labels),
+            ..ObjectMeta::default()
+        },
+        ..Namespace::default()
+    }
 }

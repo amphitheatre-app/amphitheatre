@@ -58,4 +58,4 @@ COPY --from=builder \
      /usr/local/bin/
 
 # What the container should run when it is started
-CMD ["/usr/local/bin/amp-controllers"]
+ENTRYPOINT ["/usr/local/bin/amp-controllers"]

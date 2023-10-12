@@ -60,4 +60,4 @@ COPY --from=builder \
 EXPOSE 8170
 
 # What the container should run when it is started
-CMD ["/usr/local/bin/amp-apiserver"]
+ENTRYPOINT ["/usr/local/bin/amp-apiserver"]

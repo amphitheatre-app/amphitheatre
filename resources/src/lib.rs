@@ -21,6 +21,7 @@ use self::error::{Error, Result};
 pub mod actor;
 pub mod builder;
 pub mod character;
+pub mod containers;
 pub mod credential;
 pub mod deployment;
 pub mod error;

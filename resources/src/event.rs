@@ -13,13 +13,14 @@
 // limitations under the License.
 
 use kube::runtime::events::{Event, EventType, Recorder};
+use tracing::info;
 
 use super::error::{Error, Result};
 
 pub async fn trace(recorder: &Recorder, message: impl Into<String>) -> Result<()> {
     let message: String = message.into();
 
-    tracing::info!("{}", message);
+    info!("{}", message);
     recorder
         .publish(Event {
             type_: EventType::Normal,

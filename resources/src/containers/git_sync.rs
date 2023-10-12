@@ -18,6 +18,7 @@ use k8s_openapi::api::core::v1::Container;
 use super::{workspace_mount, DEFAULT_GIT_SYNC_IMAGE, WORKSPACE_DIR};
 use crate::args;
 
+/// Build and return the container spec for the git-sync.
 pub fn container(source: &GitReference) -> Container {
     // Parse the arguments for the container
     let revision = source.rev();
@@ -26,6 +27,7 @@ pub fn container(source: &GitReference) -> Container {
         ("one-time", "true"),
         ("ref", &revision),
         ("repo", &source.repo),
+        // TODO: Using another directory for source pull.
         ("root", "/workspace/src"),
         ("link", WORKSPACE_DIR),
     ];

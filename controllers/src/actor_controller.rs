@@ -100,6 +100,17 @@ async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<
 }
 
 async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
+    // Return if the actor is live
+    if actor.spec.live {
+        tracing::info!("The actor is live mode, Running");
+        let condition = ActorState::running(true, "AutoRun", None);
+        actor::patch_status(&ctx.k8s, actor, condition)
+            .await
+            .map_err(Error::ResourceError)?;
+
+        return Ok(Action::await_change());
+    }
+
     // Return if the image already exists
     let credentials = ctx.credentials.read().await;
     let config = DockerConfig::from(&credentials.registries);
