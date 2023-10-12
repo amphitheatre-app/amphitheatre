@@ -134,14 +134,14 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
     tracing::debug!("The repositories to be fetched are: {fetches:?}");
 
     for (name, partner) in fetches.iter() {
-        let actor = resolver::partner::load(&ctx.k8s, &credentials, name, partner)
+        let character = resolver::partner::load(&ctx.k8s, &credentials, name, partner)
             .await
             .map_err(Error::ResolveError)?;
 
         let message = "Fetch and add the actor to this playbook";
         trace(recorder, message).await.map_err(Error::ResourceError)?;
 
-        playbook::add(&ctx.k8s, playbook, actor)
+        playbook::add(&ctx.k8s, playbook, character)
             .await
             .map_err(Error::ResourceError)?;
     }
@@ -191,17 +191,17 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
                     let message = format!("Try to refresh an existing Actor {}", name);
                     trace(recorder, message).await.map_err(Error::ResourceError)?;
 
-                    let spec = resolver::to_actor(&credentials, character).map_err(Error::ResolveError)?;
+                    let spec = resolver::to_actor(character, &credentials).map_err(Error::ResolveError)?;
                     actor::update(&ctx.k8s, playbook, &spec)
                         .await
                         .map_err(Error::ResourceError)?;
                 }
                 false => {
                     // Create a new actor
-                    trace(recorder, format!("Create new Actor: {}", name))
-                        .await
-                        .map_err(Error::ResourceError)?;
-                    let spec = resolver::to_actor(&credentials, character).map_err(Error::ResolveError)?;
+                    let message = format!("Create new Actor: {}", name);
+                    trace(recorder, message).await.map_err(Error::ResourceError)?;
+
+                    let spec = resolver::to_actor(character, &credentials).map_err(Error::ResolveError)?;
                     actor::create(&ctx.k8s, playbook, &spec)
                         .await
                         .map_err(Error::ResourceError)?;

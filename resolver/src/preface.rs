@@ -19,7 +19,7 @@ use crate::{
 use amp_common::{config::Credentials, resource::CharacterSpec, resource::Preface};
 use kube::Client as KubeClient;
 
-/// Load mainfest from different sources and return the actor spec.
+/// Load manifest from different sources and return the actor spec.
 pub async fn load(client: &KubeClient, credentials: &Credentials, preface: &Preface) -> Result<CharacterSpec> {
     if let Some(p) = &preface.registry {
         let registry = p.registry.clone().unwrap_or_else(|| "catalog".to_string());

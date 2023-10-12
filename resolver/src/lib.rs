@@ -29,7 +29,7 @@ pub mod utils;
 
 const CATALOG_REPO_URL: &str = "https://github.com/amphitheatre-app/catalog.git";
 
-/// Load mainfest from catalog and return the actor spec.
+/// Load manifest from catalog and return the actor spec.
 pub fn load_from_catalog(credentials: &Credentials, name: &str, version: &str) -> Result<CharacterSpec> {
     let reference = GitReference {
         repo: CATALOG_REPO_URL.to_string(),
@@ -40,7 +40,7 @@ pub fn load_from_catalog(credentials: &Credentials, name: &str, version: &str) -
     load_from_source(credentials, &reference)
 }
 
-/// Load mainfest from remote VCS (like github) and return the actor spec.
+/// Load manifest from remote VCS (like github) and return the actor spec.
 pub fn load_from_source(credentials: &Credentials, reference: &GitReference) -> Result<CharacterSpec> {
     let client = ScmClient::init(credentials, &reference.repo).map_err(ResolveError::SCMError)?;
 
@@ -59,7 +59,7 @@ pub fn load_from_source(credentials: &Credentials, reference: &GitReference) -> 
     Ok(CharacterSpec::from(manifest))
 }
 
-/// Load mainfest from Kubernetes cluster and return the actor spec.
+/// Load manifest from Kubernetes cluster and return the actor spec.
 pub async fn load_from_cluster(client: &KubeClient, name: &str) -> Result<CharacterSpec> {
     let character = character::get(client, name)
         .await
@@ -68,12 +68,17 @@ pub async fn load_from_cluster(client: &KubeClient, name: &str) -> Result<Charac
 }
 
 /// Read Character manifest and return the actor spec.
-pub fn to_actor(credentials: &Credentials, manifest: &CharacterSpec) -> Result<ActorSpec> {
-    let client = ScmClient::init(credentials, &manifest.meta.repository).map_err(ResolveError::SCMError)?;
+pub fn to_actor(character: &CharacterSpec, credentials: &Credentials) -> Result<ActorSpec> {
+    let client = ScmClient::init(credentials, &character.meta.repository).map_err(ResolveError::SCMError)?;
 
-    let mut spec = ActorSpec::from(manifest);
-    spec.source = Some(patches::source(&client, &spec.source.unwrap())?);
-    spec.image = patches::image(credentials, &spec)?;
+    let mut actor = ActorSpec::from(character);
 
-    Ok(spec)
+    // Patch the source and image if the actor is not live.
+    // it will be build with the builders later, so these must be valid.
+    if !actor.live {
+        actor.source = Some(patches::source(&client, &actor.source.unwrap())?);
+        actor.image = patches::image(credentials, &actor)?;
+    }
+
+    Ok(actor)
 }
