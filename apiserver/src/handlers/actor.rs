@@ -150,7 +150,7 @@ pub async fn stats(
     Ok(data(ActorService::stats(ctx, pid, name).await?))
 }
 
-/// Recive a actor's sources and publish them to Message Queue.
+/// Receive a actor's sources and publish them to Message Queue.
 #[utoipa::path(
     post, path = "/v1/actors/{pid}/{name}/sync",
     params(

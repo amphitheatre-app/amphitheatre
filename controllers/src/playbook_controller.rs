@@ -28,7 +28,7 @@ use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::runtime::{watcher, Controller};
 use kube::{Api, Resource, ResourceExt};
-use tracing::debug;
+use tracing::{debug, error, info};
 
 use crate::context::Context;
 use crate::error::{Error, Result};
@@ -38,8 +38,8 @@ pub async fn new(ctx: &Arc<Context>) {
 
     // Ensure Playbook CRD is installed before loop-watching
     if let Err(e) = api.list(&ListParams::default().limit(1)).await {
-        tracing::error!("Playbook CRD is not queryable; {e:?}. Is the CRD installed?");
-        tracing::info!("Installation: amp-crdgen | kubectl apply -f -");
+        error!("Playbook CRD is not queryable; {e:?}. Is the CRD installed?");
+        info!("Installation: amp-crdgen | kubectl apply -f -");
         std::process::exit(1);
     }
 
@@ -51,7 +51,7 @@ pub async fn new(ctx: &Arc<Context>) {
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Action> {
-    tracing::info!("Reconciling Playbook \"{}\"", playbook.name_any());
+    info!("Reconciling Playbook \"{}\"", playbook.name_any());
 
     let api: Api<Playbook> = Api::all(ctx.k8s.clone());
     let recorder = ctx.recorder(reference(&playbook));
@@ -71,7 +71,7 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Act
 /// an error handler that will be called when the reconciler fails with access to both the
 /// object that caused the failure and the actual error
 pub fn error_policy(_playbook: Arc<Playbook>, error: &Error, _ctx: Arc<Context>) -> Action {
-    tracing::error!("reconcile failed: {:?}", error);
+    error!("reconcile failed: {:?}", error);
     Action::requeue(Duration::from_secs(60))
 }
 
@@ -128,10 +128,10 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
                 }
             }
         }
-        tracing::debug!("The currently existing actors are: {exists:?}");
+        debug!("The currently existing actors are: {exists:?}");
     }
 
-    tracing::debug!("The repositories to be fetched are: {fetches:?}");
+    debug!("The repositories to be fetched are: {fetches:?}");
 
     for (name, partner) in fetches.iter() {
         let character = resolver::partner::load(&ctx.k8s, &credentials, name, partner)
@@ -215,7 +215,7 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
 pub async fn cleanup(playbook: &Playbook, ctx: &Arc<Context>, _recorder: &Recorder) -> Result<Action> {
     // Try to delete the NATS stream for this playbook if it exists.
     if ctx.jetstream.delete_stream(playbook.name_any()).await.is_ok() {
-        tracing::debug!("Deleted NATS stream for playbook {}", playbook.name_any());
+        debug!("Deleted NATS stream for playbook {}", playbook.name_any());
     }
 
     Ok(Action::await_change())

@@ -27,6 +27,7 @@ use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::runtime::{watcher, Controller};
 use kube::{Api, Resource, ResourceExt};
+use tracing::{error, info};
 
 use crate::context::Context;
 use crate::error::{Error, Result};
@@ -36,8 +37,8 @@ pub async fn new(ctx: &Arc<Context>) {
 
     // Ensure Actor CRD is installed before loop-watching
     if let Err(e) = api.list(&ListParams::default().limit(1)).await {
-        tracing::error!("Actor CRD is not queryable; {e:?}. Is the CRD installed?");
-        tracing::info!("Installation: amp-crdgen | kubectl apply -f -");
+        error!("Actor CRD is not queryable; {e:?}. Is the CRD installed?");
+        info!("Installation: amp-crdgen | kubectl apply -f -");
         std::process::exit(1);
     }
 
@@ -49,7 +50,7 @@ pub async fn new(ctx: &Arc<Context>) {
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
-    tracing::info!("Reconciling Actor \"{}\"", actor.name_any());
+    info!("Reconciling Actor \"{}\"", actor.name_any());
 
     let ns = actor.namespace().unwrap(); // actor is namespace scoped
     let api: Api<Actor> = Api::namespaced(ctx.k8s.clone(), &ns);
@@ -69,7 +70,7 @@ pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
 /// an error handler that will be called when the reconciler fails with access to both the
 /// object that caused the failure and the actual error
 pub fn error_policy(_actor: Arc<Actor>, error: &Error, _ctx: Arc<Context>) -> Action {
-    tracing::error!("reconcile failed: {:?}", error);
+    error!("reconcile failed: {:?}", error);
     Action::requeue(Duration::from_secs(60))
 }
 
@@ -102,7 +103,7 @@ async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<
 async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
     // Return if the actor is live
     if actor.spec.live {
-        tracing::info!("The actor is live mode, Running");
+        info!("The actor is live mode, Running");
         let condition = ActorState::running(true, "AutoRun", None);
         actor::patch_status(&ctx.k8s, actor, condition)
             .await
@@ -119,7 +120,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
     let credential = match credential {
         Ok(credential) => Some(credential),
         Err(err) => {
-            tracing::error!("Error handling docker configuration: {}", err);
+            error!("Error handling docker configuration: {}", err);
             None
         }
     };
@@ -128,7 +129,7 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
         .await
         .map_err(Error::DockerRegistryExistsFailed)?
     {
-        tracing::info!("The images already exists, Running");
+        info!("The images already exists, Running");
         let condition = ActorState::running(true, "AutoRun", None);
         actor::patch_status(&ctx.k8s, actor, condition)
             .await
