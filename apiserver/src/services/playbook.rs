@@ -22,8 +22,8 @@ use tracing::debug;
 use uuid::Uuid;
 
 use crate::context::Context;
-use crate::requests::playbook::CreatePlaybookRequest;
-use crate::response::ApiError;
+use crate::errors::ApiError;
+use crate::requests::playbook::{CreatePlaybookRequest, UpdatePlaybookRequest};
 use crate::responses::playbook::PlaybookResponse;
 use crate::services::Result;
 
@@ -92,12 +92,7 @@ impl PlaybookService {
         })
     }
 
-    pub async fn update(
-        _ctx: Arc<Context>,
-        _id: Uuid,
-        _title: Option<String>,
-        _description: Option<String>,
-    ) -> Result<PlaybookResponse> {
+    pub async fn update(_ctx: Arc<Context>, _id: Uuid, _req: &UpdatePlaybookRequest) -> Result<PlaybookResponse> {
         unimplemented!()
     }
 }

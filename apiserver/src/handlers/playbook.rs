@@ -28,9 +28,9 @@ use kube::Api;
 use tokio_stream::StreamExt as _;
 use uuid::Uuid;
 
+use super::Result;
 use crate::context::Context;
 use crate::requests::playbook::{CreatePlaybookRequest, UpdatePlaybookRequest};
-use crate::response::{data, ApiError};
 use crate::services::playbook::PlaybookService;
 
 // The Playbooks Service Handlers.
@@ -45,9 +45,8 @@ use crate::services::playbook::PlaybookService;
     ),
     tag = "Playbooks"
 )]
-pub async fn list(State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let playbooks = PlaybookService::list(ctx).await?;
-    Ok(data(playbooks))
+pub async fn list(State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse> {
+    Ok(Json(PlaybookService::list(ctx).await?))
 }
 
 /// Create a playbook in the current account.
@@ -66,9 +65,8 @@ pub async fn list(State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, 
 pub async fn create(
     State(ctx): State<Arc<Context>>,
     Json(req): Json<CreatePlaybookRequest>,
-) -> Result<impl IntoResponse, ApiError> {
-    let response = PlaybookService::create(ctx, &req).await?;
-    Ok((StatusCode::CREATED, data(response)))
+) -> Result<impl IntoResponse> {
+    Ok((StatusCode::CREATED, Json(PlaybookService::create(ctx, &req).await?)))
 }
 
 /// Returns a playbook detail.
@@ -84,9 +82,8 @@ pub async fn create(
     ),
     tag = "Playbooks"
 )]
-pub async fn detail(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::get(ctx, id).await?;
-    Ok(data(playbook))
+pub async fn detail(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse> {
+    Ok(Json(PlaybookService::get(ctx, id).await?))
 }
 
 /// Update a playbook.
@@ -109,10 +106,9 @@ pub async fn detail(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Re
 pub async fn update(
     Path(id): Path<Uuid>,
     State(ctx): State<Arc<Context>>,
-    Json(payload): Json<UpdatePlaybookRequest>,
-) -> Result<impl IntoResponse, ApiError> {
-    let playbook = PlaybookService::update(ctx, id, payload.title, payload.description).await?;
-    Ok(data(playbook))
+    Json(req): Json<UpdatePlaybookRequest>,
+) -> Result<impl IntoResponse> {
+    Ok(Json(PlaybookService::update(ctx, id, &req).await?))
 }
 
 /// Delete a playbook
@@ -127,7 +123,7 @@ pub async fn update(
     ),
     tag = "Playbooks"
 )]
-pub async fn delete(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
+pub async fn delete(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse> {
     PlaybookService::delete(ctx, id).await?;
 
     Ok(StatusCode::NO_CONTENT)
@@ -176,7 +172,7 @@ pub async fn events(
     ),
     tag = "Playbooks"
 )]
-pub async fn start(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
+pub async fn start(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse> {
     PlaybookService::start(ctx, id).await?;
 
     Ok(StatusCode::NO_CONTENT)
@@ -195,7 +191,7 @@ pub async fn start(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Res
     ),
     tag = "Playbooks",
 )]
-pub async fn stop(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
+pub async fn stop(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse> {
     PlaybookService::stop(ctx, id).await?;
 
     Ok(StatusCode::NO_CONTENT)

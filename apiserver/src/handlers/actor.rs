@@ -32,8 +32,9 @@ use kube::api::LogParams;
 use kube::Api;
 use uuid::Uuid;
 
+use super::Result;
 use crate::context::Context;
-use crate::response::{data, ApiError};
+use crate::errors::ApiError;
 use crate::services::actor::ActorService;
 
 // The Actors Service Handlers.
@@ -51,8 +52,8 @@ use crate::services::actor::ActorService;
     ),
     tag = "Actors"
 )]
-pub async fn list(Path(pid): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse, ApiError> {
-    Ok(data(ActorService::list(ctx, pid).await?))
+pub async fn list(Path(pid): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse> {
+    Ok(Json(ActorService::list(ctx, pid).await?))
 }
 
 /// Returns a actor detail.
@@ -71,8 +72,8 @@ pub async fn list(Path(pid): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Res
 pub async fn detail(
     State(ctx): State<Arc<Context>>,
     Path((pid, name)): Path<(Uuid, String)>,
-) -> Result<impl IntoResponse, ApiError> {
-    Ok(data(ActorService::get(ctx, pid, name).await?))
+) -> Result<impl IntoResponse> {
+    Ok(Json(ActorService::get(ctx, pid, name).await?))
 }
 
 /// Output the log streams of actor
@@ -126,8 +127,8 @@ pub async fn logs(
 pub async fn info(
     State(ctx): State<Arc<Context>>,
     Path((pid, name)): Path<(Uuid, String)>,
-) -> Result<impl IntoResponse, ApiError> {
-    Ok(data(ActorService::info(ctx, pid, name).await?))
+) -> Result<impl IntoResponse> {
+    Ok(Json(ActorService::info(ctx, pid, name).await?))
 }
 
 /// Returns a actor's stats.
@@ -146,8 +147,8 @@ pub async fn info(
 pub async fn stats(
     State(ctx): State<Arc<Context>>,
     Path((pid, name)): Path<(Uuid, String)>,
-) -> Result<impl IntoResponse, ApiError> {
-    Ok(data(ActorService::stats(ctx, pid, name).await?))
+) -> Result<impl IntoResponse> {
+    Ok(Json(ActorService::stats(ctx, pid, name).await?))
 }
 
 /// Receive a actor's sources and publish them to Message Queue.
@@ -172,7 +173,7 @@ pub async fn sync(
     State(ctx): State<Arc<Context>>,
     Path((pid, name)): Path<(Uuid, String)>,
     Json(req): Json<Synchronization>,
-) -> Result<impl IntoResponse, ApiError> {
+) -> Result<impl IntoResponse> {
     ActorService::sync(ctx, pid, name, req)
         .await
         .map_err(|err| ApiError::NatsError(err.to_string()))?;

@@ -15,9 +15,9 @@
 pub mod app;
 pub mod config;
 pub mod context;
+pub mod errors;
 pub mod handlers;
 pub mod requests;
-pub mod response;
 pub mod responses;
 pub mod routes;
 pub mod services;

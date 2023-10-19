@@ -14,3 +14,5 @@
 
 pub mod actor;
 pub mod playbook;
+
+type Result<T, E = crate::errors::ApiError> = std::result::Result<T, E>;

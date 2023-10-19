@@ -21,7 +21,7 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::context::Context;
-use crate::response::ApiError;
+use crate::errors::ApiError;
 use crate::responses::actor::ActorResponse;
 use crate::services::Result;
 use amp_resources::actor;

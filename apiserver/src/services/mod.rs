@@ -15,5 +15,4 @@
 pub mod actor;
 pub mod playbook;
 
-use crate::response::ApiError;
-pub type Result<T, E = ApiError> = std::result::Result<T, E>;
+pub type Result<T, E = crate::errors::ApiError> = std::result::Result<T, E>;
