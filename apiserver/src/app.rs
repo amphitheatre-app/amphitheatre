@@ -15,37 +15,15 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use axum::error_handling::HandleErrorLayer;
-use axum::{BoxError, Server};
-use tower::ServiceBuilder;
-use tower_governor::errors::display_error;
-use tower_governor::governor::GovernorConfigBuilder;
-use tower_governor::GovernorLayer;
+use axum::Server;
 
 use crate::context::Context;
 use crate::{routes, swagger};
 
 pub async fn run(ctx: Arc<Context>) {
     let port = ctx.config.port;
-    let governor_conf = Box::new(
-        GovernorConfigBuilder::default()
-            .per_second(1024)
-            .burst_size(1024)
-            .use_headers()
-            .finish()
-            .unwrap(),
-    );
 
-    let app = routes::build()
-        .merge(swagger::build())
-        .layer(
-            ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(|e: BoxError| async move { display_error(e) }))
-                .layer(GovernorLayer {
-                    config: Box::leak(governor_conf),
-                }),
-        )
-        .with_state(ctx);
+    let app = routes::build().merge(swagger::build()).with_state(ctx);
 
     // run it
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
