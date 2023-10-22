@@ -91,10 +91,9 @@ async fn apply(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
 }
 
 async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
-    trace(recorder, format!("Building the image for Actor {}", actor.name_any()))
-        .await
-        .map_err(Error::ResourceError)?;
     actor::patch_status(&ctx.k8s, actor, ActorState::building()).await.map_err(Error::ResourceError)?;
+    trace(recorder, format!("Building the image for Actor {}", actor.name_any())).await;
+
     Ok(Action::await_change())
 }
 
@@ -133,17 +132,13 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
     match builder::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
         true => {
             // Build job already exists, update it if there are new changes
-            let message = format!("Try to refresh an existing build Job {}", actor.spec.name());
-            trace(recorder, message).await.map_err(Error::ResourceError)?;
-
+            trace(recorder, format!("Try to refresh an existing build Job {}", actor.spec.name())).await;
             builder::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
         false => {
             // Create a new build job
-            let message = format!("Create new build Job: {}", actor.spec.name());
-            trace(recorder, message).await.map_err(Error::ResourceError)?;
-
             builder::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
+            trace(recorder, format!("Created new build Job: {}", actor.spec.name())).await;
         }
     }
 
@@ -154,34 +149,26 @@ async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
 
     // Once the image is built, it is deployed to the cluster with the
     // appropriate resource type (e.g. Deployment or StatefulSet).
-    let message = "The images builded, Running";
-    trace(recorder, message).await.map_err(Error::ResourceError)?;
-
     let condition = ActorState::running(true, "AutoRun", None);
     actor::patch_status(&ctx.k8s, actor, condition).await.map_err(Error::ResourceError)?;
+    trace(recorder, "The images builded, Running").await;
 
     Ok(Action::await_change())
 }
 
 async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
-    trace(recorder, format!("Try to deploying the resources for Actor {}", actor.name_any()))
-        .await
-        .map_err(Error::ResourceError)?;
+    trace(recorder, format!("Try to deploying the resources for Actor {}", actor.name_any())).await;
 
     match deployment::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
         true => {
             // Deployment already exists, update it if there are new changes
-            let message = format!("Try to refresh an existing Deployment {}", actor.name_any());
-            trace(recorder, message).await.map_err(Error::ResourceError)?;
-
+            trace(recorder, format!("Try to refresh an existing Deployment {}", actor.name_any())).await;
             deployment::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
         }
         false => {
             // Create a new Deployment
-            trace(recorder, format!("Create new Deployment: {}", actor.name_any()))
-                .await
-                .map_err(Error::ResourceError)?;
             deployment::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
+            trace(recorder, format!("Created new Deployment: {}", actor.name_any())).await;
         }
     }
 
@@ -189,17 +176,13 @@ async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<A
         match service::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
             true => {
                 // Service already exists, update it if there are new changes
-                let message = format!("Try to refresh an existing Service {}", actor.name_any());
-                trace(recorder, message).await.map_err(Error::ResourceError)?;
-
+                trace(recorder, format!("Try to refresh an existing Service {}", actor.name_any())).await;
                 service::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
             }
             false => {
                 // Create a new Service
-                let message = format!("Create new Service: {}", actor.name_any());
-                trace(recorder, message).await.map_err(Error::ResourceError)?;
-
                 service::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
+                trace(recorder, format!("Created new Service: {}", actor.name_any())).await;
             }
         }
     }
@@ -218,8 +201,7 @@ pub async fn cleanup(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> 
         }
     }
 
-    let message = format!("Delete Actor `{}`", actor.name_any());
-    trace(recorder, message).await.map_err(Error::ResourceError)?;
+    trace(recorder, format!("Delete Actor `{}`", actor.name_any())).await;
 
     Ok(Action::await_change())
 }

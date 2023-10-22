@@ -13,24 +13,21 @@
 // limitations under the License.
 
 use kube::runtime::events::{Event, EventType, Recorder};
-use tracing::info;
+use tracing::{error, info};
 
-use super::error::{Error, Result};
-
-pub async fn trace(recorder: &Recorder, message: impl Into<String>) -> Result<()> {
+pub async fn trace(recorder: &Recorder, message: impl Into<String>) {
     let message: String = message.into();
-
     info!("{}", message);
-    recorder
-        .publish(Event {
-            type_: EventType::Normal,
-            reason: "Tracing".into(),
-            note: Some(message),
-            action: "Reconciling".into(),
-            secondary: None,
-        })
-        .await
-        .map_err(Error::KubeError)?;
 
-    Ok(())
+    let event = Event {
+        type_: EventType::Normal,
+        reason: "Tracing".into(),
+        note: Some(message),
+        action: "Reconciling".into(),
+        secondary: None,
+    };
+
+    if let Err(err) = recorder.publish(event).await {
+        error!("Failed to publish event: {}", err);
+    }
 }

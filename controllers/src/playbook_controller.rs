@@ -93,55 +93,52 @@ async fn apply(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> 
 async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
     // Create namespace for this playbook
     namespace::create(&ctx.k8s, playbook).await.map_err(Error::ResourceError)?;
-    trace(recorder, "Created namespace for this playbook").await.map_err(Error::ResourceError)?;
+    trace(recorder, "Created namespace for this playbook").await;
 
     add_preface(playbook, ctx, recorder).await?;
-
-    trace(recorder, "Init successfully, Let's begin resolving, now!").await.map_err(Error::ResourceError)?;
     playbook::patch_status(&ctx.k8s, playbook, PlaybookState::resolving()).await.map_err(Error::ResourceError)?;
+    trace(recorder, "Init successfully, Let's begin resolving, now!").await;
 
     Ok(())
 }
 
 async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
+    // Check if there are any repositories to fetch
+    //
     let mut fetches: HashSet<(&str, Partner)> = HashSet::new();
-    let credentials = ctx.credentials.read().await;
 
     if let Some(characters) = &playbook.spec.characters {
         let exists: HashSet<&String> = characters.iter().map(|char| &char.meta.name).collect();
+        debug!("The currently existing actors are: {exists:?}");
 
         for character in characters {
             if let Some(partners) = &character.partners {
                 for (name, partner) in partners {
-                    if exists.contains(name) {
-                        continue;
+                    if !exists.contains(name) {
+                        fetches.insert((name, partner.clone()));
                     }
-                    fetches.insert((name, partner.clone()));
                 }
             }
         }
-        debug!("The currently existing actors are: {exists:?}");
+
+        debug!("The repositories to be fetched are: {fetches:?}");
     }
 
-    debug!("The repositories to be fetched are: {fetches:?}");
-
+    // Fetch the actors from the repositories
+    //
+    let credentials: tokio::sync::RwLockReadGuard<'_, amp_common::config::Credentials> = ctx.credentials.read().await;
     for (name, partner) in fetches.iter() {
         let character =
             resolver::partner::load(&ctx.k8s, &credentials, name, partner).await.map_err(Error::ResolveError)?;
-
-        let message = "Fetch and add the actor to this playbook";
-        trace(recorder, message).await.map_err(Error::ResourceError)?;
-
         playbook::add(&ctx.k8s, playbook, character).await.map_err(Error::ResourceError)?;
+        trace(recorder, "Fetch and add the actor to this playbook").await;
     }
 
+    // If there are no repositories to fetch, then the resolution is complete.
     if fetches.is_empty() {
-        let message = "Resolved successfully, Running";
-        trace(recorder, message).await.map_err(Error::ResourceError)?;
-
-        playbook::patch_status(&ctx.k8s, playbook, PlaybookState::running(true, "AutoRun", None))
-            .await
-            .map_err(Error::ResourceError)?;
+        let condition = PlaybookState::running(true, "AutoRun", None);
+        playbook::patch_status(&ctx.k8s, playbook, condition).await.map_err(Error::ResourceError)?;
+        trace(recorder, "Resolved successfully, Running").await;
     }
 
     Ok(())
@@ -153,9 +150,8 @@ async fn add_preface(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorde
     let credentials = ctx.credentials.read().await;
     let character =
         resolver::preface::load(&ctx.k8s, &credentials, &playbook.spec.preface).await.map_err(Error::ResolveError)?;
-
-    trace(recorder, "Fetch and add the character to this playbook").await.map_err(Error::ResourceError)?;
     playbook::add(&ctx.k8s, playbook, character).await.map_err(Error::ResourceError)?;
+    trace(recorder, "Fetch and add the character to this playbook").await;
 
     Ok(())
 }
@@ -169,16 +165,14 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
             match actor::exists(&ctx.k8s, playbook, name).await.map_err(Error::ResourceError)? {
                 true => {
                     // Actor already exists, update it if there are new changes
-                    let message = format!("Try to refresh an existing Actor {}", name);
-                    trace(recorder, message).await.map_err(Error::ResourceError)?;
+                    trace(recorder, format!("Try to refresh an existing Actor {}", name)).await;
 
                     let spec = resolver::to_actor(character, &credentials).map_err(Error::ResolveError)?;
                     actor::update(&ctx.k8s, playbook, &spec).await.map_err(Error::ResourceError)?;
                 }
                 false => {
                     // Create a new actor
-                    let message = format!("Create new Actor: {}", name);
-                    trace(recorder, message).await.map_err(Error::ResourceError)?;
+                    trace(recorder, format!("Create new Actor: {}", name)).await;
 
                     let spec = resolver::to_actor(character, &credentials).map_err(Error::ResolveError)?;
                     actor::create(&ctx.k8s, playbook, &spec).await.map_err(Error::ResourceError)?;
