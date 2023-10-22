@@ -174,8 +174,6 @@ pub async fn sync(
     Path((pid, name)): Path<(Uuid, String)>,
     Json(req): Json<Synchronization>,
 ) -> Result<impl IntoResponse> {
-    ActorService::sync(ctx, pid, name, req)
-        .await
-        .map_err(|err| ApiError::NatsError(err.to_string()))?;
+    ActorService::sync(ctx, pid, name, req).await.map_err(|err| ApiError::NatsError(err.to_string()))?;
     Ok(StatusCode::ACCEPTED)
 }

@@ -92,21 +92,13 @@ async fn apply(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> 
 /// Init create namespace and go to resolving.
 async fn init(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Result<()> {
     // Create namespace for this playbook
-    namespace::create(&ctx.k8s, playbook)
-        .await
-        .map_err(Error::ResourceError)?;
-    trace(recorder, "Created namespace for this playbook")
-        .await
-        .map_err(Error::ResourceError)?;
+    namespace::create(&ctx.k8s, playbook).await.map_err(Error::ResourceError)?;
+    trace(recorder, "Created namespace for this playbook").await.map_err(Error::ResourceError)?;
 
     add_preface(playbook, ctx, recorder).await?;
 
-    trace(recorder, "Init successfully, Let's begin resolving, now!")
-        .await
-        .map_err(Error::ResourceError)?;
-    playbook::patch_status(&ctx.k8s, playbook, PlaybookState::resolving())
-        .await
-        .map_err(Error::ResourceError)?;
+    trace(recorder, "Init successfully, Let's begin resolving, now!").await.map_err(Error::ResourceError)?;
+    playbook::patch_status(&ctx.k8s, playbook, PlaybookState::resolving()).await.map_err(Error::ResourceError)?;
 
     Ok(())
 }
@@ -134,16 +126,13 @@ async fn resolve(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -
     debug!("The repositories to be fetched are: {fetches:?}");
 
     for (name, partner) in fetches.iter() {
-        let character = resolver::partner::load(&ctx.k8s, &credentials, name, partner)
-            .await
-            .map_err(Error::ResolveError)?;
+        let character =
+            resolver::partner::load(&ctx.k8s, &credentials, name, partner).await.map_err(Error::ResolveError)?;
 
         let message = "Fetch and add the actor to this playbook";
         trace(recorder, message).await.map_err(Error::ResourceError)?;
 
-        playbook::add(&ctx.k8s, playbook, character)
-            .await
-            .map_err(Error::ResourceError)?;
+        playbook::add(&ctx.k8s, playbook, character).await.map_err(Error::ResourceError)?;
     }
 
     if fetches.is_empty() {
@@ -162,16 +151,11 @@ async fn add_preface(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorde
     debug!("Build from the starting characters (preface)");
 
     let credentials = ctx.credentials.read().await;
-    let character = resolver::preface::load(&ctx.k8s, &credentials, &playbook.spec.preface)
-        .await
-        .map_err(Error::ResolveError)?;
+    let character =
+        resolver::preface::load(&ctx.k8s, &credentials, &playbook.spec.preface).await.map_err(Error::ResolveError)?;
 
-    trace(recorder, "Fetch and add the character to this playbook")
-        .await
-        .map_err(Error::ResourceError)?;
-    playbook::add(&ctx.k8s, playbook, character)
-        .await
-        .map_err(Error::ResourceError)?;
+    trace(recorder, "Fetch and add the character to this playbook").await.map_err(Error::ResourceError)?;
+    playbook::add(&ctx.k8s, playbook, character).await.map_err(Error::ResourceError)?;
 
     Ok(())
 }
@@ -182,19 +166,14 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
     if let Some(characters) = &playbook.spec.characters {
         for character in characters {
             let name = &character.meta.name;
-            match actor::exists(&ctx.k8s, playbook, name)
-                .await
-                .map_err(Error::ResourceError)?
-            {
+            match actor::exists(&ctx.k8s, playbook, name).await.map_err(Error::ResourceError)? {
                 true => {
                     // Actor already exists, update it if there are new changes
                     let message = format!("Try to refresh an existing Actor {}", name);
                     trace(recorder, message).await.map_err(Error::ResourceError)?;
 
                     let spec = resolver::to_actor(character, &credentials).map_err(Error::ResolveError)?;
-                    actor::update(&ctx.k8s, playbook, &spec)
-                        .await
-                        .map_err(Error::ResourceError)?;
+                    actor::update(&ctx.k8s, playbook, &spec).await.map_err(Error::ResourceError)?;
                 }
                 false => {
                     // Create a new actor
@@ -202,9 +181,7 @@ async fn run(playbook: &Playbook, ctx: &Arc<Context>, recorder: &Recorder) -> Re
                     trace(recorder, message).await.map_err(Error::ResourceError)?;
 
                     let spec = resolver::to_actor(character, &credentials).map_err(Error::ResolveError)?;
-                    actor::create(&ctx.k8s, playbook, &spec)
-                        .await
-                        .map_err(Error::ResourceError)?;
+                    actor::create(&ctx.k8s, playbook, &spec).await.map_err(Error::ResourceError)?;
                 }
             }
         }

@@ -48,17 +48,12 @@ pub async fn patch(
 
         // Append to original secrets.
         if append_to_secret && !secret_names.contains(&secret_name) {
-            secrets.push(ObjectReference {
-                name: Some(secret_name.clone()),
-                ..Default::default()
-            });
+            secrets.push(ObjectReference { name: Some(secret_name.clone()), ..Default::default() });
         }
 
         // Append to original image pull secrets.
         if append_to_image_pull_secret && !image_pull_secret_names.contains(&secret_name) {
-            image_pull_secrets.push(LocalObjectReference {
-                name: Some(secret_name.clone()),
-            });
+            image_pull_secrets.push(LocalObjectReference { name: Some(secret_name.clone()) });
         }
     }
 

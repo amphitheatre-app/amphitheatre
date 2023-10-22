@@ -29,9 +29,7 @@ use super::error::{Error, Result};
 use super::{hash, LAST_APPLIED_HASH_KEY};
 
 pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
     let name = actor.name_any();
 
@@ -39,27 +37,20 @@ pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
 }
 
 pub async fn create(client: &Client, actor: &Actor) -> Result<Deployment> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
 
     let resource = new(actor)?;
     debug!("The Deployment resource:\n {:?}\n", resource);
 
-    let deployment = api
-        .create(&PostParams::default(), &resource)
-        .await
-        .map_err(Error::KubeError)?;
+    let deployment = api.create(&PostParams::default(), &resource).await.map_err(Error::KubeError)?;
 
     info!("Created Deployment: {}", deployment.name_any());
     Ok(deployment)
 }
 
 pub async fn update(client: &Client, actor: &Actor) -> Result<Deployment> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
     let name = actor.name_any();
 
@@ -67,10 +58,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Deployment> {
     debug!("The Deployment {} already exists: {:?}", &name, deployment);
 
     let expected_hash = hash(&actor.spec)?;
-    let found_hash: String = deployment
-        .annotations()
-        .get(LAST_APPLIED_HASH_KEY)
-        .map_or("".into(), |v| v.into());
+    let found_hash: String = deployment.annotations().get(LAST_APPLIED_HASH_KEY).map_or("".into(), |v| v.into());
 
     if found_hash == expected_hash {
         debug!("The Deployment {} is already up-to-date", &name);
@@ -81,10 +69,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Deployment> {
     debug!("The updating Deployment resource:\n {:?}\n", resource);
 
     let params = &PatchParams::apply("amp-controllers").force();
-    deployment = api
-        .patch(&name, params, &Patch::Apply(&resource))
-        .await
-        .map_err(Error::KubeError)?;
+    deployment = api.patch(&name, params, &Patch::Apply(&resource)).await.map_err(Error::KubeError)?;
 
     info!("Updated Deployment: {}", deployment.name_any());
     Ok(deployment)
@@ -109,32 +94,18 @@ fn new(actor: &Actor) -> Result<Deployment> {
     };
 
     // Build the spec for the pod, depend on whether the actor is live or not.
-    let pod = if actor.spec.live {
-        devcontainer::pod(actor)?
-    } else {
-        application::pod(actor)
-    };
+    let pod = if actor.spec.live { devcontainer::pod(actor)? } else { application::pod(actor) };
 
     // Build the spec for the deployment
     let spec = DeploymentSpec {
-        selector: LabelSelector {
-            match_labels: Some(labels.clone()),
-            ..Default::default()
-        },
+        selector: LabelSelector { match_labels: Some(labels.clone()), ..Default::default() },
         template: PodTemplateSpec {
-            metadata: Some(ObjectMeta {
-                labels: Some(labels.clone()),
-                ..Default::default()
-            }),
+            metadata: Some(ObjectMeta { labels: Some(labels.clone()), ..Default::default() }),
             spec: Some(pod),
         },
         ..Default::default()
     };
 
     // Build and return the deployment resource
-    Ok(Deployment {
-        metadata,
-        spec: Some(spec),
-        ..Default::default()
-    })
+    Ok(Deployment { metadata, spec: Some(spec), ..Default::default() })
 }

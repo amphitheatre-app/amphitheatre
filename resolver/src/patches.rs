@@ -42,10 +42,7 @@ pub fn source(client: &Client, source: &GitReference) -> Result<GitReference> {
     } else if let Some(branch) = &actual.branch {
         reference = branch.to_string();
     } else {
-        let repository = client
-            .repositories()
-            .find(&repo)
-            .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
+        let repository = client.repositories().find(&repo).map_err(|e| ResolveError::FetchingError(e.to_string()))?;
         reference = repository.unwrap().branch;
 
         // Save it for other purposes,
@@ -72,13 +69,7 @@ pub fn image(credentials: &Credentials, spec: &ActorSpec) -> Result<String> {
             registry = "index.docker.io";
         }
 
-        Ok(format!(
-            "{}/{}/{}:{}",
-            registry,
-            credential.username_any(),
-            spec.name,
-            spec.source.as_ref().unwrap().rev()
-        ))
+        Ok(format!("{}/{}/{}:{}", registry, credential.username_any(), spec.name, spec.source.as_ref().unwrap().rev()))
     } else {
         Err(ResolveError::EmptyRegistryAddress)
     }

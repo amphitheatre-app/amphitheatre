@@ -25,9 +25,7 @@ use super::error::{Error, Result};
 use super::{hash, LAST_APPLIED_HASH_KEY};
 
 pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Service> = Api::namespaced(client.clone(), namespace.as_str());
     let name = actor.name_any();
 
@@ -35,27 +33,20 @@ pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
 }
 
 pub async fn create(client: &Client, actor: &Actor) -> Result<Service> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Service> = Api::namespaced(client.clone(), namespace.as_str());
 
     let resource = new(actor)?;
     tracing::debug!("The service resource:\n {:?}\n", resource);
 
-    let service = api
-        .create(&PostParams::default(), &resource)
-        .await
-        .map_err(Error::KubeError)?;
+    let service = api.create(&PostParams::default(), &resource).await.map_err(Error::KubeError)?;
 
     tracing::info!("Created service: {}", service.name_any());
     Ok(service)
 }
 
 pub async fn update(client: &Client, actor: &Actor) -> Result<Service> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Service> = Api::namespaced(client.clone(), namespace.as_str());
     let name = actor.name_any();
 
@@ -63,10 +54,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Service> {
     tracing::debug!("The Service {} already exists: {:?}", &name, service);
 
     let expected_hash = hash(&actor.spec)?;
-    let found_hash: String = service
-        .annotations()
-        .get(LAST_APPLIED_HASH_KEY)
-        .map_or("".into(), |v| v.into());
+    let found_hash: String = service.annotations().get(LAST_APPLIED_HASH_KEY).map_or("".into(), |v| v.into());
 
     if found_hash == expected_hash {
         debug!("The Service {} is already up-to-date", &name);
@@ -77,10 +65,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Service> {
     tracing::debug!("The updating Service resource:\n {:?}\n", resource);
 
     let params = &PatchParams::apply("amp-controllers").force();
-    service = api
-        .patch(&name, params, &Patch::Apply(&resource))
-        .await
-        .map_err(Error::KubeError)?;
+    service = api.patch(&name, params, &Patch::Apply(&resource)).await.map_err(Error::KubeError)?;
 
     tracing::info!("Updated Service: {}", service.name_any());
     Ok(service)
@@ -113,11 +98,7 @@ fn new(actor: &Actor) -> Result<Service> {
     // Build and return the service resource.
     Ok(Service {
         metadata,
-        spec: Some(ServiceSpec {
-            selector: Some(labels),
-            ports: service_ports,
-            ..Default::default()
-        }),
+        spec: Some(ServiceSpec { selector: Some(labels), ports: service_ports, ..Default::default() }),
         ..Default::default()
     })
 }

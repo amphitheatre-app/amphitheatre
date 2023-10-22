@@ -35,15 +35,10 @@ pub async fn create(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> R
 
     let name = spec.name.clone();
     let mut resource = Actor::new(&name, spec.clone());
-    resource
-        .owner_references_mut()
-        .push(playbook.controller_owner_ref(&()).unwrap());
+    resource.owner_references_mut().push(playbook.controller_owner_ref(&()).unwrap());
     debug!("The Actor resource:\n {:?}\n", resource);
 
-    let actor = api
-        .create(&PostParams::default(), &resource)
-        .await
-        .map_err(Error::KubeError)?;
+    let actor = api.create(&PostParams::default(), &resource).await.map_err(Error::KubeError)?;
 
     info!("Created Actor: {}", actor.name_any());
 
@@ -66,16 +61,11 @@ pub async fn update(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> R
     }
 
     let mut resource = Actor::new(&name, spec.clone());
-    resource
-        .owner_references_mut()
-        .push(playbook.controller_owner_ref(&()).unwrap());
+    resource.owner_references_mut().push(playbook.controller_owner_ref(&()).unwrap());
     debug!("The updating Actor resource:\n {:?}\n", resource);
 
     let params = &PatchParams::apply("amp-controllers").force();
-    actor = api
-        .patch(&name, params, &Patch::Apply(&resource))
-        .await
-        .map_err(Error::KubeError)?;
+    actor = api.patch(&name, params, &Patch::Apply(&resource)).await.map_err(Error::KubeError)?;
 
     info!("Updated Actor: {}", actor.name_any());
 
@@ -83,19 +73,13 @@ pub async fn update(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> R
 }
 
 pub async fn patch_status(client: &Client, actor: &Actor, condition: Condition) -> Result<()> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
 
     let api: Api<Actor> = Api::namespaced(client.clone(), &namespace);
 
     let status = json!({ "status": { "conditions": vec![condition] }});
     let actor = api
-        .patch_status(
-            actor.name_any().as_str(),
-            &PatchParams::default(),
-            &Patch::Merge(&status),
-        )
+        .patch_status(actor.name_any().as_str(), &PatchParams::default(), &Patch::Merge(&status))
         .await
         .map_err(Error::KubeError)?;
 
@@ -106,18 +90,12 @@ pub async fn patch_status(client: &Client, actor: &Actor, condition: Condition) 
 
 pub async fn metrics(client: &Client, namespace: &str, name: &str) -> Result<PodMetrics> {
     let api: Api<PodMetrics> = Api::namespaced(client.clone(), namespace);
-    let params = ListParams::default()
-        .labels(&format!("app.kubernetes.io/name={}", name))
-        .limit(1);
+    let params = ListParams::default().labels(&format!("app.kubernetes.io/name={}", name)).limit(1);
     let resources = api.list(&params).await;
     debug!("Metrics for Actor {}:\n{:?}", name, resources);
 
     match resources {
-        Ok(resources) => Ok(resources
-            .items
-            .first()
-            .ok_or_else(|| Error::MetricsNotAvailable)?
-            .clone()),
+        Ok(resources) => Ok(resources.items.first().ok_or_else(|| Error::MetricsNotAvailable)?.clone()),
         Err(err) => {
             // check if the error is NotFound
             if let kube::Error::Api(error_response) = &err {

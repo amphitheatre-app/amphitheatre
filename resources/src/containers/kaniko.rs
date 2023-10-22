@@ -73,9 +73,5 @@ fn container(spec: &ActorSpec) -> Container {
 /// Build and return the volume mount for the kaniko docker config
 #[inline]
 fn docker_config_mount() -> VolumeMount {
-    VolumeMount {
-        name: "docker-config".into(),
-        mount_path: "/kaniko/.docker".into(),
-        ..Default::default()
-    }
+    VolumeMount { name: "docker-config".into(), mount_path: "/kaniko/.docker".into(), ..Default::default() }
 }

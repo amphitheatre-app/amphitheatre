@@ -38,9 +38,8 @@ impl ActorService {
     }
 
     pub async fn list(ctx: Arc<Context>, pid: Uuid) -> Result<Vec<ActorResponse>> {
-        let actors = actor::list(&ctx.k8s, &pid.to_string())
-            .await
-            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        let actors =
+            actor::list(&ctx.k8s, &pid.to_string()).await.map_err(|err| ApiError::KubernetesError(err.to_string()))?;
         Ok(actors.iter().map(ActorResponse::from).collect())
     }
 

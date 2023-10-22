@@ -61,9 +61,7 @@ pub fn load_from_source(credentials: &Credentials, reference: &GitReference) -> 
 
 /// Load manifest from Kubernetes cluster and return the actor spec.
 pub async fn load_from_cluster(client: &KubeClient, name: &str) -> Result<CharacterSpec> {
-    let character = character::get(client, name)
-        .await
-        .map_err(ResolveError::ResourceError)?;
+    let character = character::get(client, name).await.map_err(ResolveError::ResourceError)?;
     Ok(character.spec)
 }
 

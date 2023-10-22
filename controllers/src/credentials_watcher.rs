@@ -64,13 +64,7 @@ async fn handle(ctx: &Arc<Context>, secret: &Secret) -> anyhow::Result<()> {
 
             // Refresh the credentials under the amp platform's own namespace.
             debug!("Refresh the credentials under the amp platform's own namespace.");
-            credential::sync(
-                &ctx.k8s,
-                &ctx.config.namespace,
-                &ctx.config.service_account_name,
-                &credentials,
-            )
-            .await?;
+            credential::sync(&ctx.k8s, &ctx.config.namespace, &ctx.config.service_account_name, &credentials).await?;
 
             info!("The latest credentials has been successfully applied!");
         }

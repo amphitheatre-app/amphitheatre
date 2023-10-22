@@ -23,11 +23,7 @@ pub fn pod(actor: &Actor) -> Result<PodSpec> {
     let syncer = syncer::container(actor)?;
     let builder = container(actor);
 
-    Ok(PodSpec {
-        containers: vec![syncer, builder],
-        volumes: Some(vec![workspace_volume()]),
-        ..Default::default()
-    })
+    Ok(PodSpec { containers: vec![syncer, builder], volumes: Some(vec![workspace_volume()]), ..Default::default() })
 }
 
 /// Build and return the container spec for the devcontainer.

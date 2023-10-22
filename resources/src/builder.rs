@@ -28,9 +28,7 @@ use crate::error::{Error, Result};
 use crate::{hash, LAST_APPLIED_HASH_KEY};
 
 pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Job> = Api::namespaced(client.clone(), namespace.as_str());
     let name = actor.spec.name();
 
@@ -38,27 +36,20 @@ pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
 }
 
 pub async fn create(client: &Client, actor: &Actor) -> Result<Job> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Job> = Api::namespaced(client.clone(), namespace.as_str());
 
     let resource = new(actor)?;
     debug!("The Job resource:\n {:?}\n", resource);
 
-    let job = api
-        .create(&PostParams::default(), &resource)
-        .await
-        .map_err(Error::KubeError)?;
+    let job = api.create(&PostParams::default(), &resource).await.map_err(Error::KubeError)?;
 
     info!("Created Job: {}", job.name_any());
     Ok(job)
 }
 
 pub async fn update(client: &Client, actor: &Actor) -> Result<Job> {
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Job> = Api::namespaced(client.clone(), namespace.as_str());
     let name = actor.spec.name();
 
@@ -66,10 +57,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Job> {
     debug!("The Job {} already exists: {:?}", &name, job);
 
     let expected_hash = hash(&actor.spec)?;
-    let found_hash: String = job
-        .annotations()
-        .get(LAST_APPLIED_HASH_KEY)
-        .map_or("".into(), |v| v.into());
+    let found_hash: String = job.annotations().get(LAST_APPLIED_HASH_KEY).map_or("".into(), |v| v.into());
 
     if found_hash == expected_hash {
         debug!("The Job {} is already up-to-date", &name);
@@ -80,10 +68,7 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Job> {
     debug!("The updating Job resource:\n {:?}\n", resource);
 
     let params = &PatchParams::apply("amp-controllers").force();
-    job = api
-        .patch(&name, params, &Patch::Apply(&resource))
-        .await
-        .map_err(Error::KubeError)?;
+    job = api.patch(&name, params, &Patch::Apply(&resource)).await.map_err(Error::KubeError)?;
 
     info!("Updated Job: {}", job.name_any());
     Ok(job)
@@ -126,29 +111,20 @@ fn new(actor: &Actor) -> Result<Job> {
     let spec = JobSpec {
         backoff_limit: Some(0),
         template: PodTemplateSpec {
-            metadata: Some(ObjectMeta {
-                labels: Some(labels),
-                ..Default::default()
-            }),
+            metadata: Some(ObjectMeta { labels: Some(labels), ..Default::default() }),
             spec: Some(pod),
         },
         ..Default::default()
     };
 
     // Build and return the job resource
-    Ok(Job {
-        metadata,
-        spec: Some(spec),
-        ..Default::default()
-    })
+    Ok(Job { metadata, spec: Some(spec), ..Default::default() })
 }
 
 pub async fn completed(client: &Client, actor: &Actor) -> Result<bool> {
     debug!("Check If the build Job has not completed");
 
-    let namespace = actor
-        .namespace()
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<Job> = Api::namespaced(client.clone(), namespace.as_str());
     let name = actor.spec.name();
 

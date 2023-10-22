@@ -30,10 +30,6 @@ pub struct ActorResponse {
 impl From<&Actor> for ActorResponse {
     fn from(value: &Actor) -> Self {
         let description = &value.spec.character.meta.description;
-        Self {
-            id: value.name_any(),
-            title: value.spec.name.clone(),
-            description: description.clone(),
-        }
+        Self { id: value.name_any(), title: value.spec.name.clone(), description: description.clone() }
     }
 }

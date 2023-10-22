@@ -29,10 +29,7 @@ use super::error::{Error, Result};
 
 pub async fn create_registry_secret(client: &Client, namespace: &str, config: DockerConfig) -> Result<Secret> {
     let resource = Secret {
-        metadata: ObjectMeta {
-            name: Some("amp-registry-credentials".to_string()),
-            ..Default::default()
-        },
+        metadata: ObjectMeta { name: Some("amp-registry-credentials".to_string()), ..Default::default() },
         type_: Some("kubernetes.io/dockerconfigjson".to_string()),
         data: Some(BTreeMap::from([(
             ".dockerconfigjson".to_string(),
@@ -70,10 +67,7 @@ pub async fn create_repository_secret(
     }
 
     let resource = Secret {
-        metadata: ObjectMeta {
-            name: Some(secret_name(endpoint)?),
-            ..ObjectMeta::default()
-        },
+        metadata: ObjectMeta { name: Some(secret_name(endpoint)?), ..ObjectMeta::default() },
         type_: Some(secret_type),
         string_data: Some(data),
         ..Secret::default()
@@ -85,12 +79,7 @@ pub async fn create_repository_secret(
 
 fn secret_name(endpoint: &str) -> Result<String> {
     let location = Url::parse(endpoint).map_err(Error::UrlParseError)?;
-    let name = format!(
-        "amp-repo-credentials-{}-{}",
-        location.scheme(),
-        location.host_str().unwrap(),
-    )
-    .to_lowercase();
+    let name = format!("amp-repo-credentials-{}-{}", location.scheme(), location.host_str().unwrap(),).to_lowercase();
 
     Ok(name)
 }
@@ -100,10 +89,7 @@ pub async fn create(client: &Client, namespace: &str, resource: Secret) -> Resul
     let name = resource.name_any();
 
     let params = &PatchParams::apply("amp-controllers").force();
-    let secret = api
-        .patch(&name, params, &Patch::Apply(&resource))
-        .await
-        .map_err(Error::KubeError)?;
+    let secret = api.patch(&name, params, &Patch::Apply(&resource)).await.map_err(Error::KubeError)?;
 
     info!("Added Secret {:?}", name);
     Ok(secret)

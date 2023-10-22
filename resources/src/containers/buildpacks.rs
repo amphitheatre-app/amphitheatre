@@ -43,16 +43,8 @@ fn container(spec: &ActorSpec) -> Container {
 
     // Parse the environment variables for the container
     let mut environment = vec![
-        EnvVar {
-            name: "CNB_PLATFORM_API".into(),
-            value: Some("0.11".into()),
-            ..Default::default()
-        },
-        EnvVar {
-            name: "DOCKER_CONFIG".into(),
-            value: Some("/workspace/.docker".into()),
-            ..Default::default()
-        },
+        EnvVar { name: "CNB_PLATFORM_API".into(), value: Some("0.11".into()), ..Default::default() },
+        EnvVar { name: "DOCKER_CONFIG".into(), value: Some("/workspace/.docker".into()), ..Default::default() },
     ];
     if let Some(env) = build.env() {
         environment.extend(env)
@@ -73,9 +65,5 @@ fn container(spec: &ActorSpec) -> Container {
 /// Build and return the volume mount for the docker config
 #[inline]
 pub fn docker_config_mount() -> VolumeMount {
-    VolumeMount {
-        name: "docker-config".into(),
-        mount_path: "/workspace/.docker".into(),
-        ..Default::default()
-    }
+    VolumeMount { name: "docker-config".into(), mount_path: "/workspace/.docker".into(), ..Default::default() }
 }

@@ -32,9 +32,6 @@ pub struct Context {
 
 impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
-        Ok(Context {
-            config,
-            k8s: Client::try_default().await?,
-        })
+        Ok(Context { config, k8s: Client::try_default().await? })
     }
 }

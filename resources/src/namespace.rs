@@ -31,10 +31,7 @@ pub async fn create(client: &Client, playbook: &Playbook) -> Result<Namespace> {
     debug!("The namespace resource:\n {:?}\n", resource);
 
     let params = &PatchParams::apply("amp-controllers").force();
-    let namespace = api
-        .patch(&name, params, &Patch::Apply(&resource))
-        .await
-        .map_err(Error::KubeError)?;
+    let namespace = api.patch(&name, params, &Patch::Apply(&resource)).await.map_err(Error::KubeError)?;
 
     info!("Added namespace: {}", namespace.name_any());
     Ok(namespace)

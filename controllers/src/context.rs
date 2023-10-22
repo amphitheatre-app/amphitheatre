@@ -47,12 +47,7 @@ impl Context {
         let client = async_nats::connect(&config.nats_url).await?;
         let jetstream = jetstream::new(client);
 
-        Ok(Context {
-            k8s,
-            credentials,
-            config,
-            jetstream,
-        })
+        Ok(Context { k8s, credentials, config, jetstream })
     }
 
     pub fn recorder(&self, reference: ObjectReference) -> Recorder {

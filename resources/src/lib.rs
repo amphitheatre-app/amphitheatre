@@ -48,12 +48,6 @@ where
 #[inline]
 pub fn args(args: &[(&str, &str)], dash: i8) -> Vec<String> {
     args.iter()
-        .map(|(key, value)| {
-            if dash == 1 {
-                format!("-{}={}", key, value)
-            } else {
-                format!("--{}={}", key, value)
-            }
-        })
+        .map(|(key, value)| if dash == 1 { format!("-{}={}", key, value) } else { format!("--{}={}", key, value) })
         .collect()
 }

@@ -41,21 +41,13 @@ const WORKSPACE_DIR: &str = "/workspace/app";
 /// volume for /workspace based on k8s emptyDir
 #[inline]
 pub fn workspace_volume() -> Volume {
-    Volume {
-        name: "workspace".to_string(),
-        empty_dir: Some(Default::default()),
-        ..Default::default()
-    }
+    Volume { name: "workspace".to_string(), empty_dir: Some(Default::default()), ..Default::default() }
 }
 
 /// volume mount for /workspace
 #[inline]
 pub fn workspace_mount() -> VolumeMount {
-    VolumeMount {
-        name: "workspace".to_string(),
-        mount_path: "/workspace".to_string(),
-        ..Default::default()
-    }
+    VolumeMount { name: "workspace".to_string(), mount_path: "/workspace".to_string(), ..Default::default() }
 }
 
 /// volume mount for docker config

@@ -33,10 +33,7 @@ use super::error::{Error, Result};
 pub async fn install(client: &Client) -> Result<()> {
     let api: Api<CustomResourceDefinition> = Api::all(client.clone());
     let crd = Playbook::crd();
-    debug!(
-        "Creating the Playbook CustomResourceDefinition: {}",
-        to_string_pretty(&crd).unwrap()
-    );
+    debug!("Creating the Playbook CustomResourceDefinition: {}", to_string_pretty(&crd).unwrap());
 
     let params = PostParams::default();
     match api.create(&params, &crd).await {
@@ -78,10 +75,7 @@ pub async fn create(client: &Client, playbook: &Playbook) -> Result<Playbook> {
 
     debug!("The playbook resource:\n {:?}\n", playbook);
 
-    let playbook = api
-        .create(&PostParams::default(), playbook)
-        .await
-        .map_err(Error::KubeError)?;
+    let playbook = api.create(&PostParams::default(), playbook).await.map_err(Error::KubeError)?;
 
     info!("Created playbook: {}", playbook.name_any());
 
@@ -102,10 +96,7 @@ pub async fn add(client: &Client, playbook: &Playbook, character: CharacterSpec)
 
     let params = &PatchParams::apply("amp-controllers");
     let patch = json!({"spec": { "characters": characters }});
-    let playbook = api
-        .patch(&playbook.name_any(), params, &Patch::Merge(&patch))
-        .await
-        .map_err(Error::KubeError)?;
+    let playbook = api.patch(&playbook.name_any(), params, &Patch::Merge(&patch)).await.map_err(Error::KubeError)?;
 
     info!("Added character {:?} to {}", character_name, playbook.name_any());
 
@@ -117,11 +108,7 @@ pub async fn patch_status(client: &Client, playbook: &Playbook, condition: Condi
 
     let status = json!({ "status": { "conditions": vec![condition] }});
     let playbook = api
-        .patch_status(
-            playbook.name_any().as_str(),
-            &PatchParams::default(),
-            &Patch::Merge(&status),
-        )
+        .patch_status(playbook.name_any().as_str(), &PatchParams::default(), &Patch::Merge(&status))
         .await
         .map_err(Error::KubeError)?;
 

@@ -17,10 +17,7 @@ use k8s_openapi::api::core::v1::{Container, PodSpec};
 
 /// Build and return the pod spec for the actor
 pub fn pod(actor: &Actor) -> PodSpec {
-    PodSpec {
-        containers: vec![container(&actor.spec)],
-        ..Default::default()
-    }
+    PodSpec { containers: vec![container(&actor.spec)], ..Default::default() }
 }
 
 /// Build and return the container spec for the actor
