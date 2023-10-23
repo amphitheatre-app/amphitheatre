@@ -14,36 +14,30 @@
 
 use std::path::PathBuf;
 
-use amp_common::resource::Actor;
+use amp_common::resource::ActorSpec;
 use k8s_openapi::api::core::v1::Container;
-use kube::ResourceExt;
 
 use super::{workspace_mount, DEFAULT_SYNCER_IMAGE, WORKSPACE_DIR};
 use crate::args;
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 /// Build and return the container spec for the syncer.
-pub fn container(actor: &Actor) -> Result<Container> {
-    // Get the playbook name from the owner reference.
-    let playbook = actor
-        .owner_references()
-        .iter()
-        .find_map(|owner| (owner.kind == "Playbook").then(|| owner.name.clone()))
-        .ok_or_else(|| Error::MissingObjectKey(".metadata.ownerReferences"))?;
-
+pub fn container(playbook: &str, spec: &ActorSpec) -> Result<Container> {
     // Set the working directory to `workspace` argument.
-    let build = actor.spec.character.build.clone().unwrap_or_default();
+    let build = spec.character.build.clone().unwrap_or_default();
     let mut workdir = PathBuf::from(WORKSPACE_DIR);
     if let Some(context) = &build.context {
         workdir.push(context);
     }
 
     // FIXME: get the nats url from the config of context.
+    let once = spec.once.to_string();
     let arguments = vec![
         ("nats-url", "nats://amp-nats.amp-system.svc:4222"),
         ("workspace", workdir.to_str().unwrap()),
-        ("playbook", &playbook),
-        ("actor", actor.spec.name.as_str()),
+        ("playbook", playbook),
+        ("actor", spec.name.as_str()),
+        ("once", once.as_str()),
     ];
 
     // FIXME: get the syncer image from the config of context.
@@ -56,4 +50,28 @@ pub fn container(actor: &Actor) -> Result<Container> {
         volume_mounts: Some(vec![workspace_mount()]),
         ..Default::default()
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_container() {
+        let spec = ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() };
+        let container = container("test", &spec).unwrap();
+
+        assert_eq!(container.name, "syncer");
+        assert_eq!(container.image, Some(DEFAULT_SYNCER_IMAGE.into()));
+        assert_eq!(
+            container.args,
+            Some(vec![
+                "--nats-url=nats://amp-nats.amp-system.svc:4222".into(),
+                "--workspace=/workspace/app".into(),
+                "--playbook=test".into(),
+                "--actor=test".into(),
+                "--once=false".into()
+            ])
+        );
+    }
 }

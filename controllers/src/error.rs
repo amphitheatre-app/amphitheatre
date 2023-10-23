@@ -30,11 +30,11 @@ pub enum Error {
     #[error("ResolveError: {0}")]
     ResolveError(#[source] amp_resolver::errors::ResolveError),
 
-    #[error("DockerRegistryExistsFailed: {0}")]
-    DockerRegistryExistsFailed(#[source] anyhow::Error),
-
     #[error("NatsError: {0}")]
     NatsError(#[from] async_nats::Error),
+
+    #[error("Deploy Error: {0}")]
+    DeployError(#[source] amp_resources::error::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

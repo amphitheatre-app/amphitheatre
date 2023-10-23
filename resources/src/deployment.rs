@@ -16,66 +16,57 @@ use std::collections::BTreeMap;
 
 use amp_common::resource::Actor;
 use k8s_openapi::api::apps::v1::{Deployment, DeploymentSpec};
-use k8s_openapi::api::core::v1::PodTemplateSpec;
+use k8s_openapi::api::core::v1::{PodSpec, PodTemplateSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
 use tracing::{debug, info};
 
-use crate::containers::{application, devcontainer};
-
 use super::error::{Error, Result};
 use super::{hash, LAST_APPLIED_HASH_KEY};
 
-pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
-    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-    let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
-    let name = actor.name_any();
-
-    Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
+pub async fn exists(client: &Client, namespace: &str, name: &str) -> Result<bool> {
+    let api: Api<Deployment> = Api::namespaced(client.clone(), namespace);
+    Ok(api.get_opt(name).await.map_err(Error::KubeError)?.is_some())
 }
 
-pub async fn create(client: &Client, actor: &Actor) -> Result<Deployment> {
-    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-    let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
-
-    let resource = new(actor)?;
-    debug!("The Deployment resource:\n {:?}\n", resource);
-
+pub async fn create(client: &Client, namespace: &str, resource: Deployment) -> Result<Deployment> {
+    let api: Api<Deployment> = Api::namespaced(client.clone(), namespace);
     let deployment = api.create(&PostParams::default(), &resource).await.map_err(Error::KubeError)?;
-
     info!("Created Deployment: {}", deployment.name_any());
+
     Ok(deployment)
 }
 
-pub async fn update(client: &Client, actor: &Actor) -> Result<Deployment> {
-    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
-    let api: Api<Deployment> = Api::namespaced(client.clone(), namespace.as_str());
-    let name = actor.name_any();
+pub async fn update(
+    client: &Client,
+    namespace: &str,
+    name: &str,
+    resource: Deployment,
+    expected_hash: String,
+) -> Result<Deployment> {
+    let api: Api<Deployment> = Api::namespaced(client.clone(), namespace);
+    let mut deployment = api.get(name).await.map_err(Error::KubeError)?;
+    debug!("The Deployment {} already exists: {:?}", name, deployment);
 
-    let mut deployment = api.get(&name).await.map_err(Error::KubeError)?;
-    debug!("The Deployment {} already exists: {:?}", &name, deployment);
-
-    let expected_hash = hash(&actor.spec)?;
     let found_hash: String = deployment.annotations().get(LAST_APPLIED_HASH_KEY).map_or("".into(), |v| v.into());
 
     if found_hash == expected_hash {
-        debug!("The Deployment {} is already up-to-date", &name);
+        debug!("The Deployment {} is already up-to-date", name);
         return Ok(deployment);
     }
 
-    let resource = new(actor)?;
     debug!("The updating Deployment resource:\n {:?}\n", resource);
 
     let params = &PatchParams::apply("amp-controllers").force();
-    deployment = api.patch(&name, params, &Patch::Apply(&resource)).await.map_err(Error::KubeError)?;
+    deployment = api.patch(name, params, &Patch::Apply(&resource)).await.map_err(Error::KubeError)?;
 
     info!("Updated Deployment: {}", deployment.name_any());
     Ok(deployment)
 }
 
-fn new(actor: &Actor) -> Result<Deployment> {
+pub fn new(actor: &Actor, pod: PodSpec) -> Result<Deployment> {
     let name = actor.name_any();
 
     // Build the metadata for the deployment
@@ -92,9 +83,6 @@ fn new(actor: &Actor) -> Result<Deployment> {
         annotations: Some(annotations),
         ..Default::default()
     };
-
-    // Build the spec for the pod, depend on whether the actor is live or not.
-    let pod = if actor.spec.live { devcontainer::pod(actor)? } else { application::pod(actor) };
 
     // Build the spec for the deployment
     let spec = DeploymentSpec {

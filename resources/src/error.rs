@@ -33,6 +33,21 @@ pub enum Error {
     // ApiError(#[source] ApiError),
     #[error("Metrics not available at the moment")]
     MetricsNotAvailable,
+
+    #[error("Unknown Syncer: {0}")]
+    UnknownSyncer(String),
+
+    #[error("Unknown Builder: {0}")]
+    UnknownBuilder(String),
+
+    #[error("DockerRegistryExistsFailed: {0}")]
+    DockerRegistryExistsFailed(#[source] anyhow::Error),
+
+    #[error("MissingSyncer")]
+    MissingSyncer,
+
+    #[error("MissingBuilder")]
+    MissingBuilder,
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

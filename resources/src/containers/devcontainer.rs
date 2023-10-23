@@ -12,22 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::resource::Actor;
-use k8s_openapi::api::core::v1::{Container, PodSpec};
+use amp_common::resource::ActorSpec;
+use k8s_openapi::api::core::v1::Container;
 
-use super::{syncer, workspace_mount, workspace_volume, DEFAULT_DEVCONTAINER_IMAGE};
-use crate::error::Result;
-
-/// Build and return the pod spec for the devcontainer build deployment
-pub fn pod(actor: &Actor) -> Result<PodSpec> {
-    let syncer = syncer::container(actor)?;
-    let builder = container(actor);
-
-    Ok(PodSpec { containers: vec![syncer, builder], volumes: Some(vec![workspace_volume()]), ..Default::default() })
-}
+use super::{workspace_mount, DEFAULT_DEVCONTAINER_IMAGE};
 
 /// Build and return the container spec for the devcontainer.
-fn container(_actor: &Actor) -> Container {
+pub fn container(_spec: &ActorSpec) -> Container {
     Container {
         name: "builder".to_string(),
 
@@ -42,5 +33,20 @@ fn container(_actor: &Actor) -> Container {
         image_pull_policy: Some("IfNotPresent".to_string()),
         volume_mounts: Some(vec![workspace_mount()]),
         ..Default::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_container() {
+        let actor = ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() };
+        let container = container(&actor);
+
+        assert_eq!(container.name, "builder");
+        assert_eq!(container.image, Some(DEFAULT_DEVCONTAINER_IMAGE.to_string()));
+        assert_eq!(container.image_pull_policy, Some("IfNotPresent".to_string()));
     }
 }

@@ -15,24 +15,13 @@
 use std::path::PathBuf;
 
 use amp_common::resource::ActorSpec;
-use k8s_openapi::api::core::v1::{Container, PodSpec, VolumeMount};
+use k8s_openapi::api::core::v1::{Container, VolumeMount};
 
-use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume, DEFAULT_KANIKO_IMAGE, WORKSPACE_DIR};
+use super::{workspace_mount, DEFAULT_KANIKO_IMAGE, WORKSPACE_DIR};
 use crate::args;
 
-/// Build and return the pod spec for the kaniko builder job
-pub fn pod(spec: &ActorSpec) -> PodSpec {
-    PodSpec {
-        restart_policy: Some("Never".into()),
-        init_containers: Some(vec![git_sync::container(spec.source.as_ref().unwrap())]),
-        containers: vec![container(spec)],
-        volumes: Some(vec![workspace_volume(), docker_config_volume()]),
-        ..Default::default()
-    }
-}
-
 /// Build and return the container spec for the kaniko container
-fn container(spec: &ActorSpec) -> Container {
+pub fn container(spec: &ActorSpec) -> Container {
     let build = spec.character.build.clone().unwrap_or_default();
 
     // Set the working directory to context.
@@ -74,4 +63,28 @@ fn container(spec: &ActorSpec) -> Container {
 #[inline]
 fn docker_config_mount() -> VolumeMount {
     VolumeMount { name: "docker-config".into(), mount_path: "/kaniko/.docker".into(), ..Default::default() }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_container() {
+        let spec = ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() };
+
+        let container = container(&spec);
+
+        assert_eq!(container.name, "builder");
+        assert_eq!(container.image, Some(DEFAULT_KANIKO_IMAGE.into()));
+        assert_eq!(container.image_pull_policy, Some("IfNotPresent".into()));
+    }
+
+    #[test]
+    fn test_docker_config_mount() {
+        let mount = docker_config_mount();
+
+        assert_eq!(mount.name, "docker-config");
+        assert_eq!(mount.mount_path, "/kaniko/.docker");
+    }
 }

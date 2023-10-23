@@ -67,3 +67,39 @@ pub fn docker_config_volume() -> Volume {
         ..Default::default()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_workspace_volume() {
+        let volume = workspace_volume();
+
+        assert_eq!(volume.name, "workspace");
+        assert_eq!(volume.empty_dir, Some(Default::default()));
+    }
+
+    #[test]
+    fn test_workspace_mount() {
+        let mount = workspace_mount();
+
+        assert_eq!(mount.name, "workspace");
+        assert_eq!(mount.mount_path, "/workspace");
+    }
+
+    #[test]
+    fn test_docker_config_volume() {
+        let volume = docker_config_volume();
+
+        assert_eq!(volume.name, "docker-config");
+
+        let secret = volume.secret.unwrap();
+        assert_eq!(secret.secret_name, Some("amp-registry-credentials".into()));
+
+        let items = secret.items.unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].key, ".dockerconfigjson");
+        assert_eq!(items[0].path, "config.json");
+    }
+}

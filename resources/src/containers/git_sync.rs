@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::schema::GitReference;
+use amp_common::resource::ActorSpec;
 use k8s_openapi::api::core::v1::Container;
 
 use super::{workspace_mount, DEFAULT_GIT_SYNC_IMAGE, WORKSPACE_DIR};
 use crate::args;
 
 /// Build and return the container spec for the git-sync.
-pub fn container(source: &GitReference) -> Container {
+pub fn container(spec: &ActorSpec) -> Container {
+    let source = spec.source.as_ref().unwrap();
     // Parse the arguments for the container
     let revision = source.rev();
     let arguments = vec![
@@ -39,5 +40,30 @@ pub fn container(source: &GitReference) -> Container {
         args: Some(args(&arguments, 2)),
         volume_mounts: Some(vec![workspace_mount()]),
         ..Default::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_container() {
+        let spec = ActorSpec {
+            name: "test".into(),
+            image: "test".into(),
+            source: Some(amp_common::schema::GitReference {
+                repo: "test".into(),
+                rev: Some("test".into()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        let container = container(&spec);
+
+        assert_eq!(container.name, "syncer");
+        assert_eq!(container.image, Some(DEFAULT_GIT_SYNC_IMAGE.to_string()));
+        assert_eq!(container.image_pull_policy, Some("IfNotPresent".to_string()));
     }
 }

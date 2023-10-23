@@ -15,10 +15,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use amp_common::docker::{self, registry, DockerConfig};
-use amp_common::resource::{Actor, ActorState};
+use amp_common::resource::Actor;
+use amp_resources::deployer::Deployer;
 use amp_resources::event::trace;
-use amp_resources::{actor, builder, deployment, service};
 use futures::{future, StreamExt};
 use k8s_openapi::api::core::v1::Namespace;
 use kube::api::ListParams;
@@ -75,117 +74,11 @@ pub fn error_policy(_actor: Arc<Actor>, error: &Error, _ctx: Arc<Context>) -> Ac
 }
 
 async fn apply(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
-    let mut action = Action::await_change();
-
-    if let Some(ref status) = actor.status {
-        if status.pending() {
-            action = init(actor, ctx, recorder).await?
-        } else if status.building() {
-            action = build(actor, ctx, recorder).await?
-        } else if status.running() {
-            action = run(actor, ctx, recorder).await?
-        }
-    }
-
-    Ok(action)
-}
-
-async fn init(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
-    actor::patch_status(&ctx.k8s, actor, ActorState::building()).await.map_err(Error::ResourceError)?;
-    trace(recorder, format!("Building the image for Actor {}", actor.name_any())).await;
-
-    Ok(Action::await_change())
-}
-
-async fn build(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
-    // Return if the actor is live
-    if actor.spec.live {
-        info!("The actor is live mode, Running");
-        let condition = ActorState::running(true, "AutoRun", None);
-        actor::patch_status(&ctx.k8s, actor, condition).await.map_err(Error::ResourceError)?;
-
-        return Ok(Action::await_change());
-    }
-
-    // Return if the image already exists
-    let credentials = ctx.credentials.read().await;
-    let config = DockerConfig::from(&credentials.registries);
-
-    let credential = docker::get_credential(&config, &actor.spec.image);
-    let credential = match credential {
-        Ok(credential) => Some(credential),
-        Err(err) => {
-            error!("Error handling docker configuration: {}", err);
-            None
-        }
-    };
-
-    if registry::exists(&actor.spec.image, credential).await.map_err(Error::DockerRegistryExistsFailed)? {
-        info!("The images already exists, Running");
-        let condition = ActorState::running(true, "AutoRun", None);
-        actor::patch_status(&ctx.k8s, actor, condition).await.map_err(Error::ResourceError)?;
-
-        return Ok(Action::await_change());
-    }
-
-    // Build the image
-    match builder::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
-        true => {
-            // Build job already exists, update it if there are new changes
-            trace(recorder, format!("Try to refresh an existing build Job {}", actor.spec.name())).await;
-            builder::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
-        }
-        false => {
-            // Create a new build job
-            builder::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
-            trace(recorder, format!("Created new build Job: {}", actor.spec.name())).await;
-        }
-    }
-
-    // Check If the build Job has not completed, requeue the reconciler.
-    if !builder::completed(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
-        return Ok(Action::requeue(Duration::from_secs(60)));
-    }
-
-    // Once the image is built, it is deployed to the cluster with the
-    // appropriate resource type (e.g. Deployment or StatefulSet).
-    let condition = ActorState::running(true, "AutoRun", None);
-    actor::patch_status(&ctx.k8s, actor, condition).await.map_err(Error::ResourceError)?;
-    trace(recorder, "The images builded, Running").await;
-
-    Ok(Action::await_change())
-}
-
-async fn run(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
     trace(recorder, format!("Try to deploying the resources for Actor {}", actor.name_any())).await;
 
-    match deployment::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
-        true => {
-            // Deployment already exists, update it if there are new changes
-            trace(recorder, format!("Try to refresh an existing Deployment {}", actor.name_any())).await;
-            deployment::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
-        }
-        false => {
-            // Create a new Deployment
-            deployment::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
-            trace(recorder, format!("Created new Deployment: {}", actor.name_any())).await;
-        }
-    }
-
-    if actor.spec.has_services() {
-        match service::exists(&ctx.k8s, actor).await.map_err(Error::ResourceError)? {
-            true => {
-                // Service already exists, update it if there are new changes
-                trace(recorder, format!("Try to refresh an existing Service {}", actor.name_any())).await;
-                service::update(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
-            }
-            false => {
-                // Create a new Service
-                service::create(&ctx.k8s, actor).await.map_err(Error::ResourceError)?;
-                trace(recorder, format!("Created new Service: {}", actor.name_any())).await;
-            }
-        }
-    }
+    let credentials = ctx.credentials.read().await;
+    let mut deployer = Deployer::new(ctx.k8s.clone(), &credentials, actor);
+    deployer.run().await.map_err(Error::DeployError)?;
 
     Ok(Action::await_change())
 }

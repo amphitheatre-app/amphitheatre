@@ -13,24 +13,13 @@
 // limitations under the License.
 
 use amp_common::resource::ActorSpec;
-use k8s_openapi::api::core::v1::{Container, EnvVar, PodSpec, VolumeMount};
+use k8s_openapi::api::core::v1::{Container, EnvVar, VolumeMount};
 
-use super::{docker_config_volume, git_sync, workspace_mount, workspace_volume, WORKSPACE_DIR};
+use super::{workspace_mount, WORKSPACE_DIR};
 use crate::args;
 
-/// Build and return the pod spec for the buildpacks builder job
-pub fn pod(spec: &ActorSpec) -> PodSpec {
-    PodSpec {
-        restart_policy: Some("Never".into()),
-        init_containers: Some(vec![git_sync::container(spec.source.as_ref().unwrap())]),
-        containers: vec![container(spec)],
-        volumes: Some(vec![workspace_volume(), docker_config_volume()]),
-        ..Default::default()
-    }
-}
-
 /// Build and return the container spec for the buildpacks container
-fn container(spec: &ActorSpec) -> Container {
+pub fn container(spec: &ActorSpec) -> Container {
     let build = spec.character.build.clone().unwrap_or_default();
 
     // Parse the arguments for the container
@@ -66,4 +55,48 @@ fn container(spec: &ActorSpec) -> Container {
 #[inline]
 pub fn docker_config_mount() -> VolumeMount {
     VolumeMount { name: "docker-config".into(), mount_path: "/workspace/.docker".into(), ..Default::default() }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_container() {
+        let spec = ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() };
+
+        let container = container(&spec);
+
+        assert_eq!(container.name, "builder");
+        assert_eq!(container.image, Some("gcr.io/buildpacks/builder:v1".into()));
+        assert_eq!(container.image_pull_policy, Some("IfNotPresent".into()));
+        assert_eq!(container.command, Some(vec!["/cnb/lifecycle/creator".into()]));
+        assert_eq!(container.args, Some(vec!["-app=/workspace/app".into(), "test".into()]));
+        assert_eq!(
+            container.env,
+            Some(vec![
+                EnvVar { name: "CNB_PLATFORM_API".into(), value: Some("0.11".into()), ..Default::default() },
+                EnvVar { name: "DOCKER_CONFIG".into(), value: Some("/workspace/.docker".into()), ..Default::default() },
+            ])
+        );
+        assert_eq!(
+            container.volume_mounts,
+            Some(vec![
+                VolumeMount { name: "workspace".into(), mount_path: "/workspace".into(), ..Default::default() },
+                VolumeMount {
+                    name: "docker-config".into(),
+                    mount_path: "/workspace/.docker".into(),
+                    ..Default::default()
+                },
+            ])
+        );
+    }
+
+    #[test]
+    fn test_docker_config_mount() {
+        let mount = docker_config_mount();
+
+        assert_eq!(mount.name, "docker-config");
+        assert_eq!(mount.mount_path, "/workspace/.docker");
+    }
 }

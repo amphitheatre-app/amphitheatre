@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::resource::{Actor, ActorSpec};
-use k8s_openapi::api::core::v1::{Container, PodSpec};
-
-/// Build and return the pod spec for the actor
-pub fn pod(actor: &Actor) -> PodSpec {
-    PodSpec { containers: vec![container(&actor.spec)], ..Default::default() }
-}
+use amp_common::resource::ActorSpec;
+use k8s_openapi::api::core::v1::Container;
 
 /// Build and return the container spec for the actor
-fn container(spec: &ActorSpec) -> Container {
+pub fn container(spec: &ActorSpec) -> Container {
     let mut environments = Some(vec![]);
     let mut container_ports = Some(vec![]);
 
@@ -38,5 +33,21 @@ fn container(spec: &ActorSpec) -> Container {
         env: environments,
         ports: container_ports,
         ..Default::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_container() {
+        let spec = ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() };
+
+        let container = container(&spec);
+
+        assert_eq!(container.name, "test");
+        assert_eq!(container.image, Some("test".into()));
+        assert_eq!(container.image_pull_policy, Some("Always".into()));
     }
 }
