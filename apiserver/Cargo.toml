@@ -36,6 +36,6 @@ tracing = { workspace = true, optional = false }
 tracing-subscriber = { workspace = true, optional = false }
 utoipa = { version = "3", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "3", features = ["axum"] }
-uuid = { version = "1.4.1", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
+uuid = { version = "1.5.0", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
 url = { workspace = true, optional = false }
 chrono = "0.4.31"
