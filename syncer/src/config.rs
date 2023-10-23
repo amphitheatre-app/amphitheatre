@@ -40,4 +40,7 @@ pub struct Config {
     /// The actor name.
     #[clap(long, env = "AMP_ACTOR")]
     pub actor: String,
+    // Exit after sync once (Overwrite).
+    #[clap(long, action = clap::ArgAction::Set, default_value = "false", env = "AMP_ONCE")]
+    pub once: bool,
 }

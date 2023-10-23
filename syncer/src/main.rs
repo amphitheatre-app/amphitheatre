@@ -62,11 +62,11 @@ async fn main() -> Result<(), async_nats::Error> {
 
         // Handle the message
         if let Err(err) = match req.kind {
-            Create => handle::create(workspace, req),
-            Modify => handle::modify(workspace, req),
-            Rename => handle::rename(workspace, req),
-            Remove => handle::remove(workspace, req),
-            Overwrite => handle::overwrite(workspace, req),
+            Create => handle::create(workspace, &req),
+            Modify => handle::modify(workspace, &req),
+            Rename => handle::rename(workspace, &req),
+            Remove => handle::remove(workspace, &req),
+            Overwrite => handle::overwrite(workspace, &req),
             Other => {
                 warn!("Received other event, nothing to do!");
                 Ok(())
@@ -82,6 +82,12 @@ async fn main() -> Result<(), async_nats::Error> {
         // Acknowledge the message if we handled it successfully.
         if let Err(err) = message.ack().await {
             error!("Failed to acknowledge message: {:?}", err);
+        }
+
+        // If we're in once mode, exit after overwrite.
+        if config.once && req.kind == Overwrite {
+            info!("Exit after sync once (Overwrite), bye!");
+            std::process::exit(0);
         }
     }
 
