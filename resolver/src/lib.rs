@@ -76,6 +76,10 @@ pub fn to_actor(character: &CharacterSpec, credentials: &Credentials) -> Result<
     if !actor.live {
         actor.source = Some(patches::source(&client, &actor.source.unwrap())?);
         actor.image = patches::image(credentials, &actor)?;
+    } else {
+        // Remove the source if the actor is live.
+        // it will be sync with the syncer later, so this is not necessary.
+        actor.source = None;
     }
 
     Ok(actor)
