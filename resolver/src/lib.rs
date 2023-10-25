@@ -67,16 +67,25 @@ pub async fn load_from_cluster(client: &KubeClient, name: &str) -> Result<Charac
 
 /// Read Character manifest and return the actor spec.
 pub fn to_actor(character: &CharacterSpec, credentials: &Credentials) -> Result<ActorSpec> {
-    let client = ScmClient::init(credentials, &character.meta.repository).map_err(ResolveError::SCMError)?;
+    let repo = &character.meta.repository;
+    let client = ScmClient::init(credentials, repo).map_err(ResolveError::SCMError)?;
 
     let mut actor = ActorSpec::from(character);
+
+    // Return the actor if the image is already set.
+    if !actor.image.is_empty() {
+        return Ok(actor);
+    }
 
     // Patch the source and image if the actor is not live.
     // it will be build with the builders later, so these must be valid.
     if !actor.live {
-        actor.source = Some(patches::source(&client, &actor.source.unwrap())?);
-        actor.image = patches::image(credentials, &actor)?;
+        let source = actor.source.as_ref().ok_or(ResolveError::SourceNotSet)?;
+        actor.image = patches::image(credentials, &actor, &source.rev())?;
+        actor.source = Some(patches::source(&client, source)?);
     } else {
+        // Set the tag to `live` if the actor is live.
+        actor.image = patches::image(credentials, &actor, "live")?;
         // Remove the source if the actor is live.
         // it will be sync with the syncer later, so this is not necessary.
         actor.source = None;

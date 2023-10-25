@@ -55,6 +55,9 @@ pub enum ResolveError {
 
     #[error("UnsupportedPartner")]
     UnsupportedPartner,
+
+    #[error("SourceNotSet")]
+    SourceNotSet,
 }
 
 pub type Result<T, E = ResolveError> = std::result::Result<T, E>;

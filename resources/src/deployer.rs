@@ -16,7 +16,7 @@ use amp_common::config::Credentials;
 use amp_common::docker::{self, registry, DockerConfig};
 use amp_common::resource::Actor;
 use amp_common::schema::BuildMethod;
-use k8s_openapi::api::core::v1::{Container, PodSpec};
+use k8s_openapi::api::core::v1::{Container, PodSecurityContext, PodSpec};
 use kube::ResourceExt;
 use tracing::{debug, error, info};
 
@@ -169,13 +169,16 @@ impl Deployer {
             // the syncer in init container if sync once (exit after sync once),
             // else, the syncer is sidecar container, it will keep watching the changes.
             match self.once {
-                true => init_containers.push(syncer.clone()),
-                false => containers.push(syncer.clone()),
+                true => {
+                    init_containers.push(syncer.clone());
+                    init_containers.push(builder.clone());
+                    containers.push(application::container(&self.actor.spec));
+                }
+                false => {
+                    containers.push(syncer.clone());
+                    containers.push(builder.clone());
+                }
             }
-
-            // whatever sync once or not, the builder is the main container.
-            // the executor will run the application in the builder container, directly.
-            containers.push(builder.clone());
         } else {
             // Pull the source from git repo (not live), and exit after sync once (once).
             // the syncer and builder in init containers, app as the main container.
@@ -195,6 +198,14 @@ impl Deployer {
         pod.init_containers = Some(init_containers);
         pod.containers = containers.clone();
         pod.volumes = Some(vec![workspace_volume(), docker_config_volume()]);
+
+        // Set the security context for the pod
+        pod.security_context = Some(PodSecurityContext {
+            run_as_user: Some(1000),
+            run_as_group: Some(1000),
+            fs_group: Some(1000),
+            ..Default::default()
+        });
 
         Ok(pod)
     }

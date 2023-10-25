@@ -57,11 +57,7 @@ pub fn source(client: &Client, source: &GitReference) -> Result<GitReference> {
     Ok(actual)
 }
 
-pub fn image(credentials: &Credentials, spec: &ActorSpec) -> Result<String> {
-    if !spec.image.is_empty() {
-        return Ok(spec.image.clone());
-    }
-
+pub fn image(credentials: &Credentials, spec: &ActorSpec, tag: &str) -> Result<String> {
     // Generate image name based on the current registry and character name & revision
     if let Some(credential) = credentials.default_registry() {
         let mut registry = credential.server.as_str();
@@ -69,7 +65,7 @@ pub fn image(credentials: &Credentials, spec: &ActorSpec) -> Result<String> {
             registry = "index.docker.io";
         }
 
-        Ok(format!("{}/{}/{}:{}", registry, credential.username_any(), spec.name, spec.source.as_ref().unwrap().rev()))
+        Ok(format!("{}/{}/{}:{}", registry, credential.username_any(), spec.name, tag))
     } else {
         Err(ResolveError::EmptyRegistryAddress)
     }
