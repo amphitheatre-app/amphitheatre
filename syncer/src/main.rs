@@ -31,7 +31,7 @@ mod handle;
 #[tokio::main]
 async fn main() -> Result<(), async_nats::Error> {
     let filter = EnvFilter::builder().with_default_directive(LevelFilter::INFO.into()).from_env_lossy();
-    tracing_subscriber::fmt().with_env_filter(filter).init();
+    tracing_subscriber::fmt().without_time().with_target(false).with_env_filter(filter).init();
 
     // This returns an error if the `.env` file doesn't exist, but that's not what we want
     // since we're not going to use a `.env` file if we deploy this application.
@@ -40,12 +40,12 @@ async fn main() -> Result<(), async_nats::Error> {
     // Parse our configuration from the environment.
     // This will exit with a help message if something is wrong.
     let config = Config::parse();
-    info!("Configuration: {:#?}", config);
+    debug!("Configuration: {:?}", config);
 
     // initialize some variables
     let workspace = Path::new(&config.workspace);
 
-    info!("Connecting to NATS server: {}", config.nats_url);
+    debug!("Connecting to NATS server: {}", config.nats_url);
     let consumer = connect(&config).await?;
 
     // Consume messages from the consumer
@@ -86,7 +86,7 @@ async fn main() -> Result<(), async_nats::Error> {
 
         // If we're in once mode, exit after overwrite.
         if config.once && req.kind == Overwrite {
-            info!("Exit after sync once (Overwrite), bye!");
+            info!("Finished syncing, exiting...");
             std::process::exit(0);
         }
     }
