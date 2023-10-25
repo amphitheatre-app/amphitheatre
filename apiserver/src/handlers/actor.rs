@@ -14,7 +14,6 @@
 
 use std::convert::Infallible;
 use std::sync::Arc;
-use std::time::Duration;
 
 use amp_common::sync::Synchronization;
 use axum::extract::{Path, State};
@@ -23,13 +22,12 @@ use axum::response::sse::{Event, KeepAlive};
 use axum::response::{IntoResponse, Sse};
 use axum::Json;
 
-use futures::AsyncBufReadExt;
-use futures::Stream;
-use tokio_stream::StreamExt;
-
+use futures::{AsyncBufReadExt, Stream};
 use k8s_openapi::api::core::v1::Pod;
-use kube::api::LogParams;
-use kube::Api;
+use kube::api::{ListParams, LogParams};
+use kube::{Api, ResourceExt};
+use tokio_stream::StreamExt;
+use tracing::{debug, info};
 use uuid::Uuid;
 
 use super::Result;
@@ -93,22 +91,58 @@ pub async fn logs(
     State(ctx): State<Arc<Context>>,
     Path((pid, name)): Path<(Uuid, String)>,
 ) -> Sse<impl Stream<Item = axum::response::Result<Event, Infallible>>> {
-    let api: Api<Pod> = Api::namespaced(ctx.k8s.clone(), &pid.to_string());
-    let params = LogParams::default();
+    info!("Get logs of actor {}/{}", pid, name);
 
-    let stream = api
-        .log_stream(&name, &params)
-        .await
-        .unwrap()
-        .lines()
+    let api: Api<Pod> = Api::namespaced(ctx.k8s.clone(), &format!("amp-{pid}"));
+    let param = ListParams {
+        label_selector: Some(format!("app.kubernetes.io/managed-by=Amphitheatre, app.kubernetes.io/name={name}")),
+        ..Default::default()
+    };
+    let pods = api.list(&param).await.unwrap();
+
+    // Create a stream that combines logs from all specified containers
+    let mut streams = Vec::new();
+
+    for pod in pods {
+        if pod.spec.is_none() {
+            continue;
+        }
+
+        let pod_name = pod.name_any();
+        let spec = pod.spec.unwrap();
+
+        if let Some(init_containers) = spec.init_containers {
+            for container in init_containers {
+                debug!("init container: {}", container.name);
+                streams.push(stream(&api, &pod_name, &container.name).await);
+            }
+        }
+        for container in spec.containers {
+            debug!("container: {}", container.name);
+            streams.push(stream(&api, &pod_name, &container.name).await);
+        }
+    }
+
+    let combined_stream = futures::stream::select_all(streams);
+    Sse::new(combined_stream).keep_alive(KeepAlive::default())
+}
+
+/// Get the log stream of a container
+async fn stream(
+    api: &Api<Pod>,
+    name: &str,
+    container: &str,
+) -> impl Stream<Item = axum::response::Result<Event, Infallible>> {
+    let params = LogParams { container: Some(container.into()), follow: true, timestamps: true, ..Default::default() };
+    let stream = api.log_stream(name, &params).await.unwrap().lines();
+
+    stream
         .map(|result| match result {
             Ok(line) => Event::default().data(line),
             Err(err) => Event::default().event("error").data(err.to_string()),
         })
         .map(Ok)
-        .throttle(Duration::from_secs(1));
-
-    Sse::new(stream).keep_alive(KeepAlive::default())
+    // .throttle(Duration::from_secs(1))
 }
 
 /// Returns a actor's info, including environments, volumes...
