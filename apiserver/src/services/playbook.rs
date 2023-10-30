@@ -18,7 +18,6 @@ use amp_common::resource::{Playbook as PlaybookResource, PlaybookSpec};
 use amp_resources::playbook;
 use chrono::Utc;
 use kube::ResourceExt;
-use tracing::debug;
 use uuid::Uuid;
 
 use crate::context::Context;
@@ -70,12 +69,8 @@ impl PlaybookService {
             },
         );
 
-        debug!("CreatePlaybookRequest: {:#?}", req);
-        debug!("PlaybookResource: {:#?}", resource);
-
         let playbook =
             playbook::create(&ctx.k8s, &resource).await.map_err(|err| ApiError::KubernetesError(err.to_string()))?;
-        debug!("Created playbook custom response: {:#?}", playbook);
 
         Ok(PlaybookResponse {
             id: playbook.name_any(),
