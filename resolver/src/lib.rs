@@ -56,7 +56,7 @@ pub fn load_from_source(credentials: &Credentials, reference: &GitReference) -> 
     debug!("The `.amp.toml` content of {} is:\n{:?}", repo, data);
 
     let manifest: Character = toml::from_str(data).map_err(ResolveError::TomlParseFailed)?;
-    Ok(CharacterSpec::from(manifest))
+    Ok(CharacterSpec::from(&manifest))
 }
 
 /// Load manifest from Kubernetes cluster and return the actor spec.
