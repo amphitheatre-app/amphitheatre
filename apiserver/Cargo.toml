@@ -21,7 +21,7 @@ axum = { version = "0.6", features = ["headers"] }
 clap = { workspace = true, optional = false }
 dotenv = { workspace = true, optional = false }
 futures = { workspace = true, optional = false }
-headers = "0.3"
+headers = "0.4"
 kube = { workspace = true, optional = false }
 k8s-openapi = { workspace = true, optional = false }
 serde = { workspace = true, optional = false }
