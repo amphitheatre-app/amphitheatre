@@ -15,25 +15,21 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use axum::Server;
-
 use crate::context::Context;
 use crate::{routes, swagger};
 
 pub async fn run(ctx: Arc<Context>) {
     let port = ctx.config.port;
 
+    // build our application with a route
     let app = routes::build().merge(swagger::build()).with_state(ctx);
 
-    // run it
+    // run our app with hyper, and serve it over HTTP
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    let service = app.into_make_service_with_connect_info::<SocketAddr>();
-    let server = Server::bind(&addr).serve(service).with_graceful_shutdown(async move {
-        tokio::signal::ctrl_c().await.ok();
-    });
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 
     // Run this server for ... forever!
-    if let Err(err) = server.await {
+    if let Err(err) = axum::serve(listener, app).await {
         tracing::error!("Server error: {}", err);
         std::process::exit(1)
     }
