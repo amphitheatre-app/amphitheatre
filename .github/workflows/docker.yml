@@ -68,7 +68,7 @@ jobs:
         touch "/tmp/digests/${{ matrix.bin }}/${digest#sha256:}"
 
     - name: Upload digests
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.bin }}-digests
         path: /tmp/digests/${{ matrix.bin }}/*
