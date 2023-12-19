@@ -43,6 +43,17 @@ pub fn container(spec: &ActorSpec) -> Container {
         arguments.push(("dockerfile", &config.dockerfile));
     }
 
+    // TODO: Kaniko: Add support for multiple platforms in the future.
+    // While Kaniko itself currently does not support creating multi-arch manifests,
+    // See https://github.com/GoogleContainerTools/kaniko#creating-multi-arch-container-manifests-using-kaniko-and-manifest-tool
+    // and https://github.com/GoogleContainerTools/kaniko#flag---custom-platform
+    //
+    // let custom_platform: String;
+    // if let Some(platforms) = &build.platforms {
+    //     custom_platform = platforms.join(",");
+    //     arguments.push(("custom-platform", &custom_platform));
+    // }
+
     let mut arguments = args(&arguments, 2);
     if let Some(args) = &build.args {
         arguments.extend(args.clone());
