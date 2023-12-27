@@ -30,7 +30,7 @@ pub struct ActorService;
 
 impl ActorService {
     pub async fn get(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<ActorResponse> {
-        let actor = actor::get(&ctx.k8s, &pid.to_string(), &name)
+        let actor = actor::get(&ctx.k8s, &format!("amp-{}", pid), &name)
             .await
             .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
@@ -89,7 +89,7 @@ impl ActorService {
     }
 
     pub async fn info(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<HashMap<String, HashMap<String, String>>> {
-        let actor = actor::get(&ctx.k8s, &pid.to_string(), &name)
+        let actor = actor::get(&ctx.k8s, &format!("amp-{}", pid), &name)
             .await
             .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
