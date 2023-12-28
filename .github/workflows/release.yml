@@ -47,7 +47,10 @@ jobs:
 #           platform: windows-arm64
     steps:
     - uses: actions/checkout@v4
-    - uses: taiki-e/install-action@cross
+    - name: Install cross-compilation tools
+      uses: taiki-e/setup-cross-toolchain-action@v1
+      with:
+        target: ${{ matrix.target }}
     - uses: taiki-e/upload-rust-binary-action@v1
       with:
         bin: amp-apiserver,amp-controllers,amp-crdgen,amp-syncer
