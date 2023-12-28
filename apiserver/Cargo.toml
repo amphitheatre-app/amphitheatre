@@ -13,29 +13,29 @@ name = "amphitheatre"
 path = "src/lib.rs"
 
 [dependencies]
-amp-common = { workspace = true, optional = false }
-amp-resources = { workspace = true, optional = false }
-async-nats = { workspace = true, optional = false }
-anyhow = { workspace = true, optional = false }
+amp-common.workspace = true
+amp-resources.workspace = true
+async-nats.workspace = true
+anyhow.workspace = true
 axum = { version = "0.7.2" }
-clap = { workspace = true, optional = false }
-dotenv = { workspace = true, optional = false }
-futures = { workspace = true, optional = false }
+clap.workspace = true
+dotenv.workspace = true
+futures.workspace = true
 headers = "0.4"
-kube = { workspace = true, optional = false }
-k8s-openapi = { workspace = true, optional = false }
-serde = { workspace = true, optional = false }
-serde_json = { workspace = true, optional = false }
-serde_yaml = { workspace = true, optional = false }
-thiserror = { workspace = true, optional = false }
-tokio = { workspace = true, optional = false }
+kube.workspace = true
+k8s-openapi.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
 tokio-stream = "0.1"
 tower = { version = "0.4.13", features = ["full"] }
 tower-http = { version = "0.5.0", features = ["full"] }
-tracing = { workspace = true, optional = false }
-tracing-subscriber = { workspace = true, optional = false }
+tracing.workspace = true
+tracing-subscriber.workspace = true
 utoipa = { version = "4.1.0", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "5.0.0", features = ["axum"] }
 uuid = { version = "1.6.1", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
-url = { workspace = true, optional = false }
+url.workspace = true
 chrono = "0.4.31"
