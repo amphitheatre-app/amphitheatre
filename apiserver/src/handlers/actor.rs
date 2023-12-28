@@ -166,7 +166,13 @@ async fn log(
     let sender = sender.clone();
 
     tokio::spawn(async move {
-        let params = LogParams { container: Some(name.clone()), follow: true, timestamps: true, ..Default::default() };
+        let params = LogParams {
+            container: Some(name.clone()),
+            follow: true,
+            tail_lines: Some(100),
+            timestamps: true,
+            ..Default::default()
+        };
         let mut stream =
             api.log_stream(&pod, &params).await.map_err(|e| ApiError::KubernetesError(e.to_string())).unwrap().lines();
 
