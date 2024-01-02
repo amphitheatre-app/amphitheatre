@@ -17,7 +17,7 @@ amp-common.workspace = true
 amp-resources.workspace = true
 async-nats.workspace = true
 anyhow.workspace = true
-axum = { version = "0.7.2" }
+axum = { version = "0.7.3" }
 clap.workspace = true
 dotenv.workspace = true
 futures.workspace = true
