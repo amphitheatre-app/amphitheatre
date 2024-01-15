@@ -10,7 +10,7 @@ runners:
   - name: "aws-arm64-runner"
     cloud: "aws"
     instance_type: "t4g.2xlarge"
-    machine_image: "ami-05885c561c5df6fa5"
+    machine_image: "ami-05d50447160398aa9"
     region: "us-east-1"
     preemptible: false
     labels:
