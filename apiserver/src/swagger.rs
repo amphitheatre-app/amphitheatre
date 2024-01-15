@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use amp_common::resource;
+use amp_common::schema;
+
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{handlers, requests, responses};
+use crate::{handlers, requests};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -40,8 +43,23 @@ use crate::{handlers, requests, responses};
             requests::playbook::CreatePlaybookRequest,
             requests::playbook::UpdatePlaybookRequest,
             //
-            responses::actor::ActorResponse,
-            responses::playbook::PlaybookResponse,
+            resource::ActorSpec,
+            resource::CharacterSpec,
+            resource::Partner,
+            resource::PlaybookSpec,
+            resource::Preface,
+
+            schema::Build,
+            schema::BuildpacksConfig,
+            schema::Deploy,
+            schema::DockerfileConfig,
+            schema::GitReference,
+            schema::LocalPartner,
+            schema::Metadata,
+            schema::Port,
+            schema::RegisteredPartner,
+            schema::Service,
+
         )
     ),
     tags(

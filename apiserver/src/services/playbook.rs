@@ -14,32 +14,29 @@
 
 use std::sync::Arc;
 
-use amp_common::resource::{Playbook as PlaybookResource, PlaybookSpec};
+use amp_common::resource::{Playbook, PlaybookSpec};
 use amp_resources::playbook;
-use chrono::Utc;
-use kube::ResourceExt;
 use uuid::Uuid;
 
 use crate::context::Context;
 use crate::errors::ApiError;
 use crate::requests::playbook::{CreatePlaybookRequest, UpdatePlaybookRequest};
-use crate::responses::playbook::PlaybookResponse;
 use crate::services::Result;
 
 pub struct PlaybookService;
 
 impl PlaybookService {
-    pub async fn get(ctx: Arc<Context>, id: Uuid) -> Result<PlaybookResponse> {
-        let resource =
+    pub async fn get(ctx: Arc<Context>, id: Uuid) -> Result<PlaybookSpec> {
+        let playbook =
             playbook::get(&ctx.k8s, &id.to_string()).await.map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
-        Ok(resource.into())
+        Ok(playbook.spec)
     }
 
-    pub async fn list(ctx: Arc<Context>) -> Result<Vec<PlaybookResponse>> {
+    pub async fn list(ctx: Arc<Context>) -> Result<Vec<PlaybookSpec>> {
         let resources = playbook::list(&ctx.k8s).await.map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
-        Ok(resources.iter().map(|playbook| playbook.to_owned().into()).collect())
+        Ok(resources.iter().map(|playbook| playbook.spec.clone()).collect())
     }
 
     pub async fn start(_ctx: Arc<Context>, _id: Uuid) -> Result<()> {
@@ -56,9 +53,9 @@ impl PlaybookService {
         Ok(())
     }
 
-    pub async fn create(ctx: Arc<Context>, req: &CreatePlaybookRequest) -> Result<PlaybookResponse> {
+    pub async fn create(ctx: Arc<Context>, req: &CreatePlaybookRequest) -> Result<PlaybookSpec> {
         let uuid = Uuid::new_v4();
-        let resource = PlaybookResource::new(
+        let resource = Playbook::new(
             &uuid.to_string(),
             PlaybookSpec {
                 title: req.title.to_string(),
@@ -72,16 +69,10 @@ impl PlaybookService {
         let playbook =
             playbook::create(&ctx.k8s, &resource).await.map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
-        Ok(PlaybookResponse {
-            id: playbook.name_any(),
-            title: playbook.spec.title,
-            description: playbook.spec.description.unwrap_or_default(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        })
+        Ok(playbook.spec)
     }
 
-    pub async fn update(_ctx: Arc<Context>, _id: Uuid, _req: &UpdatePlaybookRequest) -> Result<PlaybookResponse> {
+    pub async fn update(_ctx: Arc<Context>, _id: Uuid, _req: &UpdatePlaybookRequest) -> Result<PlaybookSpec> {
         unimplemented!()
     }
 }

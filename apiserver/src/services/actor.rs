@@ -15,6 +15,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use amp_common::resource::ActorSpec;
 use amp_common::sync::Synchronization;
 use async_nats::jetstream::{self, stream};
 use tracing::error;
@@ -22,25 +23,25 @@ use uuid::Uuid;
 
 use crate::context::Context;
 use crate::errors::ApiError;
-use crate::responses::actor::ActorResponse;
 use crate::services::Result;
 use amp_resources::actor;
 
 pub struct ActorService;
 
 impl ActorService {
-    pub async fn get(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<ActorResponse> {
+    pub async fn get(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<ActorSpec> {
         let actor = actor::get(&ctx.k8s, &format!("amp-{}", pid), &name)
             .await
             .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
 
-        Ok(ActorResponse::from(&actor))
+        Ok(actor.spec)
     }
 
-    pub async fn list(ctx: Arc<Context>, pid: Uuid) -> Result<Vec<ActorResponse>> {
-        let actors =
-            actor::list(&ctx.k8s, &pid.to_string()).await.map_err(|err| ApiError::KubernetesError(err.to_string()))?;
-        Ok(actors.iter().map(ActorResponse::from).collect())
+    pub async fn list(ctx: Arc<Context>, pid: Uuid) -> Result<Vec<ActorSpec>> {
+        let actors = actor::list(&ctx.k8s, &format!("amp-{}", pid))
+            .await
+            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        Ok(actors.iter().map(|actor| actor.spec.clone()).collect())
     }
 
     pub async fn sync(

@@ -40,7 +40,7 @@ use crate::services::playbook::PlaybookService;
 #[utoipa::path(
     get, path = "/v1/playbooks",
     responses(
-        (status = 200, description = "List all playbooks successfully", body = [PlaybookResponse]),
+        (status = 200, description = "List all playbooks successfully", body = [PlaybookSpec]),
         (status = 500, description = "Internal Server Error"),
     ),
     tag = "Playbooks"
@@ -58,7 +58,7 @@ pub async fn list(State(ctx): State<Arc<Context>>) -> Result<impl IntoResponse> 
         content_type = "application/json"
     ),
     responses(
-        (status = 201, description = "Playbook created successfully", body = PlaybookResponse)
+        (status = 201, description = "Playbook created successfully", body = PlaybookSpec)
     ),
     tag = "Playbooks"
 )]
@@ -76,7 +76,7 @@ pub async fn create(
         ("id" = Uuid, description = "The id of playbook"),
     ),
     responses(
-        (status = 200, description = "Playbook found successfully", body = PlaybookResponse),
+        (status = 200, description = "Playbook found successfully", body = PlaybookSpec),
         (status = 404, description = "Playbook not found"),
         (status = 500, description = "Internal Server Error"),
     ),
@@ -98,7 +98,7 @@ pub async fn detail(Path(id): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Re
         content_type = "application/json"
     ),
     responses(
-        (status = 200, description = "Playbook updated successfully", body = PlaybookResponse),
+        (status = 200, description = "Playbook updated successfully", body = PlaybookSpec),
         (status = 404, description = "Playbook not found")
     ),
     tag = "Playbooks"

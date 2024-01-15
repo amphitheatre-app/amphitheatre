@@ -50,7 +50,7 @@ use crate::services::actor::ActorService;
         ("pid" = Uuid, description = "The id of playbook"),
     ),
     responses(
-        (status = 200, description="List all actors of playbook successfully", body = [ActorResponse]),
+        (status = 200, description="List all actors of playbook successfully", body = [ActorSpec]),
         (status = 404, description = "Playbook not found")
     ),
     tag = "Actors"
@@ -67,7 +67,7 @@ pub async fn list(Path(pid): Path<Uuid>, State(ctx): State<Arc<Context>>) -> Res
         ("name" = String, description = "The name of actor"),
     ),
     responses(
-        (status = 200, description="Actor found successfully", body = ActorResponse),
+        (status = 200, description="Actor found successfully", body = ActorSpec),
         (status = 404, description = "Actor not found")
     ),
     tag = "Actors"
