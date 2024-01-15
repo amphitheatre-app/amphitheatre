@@ -1,16 +1,16 @@
 runners:
   - name: "aws-amd64-runner"
     cloud: "aws"
-    instance_type: "t2.xlarge"
-    machine_image: "ami-0c7217cdde317cfec"
+    instance_type: "t2.2xlarge"
+    machine_image: "ami-08d337ba030150f71"
     region: "us-east-1"
     preemptible: false
     labels:
       - "cirun-aws-amd64"
   - name: "aws-arm64-runner"
     cloud: "aws"
-    instance_type: "t4g.xlarge"
-    machine_image: "ami-05d47d29a4c2d19e1"
+    instance_type: "t4g.2xlarge"
+    machine_image: "ami-05885c561c5df6fa5"
     region: "us-east-1"
     preemptible: false
     labels:
