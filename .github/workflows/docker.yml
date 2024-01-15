@@ -13,11 +13,11 @@ permissions:
 jobs:
   build:
     name: Build Image
-    runs-on: "cirun-aws-t2-large-ubuntu2204--${{ github.run_id }}"
+    runs-on: "cirun-aws-${{ matrix.platform }}--${{ github.run_id }}"
     strategy:
       fail-fast: false
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        platform: [amd64, arm64]
         bin: [amp-apiserver, amp-controllers, amp-syncer]
         include:
           - bin: amp-apiserver
@@ -55,7 +55,7 @@ jobs:
       with:
         context: .
         file: ${{ matrix.dockerfile }}
-        platforms: ${{ matrix.platform }}
+        platforms: linux/${{ matrix.platform }}
         labels: ${{ steps.meta.outputs.labels }}
         outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
         provenance: false
