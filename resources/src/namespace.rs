@@ -25,7 +25,7 @@ use super::error::{Error, Result};
 
 pub async fn create(client: &Client, playbook: &Playbook) -> Result<Namespace> {
     let api: Api<Namespace> = Api::all(client.clone());
-    let name = playbook.spec.namespace.clone();
+    let name = playbook.spec.namespace();
 
     let resource = new(playbook);
     debug!("The namespace resource:\n {:?}\n", resource);
@@ -38,7 +38,7 @@ pub async fn create(client: &Client, playbook: &Playbook) -> Result<Namespace> {
 }
 
 fn new(playbook: &Playbook) -> Namespace {
-    let name = playbook.spec.namespace.clone();
+    let name = playbook.spec.namespace();
     let owner_reference = playbook.controller_owner_ref(&()).unwrap();
     let labels = BTreeMap::from([
         ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),

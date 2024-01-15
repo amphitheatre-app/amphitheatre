@@ -23,14 +23,14 @@ use serde_json::json;
 use tracing::{debug, error, info};
 
 pub async fn exists(client: &Client, playbook: &Playbook, name: &str) -> Result<bool> {
-    let namespace = playbook.spec.namespace.clone();
+    let namespace = playbook.spec.namespace();
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
 
     Ok(api.get_opt(name).await.map_err(Error::KubeError)?.is_some())
 }
 
 pub async fn create(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> Result<Actor> {
-    let namespace = playbook.spec.namespace.clone();
+    let namespace = playbook.spec.namespace();
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
 
     let name = spec.name.clone();
@@ -48,7 +48,7 @@ pub async fn create(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> R
 }
 
 pub async fn update(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> Result<Actor> {
-    let namespace = playbook.spec.namespace.clone();
+    let namespace = playbook.spec.namespace();
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace.as_str());
 
     let name = spec.name.clone();

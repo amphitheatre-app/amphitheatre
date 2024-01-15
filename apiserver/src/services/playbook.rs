@@ -58,9 +58,9 @@ impl PlaybookService {
         let resource = Playbook::new(
             &uuid.to_string(),
             PlaybookSpec {
+                id: uuid.to_string(),
                 title: req.title.to_string(),
                 description: req.description.clone(),
-                namespace: format!("amp-{}", uuid),
                 preface: req.preface.clone(),
                 ..PlaybookSpec::default()
             },

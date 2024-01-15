@@ -195,6 +195,6 @@ pub async fn cleanup(playbook: &Playbook, ctx: &Arc<Context>, _recorder: &Record
 #[inline]
 fn reference(playbook: &Playbook) -> ObjectReference {
     let mut reference = playbook.object_ref(&());
-    reference.namespace = Some(playbook.spec.namespace.to_string());
+    reference.namespace = Some(playbook.spec.namespace());
     reference
 }
