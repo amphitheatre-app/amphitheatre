@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - v[0-9]+.*
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -12,7 +13,7 @@ permissions:
 jobs:
   build:
     name: Build Image
-    runs-on: ubuntu-latest
+    runs-on: "cirun-aws-t2-large-ubuntu2204--${{ github.run_id }}"
     strategy:
       fail-fast: false
       matrix:
