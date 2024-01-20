@@ -16,13 +16,16 @@ use amp_common::config::Credentials;
 use amp_common::docker::{self, registry, DockerConfig};
 use amp_common::resource::Actor;
 use amp_common::schema::BuildMethod;
-use k8s_openapi::api::core::v1::{Container, PodSecurityContext, PodSpec};
+use k8s_openapi::api::core::v1::{Container, PodSecurityContext, PodSpec, SecurityContext};
 use kube::ResourceExt;
 use tracing::{debug, error, info};
 
 use crate::containers::{application, buildpacks, docker_config_volume, git_sync, kaniko, syncer, workspace_volume};
 use crate::error::{self, Error, Result};
 use crate::{deployment, hash, service};
+
+const DEFAULT_RUN_AS_GROUP: i64 = 1000;
+const DEFAULT_RUN_AS_USER: i64 = 1001;
 
 pub struct Deployer {
     k8s: kube::Client,
@@ -89,17 +92,22 @@ impl Deployer {
     }
 
     async fn prepare(&mut self) -> Result<()> {
+        let build = self.actor.spec.character.build.clone().unwrap_or_default();
+
+        // Get SecurityContext for the container
+        let builder = build.buildpacks.clone().unwrap_or_default().builder;
+        let security_context = security_context(&builder);
+
         // Set the syncer
         if self.actor.spec.source.is_some() {
             self.syncer = Some(git_sync::container(&self.actor.spec));
         } else {
             let playbook = owner_reference(&self.actor)?;
-            self.syncer = Some(syncer::container(&playbook, &self.actor.spec)?);
+            self.syncer = Some(syncer::container(&playbook, &self.actor.spec, &security_context)?);
         }
 
         // Prefer to use Kaniko to build images with Dockerfile,
         // else, build the image with Cloud Native Buildpacks
-        let build = self.actor.spec.character.build.clone().unwrap_or_default();
         match build.method() {
             BuildMethod::Dockerfile => {
                 debug!("Found dockerfile, build it with kaniko");
@@ -107,7 +115,7 @@ impl Deployer {
             }
             BuildMethod::Buildpacks => {
                 debug!("Build the image with Cloud Native Buildpacks");
-                self.builder = Some(buildpacks::container(&self.actor.spec));
+                self.builder = Some(buildpacks::container(&self.actor.spec, &security_context));
             }
         };
 
@@ -200,12 +208,7 @@ impl Deployer {
         pod.volumes = Some(vec![workspace_volume(), docker_config_volume()]);
 
         // Set the security context for the pod
-        pod.security_context = Some(PodSecurityContext {
-            run_as_user: Some(1000),
-            run_as_group: Some(1000),
-            fs_group: Some(1000),
-            ..Default::default()
-        });
+        pod.security_context = Some(PodSecurityContext { fs_group: Some(DEFAULT_RUN_AS_GROUP), ..Default::default() });
 
         Ok(pod)
     }
@@ -219,4 +222,28 @@ fn owner_reference(actor: &Actor) -> Result<String, error::Error> {
         .iter()
         .find_map(|owner| (owner.kind == "Playbook").then(|| owner.name.clone()))
         .ok_or_else(|| Error::MissingObjectKey(".metadata.ownerReferences"))
+}
+
+/// Build SecurityContext for the container by Buildpacks builder mapping.
+///
+/// |user |group|builder|
+/// |-----|-----|-------|
+/// |1000 |1000 |heroku*|
+/// |1000 |1000 |gcr.io/buildpacks*|
+/// |1001 |1000 |paketobuildpacks*|
+/// |1001 |1000 |amp-buildpacks*|
+/// |1001 |1000 |*|
+///
+fn security_context(builder: &str) -> Option<SecurityContext> {
+    let mut run_as_user = DEFAULT_RUN_AS_USER;
+
+    if builder.starts_with("heroku") || builder.starts_with("gcr.io/buildpacks") {
+        run_as_user = 1000;
+    }
+
+    Some(SecurityContext {
+        run_as_user: Some(run_as_user),
+        run_as_group: Some(DEFAULT_RUN_AS_GROUP),
+        ..Default::default()
+    })
 }

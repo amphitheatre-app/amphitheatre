@@ -15,14 +15,14 @@
 use std::path::PathBuf;
 
 use amp_common::resource::ActorSpec;
-use k8s_openapi::api::core::v1::Container;
+use k8s_openapi::api::core::v1::{Container, SecurityContext};
 
 use super::{workspace_mount, DEFAULT_SYNCER_IMAGE, WORKSPACE_DIR};
 use crate::args;
 use crate::error::Result;
 
 /// Build and return the container spec for the syncer.
-pub fn container(playbook: &str, spec: &ActorSpec) -> Result<Container> {
+pub fn container(playbook: &str, spec: &ActorSpec, security_context: &Option<SecurityContext>) -> Result<Container> {
     // Set the working directory to `workspace` argument.
     let build = spec.character.build.clone().unwrap_or_default();
     let mut workdir = PathBuf::from(WORKSPACE_DIR);
@@ -48,6 +48,7 @@ pub fn container(playbook: &str, spec: &ActorSpec) -> Result<Container> {
         // image_pull_policy: Some("IfNotPresent".to_string()),
         args: Some(args(&arguments, 2)),
         volume_mounts: Some(vec![workspace_mount()]),
+        security_context: security_context.clone(),
         ..Default::default()
     })
 }
@@ -59,7 +60,7 @@ mod tests {
     #[test]
     fn test_container() {
         let spec = ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() };
-        let container = container("test", &spec).unwrap();
+        let container = container("test", &spec, &None).unwrap();
 
         assert_eq!(container.name, "syncer");
         assert_eq!(container.image, Some(DEFAULT_SYNCER_IMAGE.into()));

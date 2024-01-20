@@ -21,6 +21,7 @@ use crate::args;
 /// Build and return the container spec for the git-sync.
 pub fn container(spec: &ActorSpec) -> Container {
     let source = spec.source.as_ref().unwrap();
+
     // Parse the arguments for the container
     let revision = source.rev();
     let arguments = vec![

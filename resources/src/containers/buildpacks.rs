@@ -13,13 +13,13 @@
 // limitations under the License.
 
 use amp_common::resource::ActorSpec;
-use k8s_openapi::api::core::v1::{Container, EnvVar, VolumeMount};
+use k8s_openapi::api::core::v1::{Container, EnvVar, SecurityContext, VolumeMount};
 
 use super::{workspace_mount, WORKSPACE_DIR};
 use crate::args;
 
 /// Build and return the container spec for the buildpacks container
-pub fn container(spec: &ActorSpec) -> Container {
+pub fn container(spec: &ActorSpec, security_context: &Option<SecurityContext>) -> Container {
     let build = spec.character.build.clone().unwrap_or_default();
 
     // Parse the arguments for the container
@@ -47,6 +47,7 @@ pub fn container(spec: &ActorSpec) -> Container {
         args: Some(arguments),
         env: Some(environment),
         volume_mounts: Some(vec![workspace_mount(), docker_config_mount()]),
+        security_context: security_context.clone(),
         ..Default::default()
     }
 }
@@ -65,7 +66,7 @@ mod tests {
     fn test_container() {
         let spec = ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() };
 
-        let container = container(&spec);
+        let container = container(&spec, &None);
 
         assert_eq!(container.name, "builder");
         assert_eq!(container.image, Some("gcr.io/buildpacks/builder:v1".into()));
