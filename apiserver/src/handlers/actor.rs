@@ -173,8 +173,7 @@ async fn log(
             timestamps: true,
             ..Default::default()
         };
-        let mut stream =
-            api.log_stream(&pod, &params).await.map_err(|e| ApiError::KubernetesError(e.to_string())).unwrap().lines();
+        let mut stream = api.log_stream(&pod, &params).await.map_err(ApiError::KubernetesError).unwrap().lines();
 
         info!("Start to receive the log stream of container {} in {}...", name, pod);
         while let Some(line) = stream.try_next().await.unwrap() {
@@ -249,6 +248,6 @@ pub async fn sync(
     Path((pid, name)): Path<(Uuid, String)>,
     Json(req): Json<Synchronization>,
 ) -> Result<impl IntoResponse> {
-    ActorService::sync(ctx, pid, name, req).await.map_err(|err| ApiError::NatsError(err.to_string()))?;
+    ActorService::sync(ctx, pid, name, req).await.map_err(ApiError::NatsError)?;
     Ok(StatusCode::ACCEPTED)
 }

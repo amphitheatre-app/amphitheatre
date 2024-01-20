@@ -30,17 +30,13 @@ pub struct ActorService;
 
 impl ActorService {
     pub async fn get(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<ActorSpec> {
-        let actor = actor::get(&ctx.k8s, &format!("amp-{}", pid), &name)
-            .await
-            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        let actor = actor::get(&ctx.k8s, &format!("amp-{}", pid), &name).await.map_err(ApiError::ResourceError)?;
 
         Ok(actor.spec)
     }
 
     pub async fn list(ctx: Arc<Context>, pid: Uuid) -> Result<Vec<ActorSpec>> {
-        let actors = actor::list(&ctx.k8s, &format!("amp-{}", pid))
-            .await
-            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        let actors = actor::list(&ctx.k8s, &format!("amp-{}", pid)).await.map_err(ApiError::ResourceError)?;
         Ok(actors.iter().map(|actor| actor.spec.clone()).collect())
     }
 
@@ -72,9 +68,8 @@ impl ActorService {
     }
 
     pub async fn stats(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<HashMap<String, String>> {
-        let metrics = actor::metrics(&ctx.k8s, &format!("amp-{}", pid), &name)
-            .await
-            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        let metrics =
+            actor::metrics(&ctx.k8s, &format!("amp-{}", pid), &name).await.map_err(ApiError::ResourceError)?;
 
         // Just return the metrics for name
         let container = metrics.containers.iter().find(|c| c.name == name).ok_or_else(|| {
@@ -90,9 +85,7 @@ impl ActorService {
     }
 
     pub async fn info(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<HashMap<String, HashMap<String, String>>> {
-        let actor = actor::get(&ctx.k8s, &format!("amp-{}", pid), &name)
-            .await
-            .map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        let actor = actor::get(&ctx.k8s, &format!("amp-{}", pid), &name).await.map_err(ApiError::ResourceError)?;
 
         let mut info = HashMap::new();
         if let Some(deploy) = actor.spec.character.deploy {

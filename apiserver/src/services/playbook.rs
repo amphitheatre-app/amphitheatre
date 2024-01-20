@@ -27,14 +27,13 @@ pub struct PlaybookService;
 
 impl PlaybookService {
     pub async fn get(ctx: Arc<Context>, id: Uuid) -> Result<PlaybookSpec> {
-        let playbook =
-            playbook::get(&ctx.k8s, &id.to_string()).await.map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        let playbook = playbook::get(&ctx.k8s, &id.to_string()).await.map_err(ApiError::ResourceError)?;
 
         Ok(playbook.spec)
     }
 
     pub async fn list(ctx: Arc<Context>) -> Result<Vec<PlaybookSpec>> {
-        let resources = playbook::list(&ctx.k8s).await.map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        let resources = playbook::list(&ctx.k8s).await.map_err(ApiError::ResourceError)?;
 
         Ok(resources.iter().map(|playbook| playbook.spec.clone()).collect())
     }
@@ -48,7 +47,7 @@ impl PlaybookService {
     }
 
     pub async fn delete(ctx: Arc<Context>, id: Uuid) -> Result<()> {
-        playbook::delete(&ctx.k8s, &id.to_string()).await.map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        playbook::delete(&ctx.k8s, &id.to_string()).await.map_err(ApiError::ResourceError)?;
 
         Ok(())
     }
@@ -66,8 +65,7 @@ impl PlaybookService {
             },
         );
 
-        let playbook =
-            playbook::create(&ctx.k8s, &resource).await.map_err(|err| ApiError::KubernetesError(err.to_string()))?;
+        let playbook = playbook::create(&ctx.k8s, &resource).await.map_err(ApiError::ResourceError)?;
 
         Ok(playbook.spec)
     }

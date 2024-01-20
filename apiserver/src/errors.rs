@@ -15,25 +15,32 @@
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use thiserror::Error;
 use tracing::error;
 
-#[derive(Serialize, Deserialize, Debug, Error)]
+#[derive(Debug, Error)]
 pub enum ApiError {
     #[error("Database Error")]
     DatabaseError,
+
     #[error("Kubernetes Error: {0}")]
-    KubernetesError(String),
+    KubernetesError(#[source] kube::Error),
+
     #[error("Internal Server Error")]
     InternalServerError,
+
     #[error("Not Found")]
     NotFound,
+
     #[error("Resolve Error")]
     ResolveError,
+
     #[error("NATS Error: {0}")]
-    NatsError(String),
+    NatsError(#[source] async_nats::Error),
+
+    #[error("Resource Error: {0}")]
+    ResourceError(#[source] amp_resources::error::Error),
 }
 
 impl IntoResponse for ApiError {
@@ -45,7 +52,9 @@ impl IntoResponse for ApiError {
             Self::NotFound => (StatusCode::NOT_FOUND, self.to_string()),
             Self::ResolveError => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             Self::NatsError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            Self::ResourceError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
         };
+
         error!("{} - {}", status, message);
         (status, Json(json!({ "message": message }))).into_response()
     }
