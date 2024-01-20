@@ -17,6 +17,8 @@ use std::sync::Arc;
 
 use clap::Parser;
 use tracing::metadata::LevelFilter;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
 
 mod config;
@@ -33,8 +35,11 @@ mod playbook_controller;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let filter = EnvFilter::builder().with_default_directive(LevelFilter::INFO.into()).from_env_lossy();
-    tracing_subscriber::fmt().with_env_filter(filter).init();
+    // Enable tracing.
+    tracing_subscriber::registry()
+        .with(EnvFilter::builder().with_default_directive(LevelFilter::INFO.into()).from_env_lossy())
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
     // This returns an error if the `.env` file doesn't exist, but that's not what we want
     // since we're not going to use a `.env` file if we deploy this application.
