@@ -42,7 +42,6 @@ pub fn container(spec: &ActorSpec, security_context: &Option<SecurityContext>) -
     Container {
         name: "builder".to_string(),
         image: Some(build.buildpacks.unwrap_or_default().builder),
-        image_pull_policy: Some("IfNotPresent".into()),
         command: Some(vec!["/cnb/lifecycle/creator".into()]),
         args: Some(arguments),
         env: Some(environment),
