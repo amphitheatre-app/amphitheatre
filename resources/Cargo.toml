@@ -12,7 +12,7 @@ description = "K8s resources manager for the Amphitheatre platform"
 amp-common = { workspace = true, optional = false }
 anyhow = { workspace = true, optional = false }
 kube = { workspace = true, optional = false }
-k8s-metrics = "0.14.0"
+k8s-metrics = { git = "https://github.com/amphitheatre-app/k8s-metrics-rs", branch = "main" }
 k8s-openapi = { workspace = true, optional = false }
 serde = { workspace = true, optional = false }
 serde_json = { workspace = true, optional = false }
