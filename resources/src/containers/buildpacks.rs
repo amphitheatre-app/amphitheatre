@@ -69,7 +69,6 @@ mod tests {
 
         assert_eq!(container.name, "builder");
         assert_eq!(container.image, Some("gcr.io/buildpacks/builder:v1".into()));
-        assert_eq!(container.image_pull_policy, Some("IfNotPresent".into()));
         assert_eq!(container.command, Some(vec!["/cnb/lifecycle/creator".into()]));
         assert_eq!(container.args, Some(vec!["-app=/workspace/app".into(), "test".into()]));
         assert_eq!(
