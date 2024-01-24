@@ -25,7 +25,6 @@ pub mod credential;
 pub mod deployer;
 pub mod deployment;
 pub mod error;
-pub mod event;
 pub mod namespace;
 pub mod playbook;
 pub mod secret;

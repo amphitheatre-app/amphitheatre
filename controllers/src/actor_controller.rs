@@ -17,15 +17,13 @@ use std::time::Duration;
 
 use amp_common::resource::Actor;
 use amp_resources::deployer::Deployer;
-use amp_resources::event::trace;
 use futures::{future, StreamExt};
 use k8s_openapi::api::core::v1::Namespace;
 use kube::api::ListParams;
 use kube::runtime::controller::Action;
-use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
 use kube::runtime::{watcher, Controller};
-use kube::{Api, Resource, ResourceExt};
+use kube::{Api, ResourceExt};
 use tracing::{error, info};
 
 use crate::context::Context;
@@ -53,14 +51,13 @@ pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
 
     let ns = actor.namespace().unwrap(); // actor is namespace scoped
     let api: Api<Actor> = Api::namespaced(ctx.k8s.clone(), &ns);
-    let recorder = ctx.recorder(actor.object_ref(&()));
 
     // Reconcile the actor custom resource.
     let finalizer_name = "actors.amphitheatre.app/finalizer";
     finalizer(&api, finalizer_name, actor, |event| async {
         match event {
-            FinalizerEvent::Apply(actor) => apply(&actor, &ctx, &recorder).await,
-            FinalizerEvent::Cleanup(actor) => cleanup(&actor, &ctx, &recorder).await,
+            FinalizerEvent::Apply(actor) => apply(&actor, &ctx).await,
+            FinalizerEvent::Cleanup(actor) => cleanup(&actor, &ctx).await,
         }
     })
     .await
@@ -73,8 +70,8 @@ pub fn error_policy(_actor: Arc<Actor>, error: &Error, _ctx: Arc<Context>) -> Ac
     Action::requeue(Duration::from_secs(60))
 }
 
-async fn apply(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
-    trace(recorder, format!("Try to deploying the resources for Actor {}", actor.name_any())).await;
+async fn apply(actor: &Actor, ctx: &Arc<Context>) -> Result<Action> {
+    info!("Try to deploying the resources for Actor {}", actor.name_any());
 
     let credentials = ctx.credentials.read().await;
     let mut deployer = Deployer::new(ctx.k8s.clone(), &credentials, actor);
@@ -83,7 +80,7 @@ async fn apply(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result
     Ok(Action::await_change())
 }
 
-pub async fn cleanup(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> Result<Action> {
+pub async fn cleanup(actor: &Actor, ctx: &Arc<Context>) -> Result<Action> {
     let namespace = actor.namespace().unwrap();
     let api: Api<Namespace> = Api::all(ctx.k8s.clone());
 
@@ -94,7 +91,7 @@ pub async fn cleanup(actor: &Actor, ctx: &Arc<Context>, recorder: &Recorder) -> 
         }
     }
 
-    trace(recorder, format!("Delete Actor `{}`", actor.name_any())).await;
+    info!("Delete Actor `{}`", actor.name_any());
 
     Ok(Action::await_change())
 }

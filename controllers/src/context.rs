@@ -17,8 +17,6 @@ use std::sync::Arc;
 use amp_common::config::Credentials;
 use amp_resources::credential;
 use async_nats::jetstream;
-use k8s_openapi::api::core::v1::ObjectReference;
-use kube::runtime::events::Recorder;
 use tokio::sync::RwLock;
 
 use crate::config::Config;
@@ -56,9 +54,5 @@ impl Context {
             config: Arc::new(config),
             jetstream: Arc::new(jetstream),
         })
-    }
-
-    pub fn recorder(&self, reference: ObjectReference) -> Recorder {
-        Recorder::new(self.k8s.clone(), "amp-controllers".into(), reference)
     }
 }
