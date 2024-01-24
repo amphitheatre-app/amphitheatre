@@ -1,0 +1,21 @@
+[package]
+name = "amp-workflow"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+amp-common.workspace = true
+amp-resources.workspace = true
+amp-resolver.workspace = true
+async-trait = "0.1.77"
+kube.workspace = true
+k8s-openapi.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+async-nats.workspace = true
+tokio.workspace = true
