@@ -29,7 +29,7 @@ use kube::{Api, Resource, ResourceExt};
 use tracing::{error, info};
 
 use crate::context::Context;
-use crate::error::{Error, Result};
+use crate::errors::{Error, Result};
 
 pub async fn new(ctx: &Arc<Context>) {
     let api = Api::<Actor>::all(ctx.k8s.clone());

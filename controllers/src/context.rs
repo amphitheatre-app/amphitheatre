@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::Arc;
+
 use amp_common::config::Credentials;
 use amp_resources::credential;
 use async_nats::jetstream;
 use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::events::Recorder;
-use kube::Client;
 use tokio::sync::RwLock;
 
 use crate::config::Config;
@@ -31,15 +32,15 @@ use crate::config::Config;
 /// on and off, and disable any unused extension objects) but it's really up to a
 /// judgement call.
 pub struct Context {
-    pub k8s: Client,
-    pub credentials: RwLock<Credentials>,
-    pub config: Config,
-    pub jetstream: jetstream::Context,
+    pub k8s: kube::Client,
+    pub credentials: Arc<RwLock<Credentials>>,
+    pub config: Arc<Config>,
+    pub jetstream: Arc<jetstream::Context>,
 }
 
 impl Context {
     pub async fn new(config: Config) -> anyhow::Result<Context> {
-        let k8s = Client::try_default().await?;
+        let k8s = kube::Client::try_default().await?;
         let credentials = credential::load(&k8s, &config.namespace).await?;
         let credentials = RwLock::new(credentials.unwrap_or_default());
 
@@ -49,7 +50,12 @@ impl Context {
             .map_err(|e| anyhow::anyhow!("Failed to connect to NATS: {}, {}", &config.nats_url, e))?;
         let jetstream = jetstream::new(client);
 
-        Ok(Context { k8s, credentials, config, jetstream })
+        Ok(Context {
+            k8s,
+            credentials: Arc::new(credentials),
+            config: Arc::new(config),
+            jetstream: Arc::new(jetstream),
+        })
     }
 
     pub fn recorder(&self, reference: ObjectReference) -> Recorder {

@@ -23,7 +23,7 @@ use tracing_subscriber::EnvFilter;
 
 mod config;
 mod context;
-mod error;
+mod errors;
 
 use crate::config::Config;
 use crate::context::Context;

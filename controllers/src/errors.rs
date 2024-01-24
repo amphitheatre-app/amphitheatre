@@ -16,19 +16,11 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("SerializationError: {0}")]
-    ResourceError(#[source] amp_resources::error::Error),
-
     #[error("Kube Error: {0}")]
     KubeError(#[source] kube::Error),
 
     #[error("Finalizer Error: {0}")]
-    // NB: awkward type because finalizer::Error embeds the reconciler error (which is this)
-    // so boxing this error to break cycles
     FinalizerError(#[source] Box<kube::runtime::finalizer::Error<Error>>),
-
-    #[error("ResolveError: {0}")]
-    ResolveError(#[source] amp_resolver::errors::ResolveError),
 
     #[error("NatsError: {0}")]
     NatsError(#[from] async_nats::Error),

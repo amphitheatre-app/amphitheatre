@@ -62,7 +62,7 @@ checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
 
 [[package]]
 name = "amp-apiserver"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -122,11 +122,12 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "amp-common",
  "amp-resolver",
  "amp-resources",
+ "amp-workflow",
  "anyhow",
  "async-nats",
  "clap",
@@ -147,7 +148,7 @@ dependencies = [
 
 [[package]]
 name = "amp-crdgen"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "amp-common",
  "clap",
@@ -159,7 +160,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -173,7 +174,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "amp-common",
  "anyhow",
@@ -193,7 +194,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "amp-common",
  "async-nats",
@@ -210,7 +211,7 @@ dependencies = [
 
 [[package]]
 name = "amp-workflow"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "amp-common",
  "amp-resolver",
@@ -1560,8 +1561,9 @@ dependencies = [
 
 [[package]]
 name = "k8s-metrics"
-version = "0.14.0"
-source = "git+https://github.com/amphitheatre-app/k8s-metrics-rs?branch=main#d58c2b610a631c1364dc5f89c3bd7d310c111a2a"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "776c4f370bba28d3b24b692c0e3a66fe2d95ada224241d74563b3928c6ad9130"
 dependencies = [
  "go-parse-duration",
  "k8s-openapi",
