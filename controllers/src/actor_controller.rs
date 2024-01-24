@@ -16,18 +16,19 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use amp_common::resource::Actor;
-use amp_resources::deployer::Deployer;
+use amp_workflow::Workflow;
 use futures::{future, StreamExt};
-use k8s_openapi::api::core::v1::Namespace;
 use kube::api::ListParams;
 use kube::runtime::controller::Action;
-use kube::runtime::finalizer::{finalizer, Event as FinalizerEvent};
+use kube::runtime::finalizer::{finalizer, Event};
 use kube::runtime::{watcher, Controller};
 use kube::{Api, ResourceExt};
 use tracing::{error, info};
 
 use crate::context::Context;
 use crate::errors::{Error, Result};
+
+const FINALIZER_NAME: &str = "actors.amphitheatre.app/finalizer";
 
 pub async fn new(ctx: &Arc<Context>) {
     let api = Api::<Actor>::all(ctx.k8s.clone());
@@ -47,51 +48,45 @@ pub async fn new(ctx: &Arc<Context>) {
 
 /// The reconciler that will be called when either object change
 pub async fn reconcile(actor: Arc<Actor>, ctx: Arc<Context>) -> Result<Action> {
-    info!("Reconciling Actor \"{}\"", actor.name_any());
-
     let ns = actor.namespace().unwrap(); // actor is namespace scoped
     let api: Api<Actor> = Api::namespaced(ctx.k8s.clone(), &ns);
 
+    let mut workflow = Workflow::new(
+        amp_workflow::Context {
+            k8s: Arc::new(ctx.k8s.clone()),
+            jetstream: ctx.jetstream.clone(),
+            credentials: ctx.credentials.clone(),
+            object: actor.clone(),
+        },
+        Box::new(amp_workflow::actor::InitialState),
+    );
+
     // Reconcile the actor custom resource.
-    let finalizer_name = "actors.amphitheatre.app/finalizer";
-    finalizer(&api, finalizer_name, actor, |event| async {
+    finalizer(&api, FINALIZER_NAME, actor, |event| async {
         match event {
-            FinalizerEvent::Apply(actor) => apply(&actor, &ctx).await,
-            FinalizerEvent::Cleanup(actor) => cleanup(&actor, &ctx).await,
-        }
+            Event::Apply(actor) => {
+                info!("Apply actor {}", actor.name_any());
+                workflow.set_context(actor.clone());
+            }
+            Event::Cleanup(actor) => {
+                info!("Cleanup actor {}", actor.name_any());
+                workflow.set_context(actor.clone());
+                workflow.transition(Box::new(amp_workflow::actor::CleanupState));
+            }
+        };
+
+        // Runs the workflow until there is no next state
+        workflow.run().await;
+
+        Ok(Action::await_change())
     })
     .await
     .map_err(|e| Error::FinalizerError(Box::new(e)))
 }
+
 /// an error handler that will be called when the reconciler fails with access to both the
 /// object that caused the failure and the actual error
-pub fn error_policy(_actor: Arc<Actor>, error: &Error, _ctx: Arc<Context>) -> Action {
+pub fn error_policy(_: Arc<Actor>, error: &Error, _ctx: Arc<Context>) -> Action {
     error!("reconcile failed: {:?}", error);
     Action::requeue(Duration::from_secs(60))
-}
-
-async fn apply(actor: &Actor, ctx: &Arc<Context>) -> Result<Action> {
-    info!("Try to deploying the resources for Actor {}", actor.name_any());
-
-    let credentials = ctx.credentials.read().await;
-    let mut deployer = Deployer::new(ctx.k8s.clone(), &credentials, actor);
-    deployer.run().await.map_err(Error::DeployError)?;
-
-    Ok(Action::await_change())
-}
-
-pub async fn cleanup(actor: &Actor, ctx: &Arc<Context>) -> Result<Action> {
-    let namespace = actor.namespace().unwrap();
-    let api: Api<Namespace> = Api::all(ctx.k8s.clone());
-
-    let ns = api.get(namespace.as_str()).await.map_err(Error::KubeError)?;
-    if let Some(status) = ns.status {
-        if status.phase == Some("Terminating".into()) {
-            return Ok(Action::await_change());
-        }
-    }
-
-    info!("Delete Actor `{}`", actor.name_any());
-
-    Ok(Action::await_change())
 }

@@ -51,18 +51,18 @@ pub async fn new(ctx: &Arc<Context>) {
 pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Action> {
     let api: Api<Playbook> = Api::all(ctx.k8s.clone());
 
-    // Reconcile the playbook custom resource.
-    finalizer(&api, FINALIZER_NAME, playbook.clone(), |event| async {
-        let mut workflow = Workflow::new(
-            amp_workflow::Context {
-                k8s: Arc::new(ctx.k8s.clone()),
-                jetstream: ctx.jetstream.clone(),
-                credentials: ctx.credentials.clone(),
-                object: playbook.clone(),
-            },
-            Box::new(amp_workflow::playbook::InitialState),
-        );
+    let mut workflow = Workflow::new(
+        amp_workflow::Context {
+            k8s: Arc::new(ctx.k8s.clone()),
+            jetstream: ctx.jetstream.clone(),
+            credentials: ctx.credentials.clone(),
+            object: playbook.clone(),
+        },
+        Box::new(amp_workflow::playbook::InitialState),
+    );
 
+    // Reconcile the playbook custom resource.
+    finalizer(&api, FINALIZER_NAME, playbook, |event| async {
         match event {
             Event::Apply(playbook) => {
                 info!("Apply playbook {}", playbook.name_any());

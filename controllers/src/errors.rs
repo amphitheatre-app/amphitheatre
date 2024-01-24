@@ -16,17 +16,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("Kube Error: {0}")]
-    KubeError(#[source] kube::Error),
-
     #[error("Finalizer Error: {0}")]
     FinalizerError(#[source] Box<kube::runtime::finalizer::Error<Error>>),
-
-    #[error("NatsError: {0}")]
-    NatsError(#[from] async_nats::Error),
-
-    #[error("Deploy Error: {0}")]
-    DeployError(#[source] amp_resources::error::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
