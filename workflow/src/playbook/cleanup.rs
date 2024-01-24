@@ -19,14 +19,14 @@ use async_trait::async_trait;
 use kube::ResourceExt;
 use tracing::info;
 
-pub struct EndingState;
+pub struct CleanupState;
 
 #[async_trait]
-impl State<Playbook> for EndingState {
+impl State<Playbook> for CleanupState {
     /// Execute the logic for the ending state
     async fn handle(&self, ctx: &Context<Playbook>) -> Option<Box<dyn State<Playbook>>> {
         // Check if EndTask should be executed
-        let task = EndTask::new();
+        let task = CleanupTask::new();
         if task.matches(ctx) {
             if let Err(err) = task.execute(ctx).await {
                 // Handle error, maybe log it
@@ -38,12 +38,12 @@ impl State<Playbook> for EndingState {
     }
 }
 
-pub struct EndTask;
+pub struct CleanupTask;
 
 #[async_trait]
-impl Task<Playbook> for EndTask {
+impl Task<Playbook> for CleanupTask {
     fn new() -> Self {
-        EndTask
+        CleanupTask
     }
 
     fn matches(&self, _: &Context<Playbook>) -> bool {
@@ -57,7 +57,7 @@ impl Task<Playbook> for EndTask {
     }
 }
 
-impl EndTask {
+impl CleanupTask {
     async fn cleanup(&self, ctx: &Context<Playbook>, playbook: &Playbook) -> Result<()> {
         // Try to delete the NATS stream for this playbook if it exists.
         if ctx.jetstream.delete_stream(playbook.name_any()).await.is_ok() {

@@ -71,7 +71,7 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Act
             Event::Cleanup(playbook) => {
                 info!("Cleanup playbook {}", playbook.name_any());
                 workflow.set_context(playbook.clone());
-                workflow.transition(Box::new(amp_workflow::playbook::EndingState));
+                workflow.transition(Box::new(amp_workflow::playbook::CleanupState));
             }
         };
 

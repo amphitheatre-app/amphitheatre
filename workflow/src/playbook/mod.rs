@@ -16,14 +16,14 @@ mod init;
 pub use init::InitTask;
 pub use init::InitialState;
 
-mod schedule;
-pub use schedule::ScheduleTask;
-pub use schedule::SchedulingState;
+mod resolve;
+pub use resolve::ResolveTask;
+pub use resolve::ResolvingState;
 
-mod perform;
-pub use perform::PerformTask;
-pub use perform::PerformingState;
+mod run;
+pub use run::RunTask;
+pub use run::RunningState;
 
-mod end;
-pub use end::EndTask;
-pub use end::EndingState;
+mod cleanup;
+pub use cleanup::CleanupState;
+pub use cleanup::CleanupTask;

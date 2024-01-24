@@ -24,7 +24,7 @@ use async_trait::async_trait;
 use kube::ResourceExt;
 use tracing::{debug, error, info};
 
-use super::SchedulingState;
+use super::ResolvingState;
 
 pub struct InitialState;
 
@@ -41,7 +41,7 @@ impl State<Playbook> for InitialState {
         }
 
         // Transition to the next state if needed
-        Some(Box::new(SchedulingState))
+        Some(Box::new(ResolvingState))
     }
 }
 

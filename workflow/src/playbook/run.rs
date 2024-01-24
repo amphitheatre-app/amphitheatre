@@ -20,18 +20,18 @@ use amp_resources::actor;
 use async_trait::async_trait;
 use tracing::{error, info};
 
-pub struct PerformingState;
+pub struct RunningState;
 
 #[async_trait]
-impl State<Playbook> for PerformingState {
-    /// Execute the logic for the performing state
+impl State<Playbook> for RunningState {
+    /// Execute the logic for the Running state
     async fn handle(&self, ctx: &Context<Playbook>) -> Option<Box<dyn State<Playbook>>> {
-        // Check if PerformTask should be executed
-        let task = PerformTask::new();
+        // Check if RunTask should be executed
+        let task = RunTask::new();
         if task.matches(ctx) {
             if let Err(err) = task.execute(ctx).await {
                 // Handle error, maybe log it
-                println!("Error during PerformTask execution: {}", err);
+                println!("Error during RunTask execution: {}", err);
             }
         }
 
@@ -39,12 +39,12 @@ impl State<Playbook> for PerformingState {
     }
 }
 
-pub struct PerformTask;
+pub struct RunTask;
 
 #[async_trait]
-impl Task<Playbook> for PerformTask {
+impl Task<Playbook> for RunTask {
     fn new() -> Self {
-        PerformTask
+        RunTask
     }
 
     fn matches(&self, ctx: &Context<Playbook>) -> bool {
@@ -56,7 +56,7 @@ impl Task<Playbook> for PerformTask {
     }
 }
 
-impl PerformTask {
+impl RunTask {
     async fn run(&self, ctx: &Context<Playbook>, playbook: &Playbook) -> Result<()> {
         let credentials = ctx.credentials.read().await;
 

@@ -23,47 +23,47 @@ use async_trait::async_trait;
 use std::collections::HashSet;
 use tracing::{debug, info};
 
-use super::PerformingState;
+use super::RunningState;
 
-pub struct SchedulingState;
+pub struct ResolvingState;
 
 #[async_trait]
-impl State<Playbook> for SchedulingState {
+impl State<Playbook> for ResolvingState {
     /// Execute the logic for the scheduling state
     async fn handle(&self, ctx: &Context<Playbook>) -> Option<Box<dyn State<Playbook>>> {
-        // Check if ScheduleTask should be executed
-        let task = ScheduleTask::new();
+        // Check if ResolveTask should be executed
+        let task = ResolveTask::new();
         if task.matches(ctx) {
             if let Err(err) = task.execute(ctx).await {
                 // Handle error, maybe log it
-                println!("Error during ScheduleTask execution: {}", err);
+                println!("Error during ResolveTask execution: {}", err);
             }
         }
 
         // Transition to the next state if needed
-        Some(Box::new(PerformingState))
+        Some(Box::new(RunningState))
     }
 }
 
-pub struct ScheduleTask;
+pub struct ResolveTask;
 
 #[async_trait]
-impl Task<Playbook> for ScheduleTask {
+impl Task<Playbook> for ResolveTask {
     fn new() -> Self {
-        ScheduleTask
+        ResolveTask
     }
 
     fn matches(&self, ctx: &Context<Playbook>) -> bool {
         ctx.object.status.as_ref().is_some_and(|status| status.resolving())
     }
 
-    // Execute the task logic for InitTask using shared data
+    // Execute the task logic for ResolveTask using shared data
     async fn execute(&self, ctx: &Context<Playbook>) -> Result<()> {
         self.resolve(ctx, &ctx.object).await
     }
 }
 
-impl ScheduleTask {
+impl ResolveTask {
     async fn resolve(&self, ctx: &Context<Playbook>, playbook: &Playbook) -> Result<()> {
         // Check if there are any repositories to fetch
         //
