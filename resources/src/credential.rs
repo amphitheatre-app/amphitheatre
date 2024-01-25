@@ -22,8 +22,6 @@ use super::error::Result;
 use crate::{secret, service_account};
 
 pub async fn sync(client: &Client, namespace: &str, name: &str, credentials: &Credentials) -> Result<()> {
-    debug!("The current configuration reads: {:?}", credentials);
-
     let mut secrets = vec![];
 
     // Patch the image pull secrets to service account
@@ -95,7 +93,6 @@ pub async fn load(client: &Client, namespace: &str) -> Result<Option<Credentials
 
     let bytes = data.get("credentials").unwrap();
     if let Ok(content) = String::from_utf8(bytes.0.clone()) {
-        debug!("The credentials is: {:?}", content);
         if let Ok(credentials) = toml::from_str::<Credentials>(&content) {
             info!("Loaded the credentials from the Kubernetes secret.");
             return Ok(Some(credentials));

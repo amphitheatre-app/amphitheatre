@@ -19,7 +19,7 @@ use k8s_openapi::api::core::v1::Namespace;
 use kube::api::{Patch, PatchParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
-use tracing::{debug, info};
+use tracing::info;
 
 use super::error::{Error, Result};
 
@@ -28,8 +28,6 @@ pub async fn create(client: &Client, playbook: &Playbook) -> Result<Namespace> {
     let name = playbook.spec.namespace();
 
     let resource = new(playbook);
-    debug!("The namespace resource:\n {:?}\n", resource);
-
     let params = &PatchParams::apply("amp-controllers").force();
     let namespace = api.patch(&name, params, &Patch::Apply(&resource)).await.map_err(Error::KubeError)?;
 

@@ -21,7 +21,6 @@ use k8s_openapi::ByteString;
 use kube::api::{Patch, PatchParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, ResourceExt};
-use serde_json::to_string;
 use tracing::{debug, info};
 use url::Url;
 
@@ -37,7 +36,7 @@ pub async fn create_registry_secret(client: &Client, namespace: &str, config: Do
         )])),
         ..Default::default()
     };
-    debug!("The secret resource:\n {:?}\n", to_string(&resource));
+    debug!("Created registry secret: {}", resource.name_any());
 
     create(client, namespace, resource).await
 }
@@ -72,7 +71,7 @@ pub async fn create_repository_secret(
         string_data: Some(data),
         ..Secret::default()
     };
-    debug!("The secret resource:\n {:?}\n", resource);
+    debug!("Created repository secret: {}", resource.name_any());
 
     create(client, namespace, resource).await
 }

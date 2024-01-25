@@ -48,7 +48,7 @@ pub async fn update(
 ) -> Result<Deployment> {
     let api: Api<Deployment> = Api::namespaced(client.clone(), namespace);
     let mut deployment = api.get(name).await.map_err(Error::KubeError)?;
-    debug!("The Deployment {} already exists: {:?}", name, deployment);
+    debug!("The Deployment {} already exists", name);
 
     let found_hash: String = deployment.annotations().get(LAST_APPLIED_HASH_KEY).map_or("".into(), |v| v.into());
 

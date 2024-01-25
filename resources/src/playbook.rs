@@ -106,13 +106,13 @@ pub async fn add(client: &Client, playbook: &Playbook, character: CharacterSpec)
 pub async fn patch_status(client: &Client, playbook: &Playbook, condition: Condition) -> Result<()> {
     let api: Api<Playbook> = Api::all(client.clone());
 
-    let status = json!({ "status": { "conditions": vec![condition] }});
+    let status = json!({ "status": { "conditions": vec![condition.clone()] }});
     let playbook = api
         .patch_status(playbook.name_any().as_str(), &PatchParams::default(), &Patch::Merge(&status))
         .await
         .map_err(Error::KubeError)?;
 
-    info!("Patched status {:?} for {}", playbook.status, playbook.name_any());
+    info!("Patched status {:?} with reason {:?} for Actor {}", condition.type_, condition.reason, playbook.name_any());
 
     Ok(())
 }

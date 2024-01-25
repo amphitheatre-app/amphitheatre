@@ -18,7 +18,6 @@ use k8s_openapi::api::core::v1::{LocalObjectReference, ObjectReference, Secret, 
 use kube::api::{Patch, PatchParams};
 use kube::{Api, Client, ResourceExt};
 use serde_json::json;
-use tracing::debug;
 
 use super::error::{Error, Result};
 
@@ -32,8 +31,6 @@ pub async fn patch(
 ) -> Result<ServiceAccount> {
     let api: Api<ServiceAccount> = Api::namespaced(client.clone(), namespace);
     let mut account = api.get(name).await.map_err(Error::KubeError)?;
-
-    debug!("The current Service Account {} is: {:?}", name, account);
 
     // Fetch original secrets and image pull secrets.
     let mut secrets = account.secrets.map_or(vec![], |v| v);
@@ -59,13 +56,11 @@ pub async fn patch(
 
     // Create patch for update.
     let json = json!({"secrets": secrets, "imagePullSecrets": image_pull_secrets });
-    debug!("The patch of Service Account {} is: {:?}", name, json);
 
     // Save to Kubernetes cluster
     let param = PatchParams::apply("amp-controllers");
     let patch = Patch::Strategic(&json);
     account = api.patch(name, &param, &patch).await.map_err(Error::KubeError)?;
 
-    debug!("The final Service Account {} is {:?}", name, account);
     Ok(account)
 }

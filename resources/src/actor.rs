@@ -36,10 +36,8 @@ pub async fn create(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> R
     let name = spec.name.clone();
     let mut resource = Actor::new(&name, spec.clone());
     resource.owner_references_mut().push(playbook.controller_owner_ref(&()).unwrap());
-    debug!("The Actor resource:\n {:?}\n", resource);
 
     let actor = api.create(&PostParams::default(), &resource).await.map_err(Error::KubeError)?;
-
     info!("Created Actor: {}", actor.name_any());
 
     // Patch this actor as initial Pending status
@@ -53,7 +51,7 @@ pub async fn update(client: &Client, playbook: &Playbook, spec: &ActorSpec) -> R
 
     let name = spec.name.clone();
     let mut actor = api.get(&name).await.map_err(Error::KubeError)?;
-    debug!("The Actor {} already exists: {:?}", &spec.name, actor);
+    debug!("The Actor {} already exists", &spec.name);
 
     if &actor.spec == spec {
         debug!("The Actor {} is already up-to-date", &spec.name);
@@ -77,13 +75,13 @@ pub async fn patch_status(client: &Client, actor: &Actor, condition: Condition) 
 
     let api: Api<Actor> = Api::namespaced(client.clone(), &namespace);
 
-    let status = json!({ "status": { "conditions": vec![condition] }});
+    let status = json!({ "status": { "conditions": vec![condition.clone()] }});
     let actor = api
         .patch_status(actor.name_any().as_str(), &PatchParams::default(), &Patch::Merge(&status))
         .await
         .map_err(Error::KubeError)?;
 
-    info!("Patched status {:?} for Actor {}", actor.status, actor.name_any());
+    info!("Patched status {:?} with reason {:?} for Actor {}", condition.type_, condition.reason, actor.name_any());
 
     Ok(())
 }
