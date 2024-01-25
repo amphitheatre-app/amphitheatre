@@ -25,6 +25,8 @@ pub mod credential;
 pub mod deployer;
 pub mod deployment;
 pub mod error;
+pub mod image;
+pub mod job;
 pub mod namespace;
 pub mod playbook;
 pub mod secret;
