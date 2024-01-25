@@ -12,11 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::resource::ActorSpec;
-use k8s_openapi::api::core::v1::{Container, EnvVar, SecurityContext, VolumeMount};
+use amp_common::resource::{Actor, ActorSpec};
+use k8s_openapi::api::core::v1::SecurityContext;
+use k8s_openapi::api::core::v1::{Container, EnvVar, PodSpec, VolumeMount};
 
-use super::{workspace_mount, WORKSPACE_DIR};
+use super::{docker_config_volume, git_sync, syncer, workspace_mount, workspace_volume, WORKSPACE_DIR};
 use crate::args;
+
+use crate::error::Result;
+
+const DEFAULT_RUN_AS_GROUP: i64 = 1000;
+const DEFAULT_RUN_AS_USER: i64 = 1001;
+
+pub fn pod(actor: &Actor) -> Result<PodSpec> {
+    // Get SecurityContext for the container
+    let build = actor.spec.character.build.clone().unwrap_or_default();
+    let builder = build.buildpacks.clone().unwrap_or_default().builder;
+    let security_context = security_context(&builder);
+
+    // Choose the syncer for source code synchronization
+    let syncer =
+        if actor.spec.live { syncer::container(actor, &security_context)? } else { git_sync::container(actor) };
+
+    Ok(PodSpec {
+        init_containers: Some(vec![syncer]),
+        containers: vec![container(&actor.spec, &security_context)],
+        restart_policy: Some("Never".into()),
+        volumes: Some(vec![workspace_volume(), docker_config_volume()]),
+        ..Default::default()
+    })
+}
 
 /// Build and return the container spec for the buildpacks container
 pub fn container(spec: &ActorSpec, security_context: &Option<SecurityContext>) -> Container {
@@ -55,6 +80,30 @@ pub fn container(spec: &ActorSpec, security_context: &Option<SecurityContext>) -
 #[inline]
 pub fn docker_config_mount() -> VolumeMount {
     VolumeMount { name: "docker-config".into(), mount_path: "/workspace/.docker".into(), ..Default::default() }
+}
+
+/// Build SecurityContext for the container by Buildpacks builder mapping.
+///
+/// |user |group|builder|
+/// |-----|-----|-------|
+/// |1000 |1000 |heroku*|
+/// |1000 |1000 |gcr.io/buildpacks*|
+/// |1001 |1000 |paketobuildpacks*|
+/// |1001 |1000 |amp-buildpacks*|
+/// |1001 |1000 |*|
+///
+fn security_context(builder: &str) -> Option<SecurityContext> {
+    let mut run_as_user = DEFAULT_RUN_AS_USER;
+
+    if builder.starts_with("heroku") || builder.starts_with("gcr.io/buildpacks") {
+        run_as_user = 1000;
+    }
+
+    Some(SecurityContext {
+        run_as_user: Some(run_as_user),
+        run_as_group: Some(DEFAULT_RUN_AS_GROUP),
+        ..Default::default()
+    })
 }
 
 #[cfg(test)]

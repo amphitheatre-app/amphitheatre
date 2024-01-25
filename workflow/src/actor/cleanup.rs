@@ -13,27 +13,30 @@
 // limitations under the License.
 
 use crate::errors::{Error, Result};
-use crate::{Context, State, Task};
+use crate::{Context, Intent, State, Task};
 
 use amp_common::resource::Actor;
 
 use async_trait::async_trait;
 use k8s_openapi::api::core::v1::Namespace;
 use kube::{Api, ResourceExt};
-use tracing::info;
+use tracing::{error, info, trace};
 
 pub struct CleanupState;
 
 #[async_trait]
 impl State<Actor> for CleanupState {
     /// Execute the logic for the cleanup state
-    async fn handle(&self, ctx: &Context<Actor>) -> Option<Box<dyn State<Actor>>> {
+    async fn handle(&self, ctx: &Context<Actor>) -> Option<Intent<Actor>> {
+        trace!("Checking running state of actor {}", ctx.object.name_any());
+
         // Check if CleanupTask should be executed
         let task = CleanupTask::new();
         if task.matches(ctx) {
-            if let Err(err) = task.execute(ctx).await {
-                // Handle error, maybe log it
-                println!("Error during CleanupTask execution: {}", err);
+            match task.execute(ctx).await {
+                Ok(Some(intent)) => return Some(intent),
+                Err(err) => error!("Error during CleanupTask execution: {}", err),
+                Ok(None) => {}
             }
         }
 
@@ -55,8 +58,9 @@ impl Task<Actor> for CleanupTask {
     }
 
     // Execute the task logic for CleanupTask using shared data
-    async fn execute(&self, ctx: &Context<Actor>) -> Result<()> {
-        self.cleanup(ctx, &ctx.object).await
+    async fn execute(&self, ctx: &Context<Actor>) -> Result<Option<Intent<Actor>>> {
+        self.cleanup(ctx, &ctx.object).await?;
+        Ok(None)
     }
 }
 

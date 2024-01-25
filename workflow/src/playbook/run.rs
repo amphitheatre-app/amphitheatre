@@ -13,25 +13,29 @@
 // limitations under the License.
 
 use crate::errors::{Error, Result};
-use crate::{Context, State, Task};
+use crate::{Context, Intent, State, Task};
 use amp_common::resource::Playbook;
 use amp_resolver::to_actor;
 use amp_resources::actor;
 use async_trait::async_trait;
-use tracing::{error, info};
+use kube::ResourceExt;
+use tracing::{error, info, trace};
 
 pub struct RunningState;
 
 #[async_trait]
 impl State<Playbook> for RunningState {
-    /// Execute the logic for the Running state
-    async fn handle(&self, ctx: &Context<Playbook>) -> Option<Box<dyn State<Playbook>>> {
+    /// Execute the logic for the running state
+    async fn handle(&self, ctx: &Context<Playbook>) -> Option<Intent<Playbook>> {
+        trace!("Checking running state of playbook {}", ctx.object.name_any());
+
         // Check if RunTask should be executed
         let task = RunTask::new();
         if task.matches(ctx) {
-            if let Err(err) = task.execute(ctx).await {
-                // Handle error, maybe log it
-                println!("Error during RunTask execution: {}", err);
+            match task.execute(ctx).await {
+                Ok(Some(intent)) => return Some(intent),
+                Err(err) => error!("Error during RunTask execution: {}", err),
+                Ok(None) => {}
             }
         }
 
@@ -51,8 +55,9 @@ impl Task<Playbook> for RunTask {
         ctx.object.status.as_ref().is_some_and(|status| status.running())
     }
 
-    async fn execute(&self, ctx: &Context<Playbook>) -> Result<()> {
-        self.run(ctx, &ctx.object).await
+    async fn execute(&self, ctx: &Context<Playbook>) -> Result<Option<Intent<Playbook>>> {
+        self.run(ctx, &ctx.object).await?;
+        Ok(None)
     }
 }
 

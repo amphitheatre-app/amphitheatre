@@ -12,25 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::errors::Result;
-use crate::{Context, State, Task};
+use crate::errors::{Error, Result};
+use crate::{Context, Intent, State, Task};
 
 use amp_common::resource::Actor;
 
+use amp_resources::service;
 use async_trait::async_trait;
-use tracing::error;
+use kube::ResourceExt;
+use tracing::{error, info, trace};
 
 pub struct ExposingState;
 
 #[async_trait]
 impl State<Actor> for ExposingState {
     /// Execute the logic for the exposing state
-    async fn handle(&self, ctx: &Context<Actor>) -> Option<Box<dyn State<Actor>>> {
+    async fn handle(&self, ctx: &Context<Actor>) -> Option<Intent<Actor>> {
+        trace!("Checking exposing state of actor {}", ctx.object.name_any());
+
         // Check if ExposeTask should be executed
         let task = ExposeTask::new();
         if task.matches(ctx) {
-            if let Err(err) = task.execute(ctx).await {
-                error!("Error during ExposeTask execution: {}", err);
+            match task.execute(ctx).await {
+                Ok(Some(intent)) => return Some(intent),
+                Err(err) => error!("Error during ExposeTask execution: {}", err),
+                Ok(None) => {}
             }
         }
 
@@ -46,12 +52,31 @@ impl Task<Actor> for ExposeTask {
         ExposeTask
     }
 
-    fn matches(&self, _: &Context<Actor>) -> bool {
-        true
+    fn matches(&self, ctx: &Context<Actor>) -> bool {
+        ctx.object.status.as_ref().is_some_and(|status| status.running()) && ctx.object.spec.has_services()
     }
 
     /// Execute the task logic for ExposeTask using shared data
-    async fn execute(&self, _: &Context<Actor>) -> Result<()> {
+    async fn execute(&self, ctx: &Context<Actor>) -> Result<Option<Intent<Actor>>> {
+        self.serve(ctx, &ctx.object).await.map_err(Error::ResourceError)?;
+        Ok(None)
+    }
+}
+
+impl ExposeTask {
+    async fn serve(&self, ctx: &Context<Actor>, actor: &Actor) -> Result<(), amp_resources::error::Error> {
+        let name = actor.name_any();
+        match service::exists(&ctx.k8s, actor).await? {
+            true => {
+                info!("Try to refresh an existing Service {name}");
+                service::update(&ctx.k8s, actor).await?;
+            }
+            false => {
+                service::create(&ctx.k8s, actor).await?;
+                info!("Created new Service: {name}");
+            }
+        }
+
         Ok(())
     }
 }

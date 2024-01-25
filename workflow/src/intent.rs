@@ -12,21 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod actor;
-pub mod errors;
-pub mod playbook;
+use kube::runtime::controller::Action;
 
-mod state;
-pub use state::State;
+use crate::State;
 
-mod task;
-pub use task::Task;
-
-mod workflow;
-pub use workflow::Workflow;
-
-mod context;
-pub use context::Context;
-
-mod intent;
-pub use intent::Intent;
+pub enum Intent<T> {
+    State(Box<dyn State<T>>),
+    Action(Action),
+}

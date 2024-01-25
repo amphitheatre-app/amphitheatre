@@ -15,7 +15,17 @@
 use amp_common::resource::ActorSpec;
 use k8s_openapi::api::core::v1::Container;
 
-use super::{workspace_mount, DEFAULT_DEVCONTAINER_IMAGE};
+use super::workspace_mount;
+
+/// This is the "universal" image that is used by default if no custom
+/// Dockerfile or image is specified. Ubuntu-based default, large, and
+/// multi-language universal image which contains many popular
+/// languages/frameworks/SDKS/runtimes, lke Python, Node.js, JavaScript,
+/// TypeScript, C++, Java, C#, F#, .NET Core, PHP, Go, Ruby, Conda. For
+/// information about what's included in the default Linux image, see the
+/// [devcontainers/images](https://github.com/devcontainers/images/tree/main/src/universal)
+/// repository.
+const DEFAULT_DEVCONTAINER_IMAGE: &str = "mcr.microsoft.com/devcontainers/universal:linux";
 
 /// Build and return the container spec for the devcontainer.
 pub fn container(_spec: &ActorSpec) -> Container {

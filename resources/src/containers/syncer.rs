@@ -14,15 +14,21 @@
 
 use std::path::PathBuf;
 
-use amp_common::resource::ActorSpec;
+use amp_common::resource::Actor;
 use k8s_openapi::api::core::v1::{Container, SecurityContext};
+use kube::ResourceExt;
 
-use super::{workspace_mount, DEFAULT_SYNCER_IMAGE, WORKSPACE_DIR};
+use super::{workspace_mount, WORKSPACE_DIR};
 use crate::args;
-use crate::error::Result;
+use crate::error::{Error, Result};
+
+const DEFAULT_SYNCER_IMAGE: &str = "ghcr.io/amphitheatre-app/amp-syncer:latest";
 
 /// Build and return the container spec for the syncer.
-pub fn container(playbook: &str, spec: &ActorSpec, security_context: &Option<SecurityContext>) -> Result<Container> {
+pub fn container(actor: &Actor, security_context: &Option<SecurityContext>) -> Result<Container> {
+    let spec = &actor.spec;
+    let playbook = owner_reference(actor)?;
+
     // Set the working directory to `workspace` argument.
     let build = spec.character.build.clone().unwrap_or_default();
     let mut workdir = PathBuf::from(WORKSPACE_DIR);
@@ -35,7 +41,7 @@ pub fn container(playbook: &str, spec: &ActorSpec, security_context: &Option<Sec
     let arguments = vec![
         ("nats-url", "nats://amp-nats.amp-system.svc:4222"),
         ("workspace", workdir.to_str().unwrap()),
-        ("playbook", playbook),
+        ("playbook", playbook.as_str()),
         ("actor", spec.name.as_str()),
         ("once", once.as_str()),
     ];
@@ -53,14 +59,34 @@ pub fn container(playbook: &str, spec: &ActorSpec, security_context: &Option<Sec
     })
 }
 
+/// Get the playbook name from the owner reference.
+#[inline]
+fn owner_reference(actor: &Actor) -> Result<String> {
+    actor
+        .owner_references()
+        .iter()
+        .find_map(|owner| (owner.kind == "Playbook").then(|| owner.name.clone()))
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.ownerReferences"))
+}
+
 #[cfg(test)]
 mod tests {
+    use amp_common::resource::ActorSpec;
+    use k8s_openapi::apimachinery::pkg::apis::meta::v1::OwnerReference;
+
     use super::*;
 
     #[test]
-    fn test_container() {
-        let spec = ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() };
-        let container = container("test", &spec, &None).unwrap();
+    fn test_create_syncer_container() {
+        let mut actor =
+            Actor::new("test", ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() });
+        actor.metadata.owner_references = Some(vec![OwnerReference {
+            api_version: "v1".into(),
+            kind: "Playbook".into(),
+            name: "test".into(),
+            ..Default::default()
+        }]);
+        let container = container(&actor, &None).unwrap();
 
         assert_eq!(container.name, "syncer");
         assert_eq!(container.image, Some(DEFAULT_SYNCER_IMAGE.into()));

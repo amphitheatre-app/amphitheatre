@@ -13,15 +13,16 @@
 // limitations under the License.
 
 use crate::errors::{Error, Result};
-use crate::{Context, State, Task};
+use crate::{Context, Intent, State, Task};
 
 use amp_common::resource::{Partner, Playbook, PlaybookState};
 use amp_resolver::partner::load;
 
 use amp_resources::playbook;
 use async_trait::async_trait;
+use kube::ResourceExt;
 use std::collections::HashSet;
-use tracing::{debug, info};
+use tracing::{debug, error, info, trace};
 
 use super::RunningState;
 
@@ -29,19 +30,22 @@ pub struct ResolvingState;
 
 #[async_trait]
 impl State<Playbook> for ResolvingState {
-    /// Execute the logic for the scheduling state
-    async fn handle(&self, ctx: &Context<Playbook>) -> Option<Box<dyn State<Playbook>>> {
+    /// Execute the logic for the resolving state
+    async fn handle(&self, ctx: &Context<Playbook>) -> Option<Intent<Playbook>> {
+        trace!("Checking resolving state of playbook {}", ctx.object.name_any());
+
         // Check if ResolveTask should be executed
         let task = ResolveTask::new();
         if task.matches(ctx) {
-            if let Err(err) = task.execute(ctx).await {
-                // Handle error, maybe log it
-                println!("Error during ResolveTask execution: {}", err);
+            match task.execute(ctx).await {
+                Ok(Some(intent)) => return Some(intent),
+                Err(err) => error!("Error during ResolveTask execution: {}", err),
+                Ok(None) => {}
             }
         }
 
         // Transition to the next state if needed
-        Some(Box::new(RunningState))
+        Some(Intent::State(Box::new(RunningState)))
     }
 }
 
@@ -58,8 +62,9 @@ impl Task<Playbook> for ResolveTask {
     }
 
     // Execute the task logic for ResolveTask using shared data
-    async fn execute(&self, ctx: &Context<Playbook>) -> Result<()> {
-        self.resolve(ctx, &ctx.object).await
+    async fn execute(&self, ctx: &Context<Playbook>) -> Result<Option<Intent<Playbook>>> {
+        self.resolve(ctx, &ctx.object).await?;
+        Ok(None)
     }
 }
 

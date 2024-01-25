@@ -76,9 +76,7 @@ pub async fn reconcile(playbook: Arc<Playbook>, ctx: Arc<Context>) -> Result<Act
         };
 
         // Runs the workflow until there is no next state
-        workflow.run().await;
-
-        Ok(Action::await_change())
+        workflow.run().await.map_err(Error::WorkflowError)
     })
     .await
     .map_err(|e| Error::FinalizerError(Box::new(e)))

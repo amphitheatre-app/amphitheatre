@@ -16,20 +16,29 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("SerializationError: {0}")]
+    #[error("Serialization Error: {0}")]
     ResourceError(#[source] amp_resources::error::Error),
 
     #[error("Kube Error: {0}")]
     KubeError(#[source] kube::Error),
 
-    #[error("ResolveError: {0}")]
+    #[error("Resolve Error: {0}")]
     ResolveError(#[source] amp_resolver::errors::ResolveError),
 
-    #[error("NatsError: {0}")]
+    #[error("Nats Error: {0}")]
     NatsError(#[from] async_nats::Error),
 
     #[error("Deploy Error: {0}")]
     DeployError(#[source] amp_resources::error::Error),
+
+    #[error(" Docker Credential Error for {0}: {1}")]
+    DockerCredentialError(String, amp_common::docker::errors::CredentialError),
+
+    #[error("Docker Registry Error: {0}")]
+    DockerRegistryError(#[source] anyhow::Error),
+
+    #[error("Build Error: {0}")]
+    BuildError(#[source] amp_builder::errors::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

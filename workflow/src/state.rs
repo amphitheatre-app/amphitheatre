@@ -14,20 +14,23 @@
 
 use async_trait::async_trait;
 
-use crate::Context;
+use crate::{Context, Intent};
 
 /// Trait representing the state of a workflow.
 #[async_trait]
 pub trait State<T>: Send + Sync {
     /// Handles the current state and may transition to a new state.
-    async fn handle(&self, ctx: &Context<T>) -> Option<Box<dyn State<T>>>;
+    async fn handle(&self, ctx: &Context<T>) -> Option<Intent<T>>;
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::Intent;
+
     use super::Context;
     use super::State;
     use async_trait::async_trait;
+    use kube::runtime::controller::Action;
 
     #[test]
     fn test_impl_state_trait() {
@@ -35,8 +38,8 @@ mod tests {
 
         #[async_trait]
         impl State<()> for TestState {
-            async fn handle(&self, _ctx: &Context<()>) -> Option<Box<dyn State<()>>> {
-                None
+            async fn handle(&self, _ctx: &Context<()>) -> Option<Intent<()>> {
+                Some(Intent::Action(Action::await_change()))
             }
         }
     }

@@ -93,6 +93,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "amp-builder"
+version = "0.8.5"
+dependencies = [
+ "amp-common",
+ "amp-resources",
+ "async-trait",
+ "k8s-openapi",
+ "kube",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "amp-common"
 version = "0.7.8"
 source = "git+https://github.com/amphitheatre-app/common?tag=v0.7.8#b7de0fe17a98c7811db404b0b87772f1aa3e7e75"
@@ -213,9 +227,11 @@ dependencies = [
 name = "amp-workflow"
 version = "0.8.5"
 dependencies = [
+ "amp-builder",
  "amp-common",
  "amp-resolver",
  "amp-resources",
+ "anyhow",
  "async-nats",
  "async-trait",
  "k8s-openapi",

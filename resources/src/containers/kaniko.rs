@@ -14,13 +14,29 @@
 
 use std::path::PathBuf;
 
-use amp_common::resource::ActorSpec;
-use k8s_openapi::api::core::v1::{Container, VolumeMount};
-
-use super::{workspace_mount, DEFAULT_KANIKO_IMAGE, WORKSPACE_DIR};
+use super::{docker_config_volume, git_sync, syncer, workspace_mount, workspace_volume, WORKSPACE_DIR};
 use crate::args;
+use crate::error::Result;
 
-/// Build and return the container spec for the kaniko container
+use amp_common::resource::{Actor, ActorSpec};
+use k8s_openapi::api::core::v1::{Container, PodSpec, VolumeMount};
+
+const DEFAULT_KANIKO_IMAGE: &str = "gcr.io/kaniko-project/executor:v1.15.0";
+
+pub fn pod(actor: &Actor) -> Result<PodSpec> {
+    // Choose the syncer for source code synchronization
+    let syncer = if actor.spec.live { syncer::container(actor, &None)? } else { git_sync::container(actor) };
+
+    Ok(PodSpec {
+        init_containers: Some(vec![syncer]),
+        containers: vec![container(&actor.spec)],
+        restart_policy: Some("Never".into()),
+        volumes: Some(vec![workspace_volume(), docker_config_volume()]),
+        ..Default::default()
+    })
+}
+
+/// Build and return the container spec for the kaniko pod
 pub fn container(spec: &ActorSpec) -> Container {
     let build = spec.character.build.clone().unwrap_or_default();
 

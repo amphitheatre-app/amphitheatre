@@ -22,7 +22,6 @@ pub mod actor;
 pub mod character;
 pub mod containers;
 pub mod credential;
-pub mod deployer;
 pub mod deployment;
 pub mod error;
 pub mod image;

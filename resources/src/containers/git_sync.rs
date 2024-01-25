@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use amp_common::resource::ActorSpec;
+use super::{workspace_mount, WORKSPACE_DIR};
+use crate::args;
+use amp_common::resource::Actor;
 use k8s_openapi::api::core::v1::Container;
 
-use super::{workspace_mount, DEFAULT_GIT_SYNC_IMAGE, WORKSPACE_DIR};
-use crate::args;
+const DEFAULT_GIT_SYNC_IMAGE: &str = "registry.k8s.io/git-sync/git-sync:v4.0.0";
 
 /// Build and return the container spec for the git-sync.
-pub fn container(spec: &ActorSpec) -> Container {
-    let source = spec.source.as_ref().unwrap();
+pub fn container(actor: &Actor) -> Container {
+    let source = actor.spec.source.as_ref().unwrap();
 
     // Parse the arguments for the container
     let revision = source.rev();
@@ -46,22 +47,27 @@ pub fn container(spec: &ActorSpec) -> Container {
 
 #[cfg(test)]
 mod tests {
+    use amp_common::resource::ActorSpec;
+
     use super::*;
 
     #[test]
-    fn test_container() {
-        let spec = ActorSpec {
-            name: "test".into(),
-            image: "test".into(),
-            source: Some(amp_common::schema::GitReference {
-                repo: "test".into(),
-                rev: Some("test".into()),
+    fn test_create_git_sync_container() {
+        let actor = Actor::new(
+            "test",
+            ActorSpec {
+                name: "test".into(),
+                image: "test".into(),
+                source: Some(amp_common::schema::GitReference {
+                    repo: "test".into(),
+                    rev: Some("test".into()),
+                    ..Default::default()
+                }),
                 ..Default::default()
-            }),
-            ..Default::default()
-        };
+            },
+        );
 
-        let container = container(&spec);
+        let container = container(&actor);
 
         assert_eq!(container.name, "syncer");
         assert_eq!(container.image, Some(DEFAULT_GIT_SYNC_IMAGE.to_string()));

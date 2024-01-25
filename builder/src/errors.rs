@@ -12,21 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod actor;
-pub mod errors;
-pub mod playbook;
+use thiserror::Error;
 
-mod state;
-pub use state::State;
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Serialization Error: {0}")]
+    ResourceError(#[source] amp_resources::error::Error),
+}
 
-mod task;
-pub use task::Task;
-
-mod workflow;
-pub use workflow::Workflow;
-
-mod context;
-pub use context::Context;
-
-mod intent;
-pub use intent::Intent;
+pub type Result<T, E = Error> = std::result::Result<T, E>;

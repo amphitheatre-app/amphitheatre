@@ -1,6 +1,3 @@
-use std::sync::Arc;
-
-/// Represents the overall workflow orchestrating the execution of states and tasks.
 // Copyright (c) The Amphitheatre Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,8 +11,15 @@ use std::sync::Arc;
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::{Context, State};
 
+use crate::errors::Result;
+use crate::{Context, Intent, State};
+
+use kube::runtime::controller::Action;
+
+use std::sync::Arc;
+
+/// Represents the overall workflow orchestrating the execution of states and tasks.
 pub struct Workflow<T> {
     pub state: Box<dyn State<T>>,
     pub context: Context<T>,
@@ -38,9 +42,16 @@ impl<T> Workflow<T> {
     }
 
     /// Runs the workflow until there is no next state to transition to.
-    pub async fn run(&mut self) {
-        while let Some(new_state) = self.state.handle(&self.context).await {
-            self.transition(new_state);
+    pub async fn run(&mut self) -> Result<Action> {
+        while let Some(intent) = self.state.handle(&self.context).await {
+            match intent {
+                Intent::State(new_state) => {
+                    self.transition(new_state);
+                }
+                Intent::Action(action) => return Ok(action),
+            }
         }
+
+        Ok(Action::await_change())
     }
 }

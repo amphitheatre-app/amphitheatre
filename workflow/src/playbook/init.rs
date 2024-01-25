@@ -14,6 +14,7 @@
 
 use crate::errors::Error;
 use crate::errors::Result;
+use crate::Intent;
 use crate::{Context, State, Task};
 
 use amp_common::resource::{Playbook, PlaybookState};
@@ -22,7 +23,7 @@ use amp_resources::{namespace, playbook};
 
 use async_trait::async_trait;
 use kube::ResourceExt;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, trace};
 
 use super::ResolvingState;
 
@@ -31,17 +32,21 @@ pub struct InitialState;
 #[async_trait]
 impl State<Playbook> for InitialState {
     /// Execute the logic for the initial state
-    async fn handle(&self, ctx: &Context<Playbook>) -> Option<Box<dyn State<Playbook>>> {
+    async fn handle(&self, ctx: &Context<Playbook>) -> Option<Intent<Playbook>> {
+        trace!("Checking initial state of playbook {}", ctx.object.name_any());
+
         // Check if InitTask should be executed
         let task = InitTask::new();
         if task.matches(ctx) {
-            if let Err(err) = task.execute(ctx).await {
-                error!("Error during InitTask execution: {}", err);
+            match task.execute(ctx).await {
+                Ok(Some(intent)) => return Some(intent),
+                Err(err) => error!("Error during InitTask execution: {}", err),
+                Ok(None) => {}
             }
         }
 
         // Transition to the next state if needed
-        Some(Box::new(ResolvingState))
+        Some(Intent::State(Box::new(ResolvingState)))
     }
 }
 
@@ -58,7 +63,7 @@ impl Task<Playbook> for InitTask {
     }
 
     /// Execute the task logic for InitTask using shared data
-    async fn execute(&self, ctx: &Context<Playbook>) -> Result<()> {
+    async fn execute(&self, ctx: &Context<Playbook>) -> Result<Option<Intent<Playbook>>> {
         // Create namespace for this playbook
         namespace::create(&ctx.k8s, &ctx.object).await.map_err(Error::ResourceError)?;
         info!("Created namespace for playbook {}", ctx.object.name_any());
@@ -71,7 +76,7 @@ impl Task<Playbook> for InitTask {
         playbook::patch_status(&ctx.k8s, &ctx.object, condition).await.map_err(Error::ResourceError)?;
         info!("Init successfully, Let's begin resolving, now!");
 
-        Ok(())
+        Ok(None)
     }
 }
 

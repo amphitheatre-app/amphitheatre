@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::errors::Result;
-use crate::{Context, State, Task};
+use crate::errors::{Error, Result};
+use crate::{Context, Intent, State, Task};
 
-use amp_common::resource::Actor;
+use amp_common::resource::{Actor, ActorState};
 
+use amp_resources::actor;
 use async_trait::async_trait;
-use tracing::error;
+use kube::ResourceExt;
+use tracing::{error, trace};
 
 use super::BuildingState;
 
@@ -27,17 +29,21 @@ pub struct InitialState;
 #[async_trait]
 impl State<Actor> for InitialState {
     /// Execute the logic for the initial state
-    async fn handle(&self, ctx: &Context<Actor>) -> Option<Box<dyn State<Actor>>> {
+    async fn handle(&self, ctx: &Context<Actor>) -> Option<Intent<Actor>> {
+        trace!("Checking initial state of actor {}", ctx.object.name_any());
+
         // Check if InitTask should be executed
         let task = InitTask::new();
         if task.matches(ctx) {
-            if let Err(err) = task.execute(ctx).await {
-                error!("Error during InitTask execution: {}", err);
+            match task.execute(ctx).await {
+                Ok(Some(intent)) => return Some(intent),
+                Err(err) => error!("Error during InitTask execution: {}", err),
+                Ok(None) => {}
             }
         }
 
         // Transition to the next state if needed
-        Some(Box::new(BuildingState))
+        Some(Intent::State(Box::new(BuildingState)))
     }
 }
 
@@ -49,12 +55,15 @@ impl Task<Actor> for InitTask {
         InitTask
     }
 
-    fn matches(&self, _: &Context<Actor>) -> bool {
-        true
+    fn matches(&self, ctx: &Context<Actor>) -> bool {
+        ctx.object.status.as_ref().is_some_and(|status| status.pending())
     }
 
     /// Execute the task logic for InitTask using shared data
-    async fn execute(&self, _: &Context<Actor>) -> Result<()> {
-        Ok(())
+    async fn execute(&self, ctx: &Context<Actor>) -> Result<Option<Intent<Actor>>> {
+        let condition = ActorState::building();
+        actor::patch_status(&ctx.k8s, &ctx.object, condition).await.map_err(Error::ResourceError)?;
+
+        Ok(None)
     }
 }

@@ -18,6 +18,9 @@ use thiserror::Error;
 pub enum Error {
     #[error("Finalizer Error: {0}")]
     FinalizerError(#[source] Box<kube::runtime::finalizer::Error<Error>>),
+
+    #[error("Workflow Error: {0}")]
+    WorkflowError(#[source] amp_workflow::errors::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

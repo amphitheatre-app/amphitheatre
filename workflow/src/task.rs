@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::errors::Result;
+use crate::{errors::Result, Intent};
 use async_trait::async_trait;
 
 use crate::Context;
@@ -29,12 +29,12 @@ pub trait Task<T> {
     fn matches(&self, ctx: &Context<T>) -> bool;
 
     /// Executes the task using the provided context.
-    async fn execute(&self, ctx: &Context<T>) -> Result<()>;
+    async fn execute(&self, ctx: &Context<T>) -> Result<Option<Intent<T>>>;
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::errors::Result;
+    use crate::{errors::Result, Intent};
     use async_trait::async_trait;
 
     #[test]
@@ -54,8 +54,8 @@ mod tests {
                 true
             }
 
-            async fn execute(&self, _ctx: &super::Context<()>) -> Result<()> {
-                Ok(())
+            async fn execute(&self, _ctx: &super::Context<()>) -> Result<Option<Intent<()>>> {
+                Ok(None)
             }
         }
     }
