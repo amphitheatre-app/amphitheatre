@@ -19,6 +19,7 @@ use kube::core::{DynamicObject, GroupVersionKind};
 use kube::discovery::ApiResource;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::{from_value, json};
+use tracing::{debug, info};
 
 use crate::error::{Error, Result};
 
@@ -35,11 +36,11 @@ pub async fn create(client: &Client, actor: &Actor) -> Result<DynamicObject> {
     let api: Api<DynamicObject> = Api::namespaced_with(client.clone(), namespace.as_str(), &api_resource());
 
     let resource = new(actor)?;
-    tracing::debug!("The Image resource:\n {:?}\n", resource);
+    debug!("The Image resource:\n {:?}\n", resource);
 
     let image = api.create(&PostParams::default(), &resource).await.map_err(Error::KubeError)?;
 
-    tracing::info!("Created Image: {}", image.name_any());
+    info!("Created Image: {}", image.name_any());
 
     Ok(image)
 }
@@ -50,19 +51,19 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<DynamicObject> {
 
     let name = format!("{}-builder", actor.spec.name);
     let mut image = api.get(&name).await.map_err(Error::KubeError)?;
-    tracing::debug!("The Image \"{}\" already exists:\n {:?}\n", name, image);
+    debug!("The Image \"{}\" already exists", name);
 
     let resource = new(actor)?;
 
     if image.data.pointer("/spec") != resource.data.pointer("/spec") {
-        tracing::debug!("The updating Image resource:\n {:?}\n", resource);
+        debug!("The updating Image resource:\n {:?}\n", resource);
 
         image = api
             .patch(&name, &PatchParams::apply("amp-controllers").force(), &Patch::Apply(&resource))
             .await
             .map_err(Error::KubeError)?;
 
-        tracing::info!("Updated Image: {}", image.name_any());
+        info!("Updated Image: {}", image.name_any());
     }
 
     Ok(image)
@@ -88,7 +89,7 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
         "spec": {
             "tag": actor.spec.image,
             "builder": {
-                "name": name.clone(),
+                "name": "default",
                 "kind": "ClusterBuilder",
             },
             "source": {
@@ -106,15 +107,15 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
 }
 
 pub async fn completed(client: &Client, actor: &Actor) -> Result<bool> {
-    tracing::debug!("Check If the build image has not completed");
+    debug!("Check If the build image has not completed");
 
     let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
     let api: Api<DynamicObject> = Api::namespaced_with(client.clone(), namespace.as_str(), &api_resource());
     let name = format!("{}-builder", actor.spec.name);
 
     if let Some(image) = api.get_opt(&name).await.map_err(Error::KubeError)? {
-        tracing::debug!("Found Image {}", &name);
-        tracing::debug!("The Image data is: {:?}", image.data);
+        debug!("Found Image {}", &name);
+        debug!("The Image data is: {:?}", image.data);
 
         if let Some(conditions) = image.data.pointer("/status/conditions") {
             let conditions: Vec<Condition> =
@@ -123,6 +124,6 @@ pub async fn completed(client: &Client, actor: &Actor) -> Result<bool> {
         }
     }
 
-    tracing::debug!("Not found Image {}", &name);
+    debug!("Not found Image {}", &name);
     Ok(false)
 }
