@@ -102,7 +102,7 @@ pub async fn logs(
     // Watch the status of the pod, if the pod is running, then create a stream for it.
     tokio::spawn(async move {
         let api: Api<Pod> = Api::namespaced(ctx.k8s.clone(), &format!("amp-{pid}"));
-        let config = watcher::Config::default().labels(&format!("app.kubernetes.io/name={name}"));
+        let config = watcher::Config::default().labels(&format!("amphitheatre.app/character={name}"));
         let mut watcher = watcher(api.clone(), config).applied_objects().boxed();
         let subs = Arc::new(RwLock::new(HashSet::new()));
 

@@ -77,7 +77,7 @@ fn new(actor: &Actor) -> Result<Service> {
     // Build the metadata for the service
     let owner_reference = actor.controller_owner_ref(&()).unwrap();
     let labels = BTreeMap::from([
-        ("app.kubernetes.io/name".into(), name.clone()),
+        ("amphitheatre.app/character".into(), name.clone()),
         ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),
     ]);
     let annotations = BTreeMap::from([(LAST_APPLIED_HASH_KEY.into(), hash(&actor.spec)?)]);

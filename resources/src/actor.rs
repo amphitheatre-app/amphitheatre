@@ -88,7 +88,7 @@ pub async fn patch_status(client: &Client, actor: &Actor, condition: Condition) 
 
 pub async fn metrics(client: &Client, namespace: &str, name: &str) -> Result<PodMetrics> {
     let api: Api<PodMetrics> = Api::namespaced(client.clone(), namespace);
-    let params = ListParams::default().labels(&format!("app.kubernetes.io/name={}", name)).limit(1);
+    let params = ListParams::default().labels(&format!("amphitheatre.app/character={}", name)).limit(1);
     let resources = api.list(&params).await;
     debug!("Metrics for Actor {}:\n{:?}", name, resources);
 

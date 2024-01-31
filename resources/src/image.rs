@@ -84,7 +84,11 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
         "kind": "Image",
         "metadata": {
             "name": name.clone(),
-            "ownerReferences": vec![owner_reference]
+            "ownerReferences": vec![owner_reference],
+            "labels": {
+                "amphitheatre.app/character": name.clone(),
+                "app.kubernetes.io/managed-by": "Amphitheatre",
+            },
         },
         "spec": {
             "tag": actor.spec.image,
