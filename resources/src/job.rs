@@ -75,7 +75,7 @@ fn new(actor: &Actor, pod: PodSpec) -> Result<Job> {
     let owner_reference = actor.controller_owner_ref(&()).unwrap();
     let annotations = BTreeMap::from([(LAST_APPLIED_HASH_KEY.into(), hash(&actor.spec)?)]);
     let labels = BTreeMap::from([
-        ("amphitheatre.app/character".into(), name.clone()),
+        ("amphitheatre.app/character".into(), actor.spec.name.clone()),
         ("app.kubernetes.io/managed-by".into(), "Amphitheatre".into()),
     ]);
 
