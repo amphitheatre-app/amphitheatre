@@ -51,7 +51,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_container() {
+    fn test_devcontainer() {
         let actor = ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() };
         let container = container(&actor);
 

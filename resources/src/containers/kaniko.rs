@@ -19,19 +19,26 @@ use crate::args;
 use crate::error::Result;
 
 use amp_common::resource::{Actor, ActorSpec};
-use k8s_openapi::api::core::v1::{Container, PodSpec, VolumeMount};
+use k8s_openapi::api::core::v1::{Container, PodSpec, Volume, VolumeMount};
 
 const DEFAULT_KANIKO_IMAGE: &str = "gcr.io/kaniko-project/executor:v1.15.0";
 
 pub fn pod(actor: &Actor) -> Result<PodSpec> {
     // Choose the syncer for source code synchronization
-    let syncer = if actor.spec.live { syncer::container(actor, &None)? } else { git_sync::container(actor) };
+    let syncer: Container;
+    let mut volumes = vec![docker_config_volume(), workspace_volume()];
+    if actor.spec.live {
+        syncer = syncer::container(actor, &None)?;
+    } else {
+        syncer = git_sync::container(actor);
+        volumes.push(git_source_volume());
+    }
 
     Ok(PodSpec {
         init_containers: Some(vec![syncer]),
         containers: vec![container(&actor.spec)],
         restart_policy: Some("Never".into()),
-        volumes: Some(vec![workspace_volume(), docker_config_volume()]),
+        volumes: Some(volumes),
         ..Default::default()
     })
 }
@@ -81,15 +88,19 @@ pub fn container(spec: &ActorSpec) -> Container {
         image_pull_policy: Some("IfNotPresent".into()),
         args: Some(arguments),
         env: build.env(),
-        volume_mounts: Some(vec![workspace_mount(), docker_config_mount()]),
+        volume_mounts: Some(vec![docker_config_mount(), workspace_mount()]),
         ..Default::default()
     }
 }
 
-/// Build and return the volume mount for the kaniko docker config
+/// Create a volume mount for the docker config
 #[inline]
 fn docker_config_mount() -> VolumeMount {
     VolumeMount { name: "docker-config".into(), mount_path: "/kaniko/.docker".into(), ..Default::default() }
+}
+
+fn git_source_volume() -> Volume {
+    Volume { name: "src".to_string(), empty_dir: Some(Default::default()), ..Default::default() }
 }
 
 #[cfg(test)]
@@ -97,7 +108,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_container() {
+    fn test_kaniko_container() {
         let spec = ActorSpec { name: "test".into(), image: "test".into(), ..Default::default() };
 
         let container = container(&spec);

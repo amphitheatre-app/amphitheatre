@@ -73,10 +73,7 @@ pub async fn uninstall(client: &Client) -> Result<()> {
 pub async fn create(client: &Client, playbook: &Playbook) -> Result<Playbook> {
     let api: Api<Playbook> = Api::all(client.clone());
 
-    debug!("The playbook resource:\n {:?}\n", playbook);
-
     let playbook = api.create(&PostParams::default(), playbook).await.map_err(Error::KubeError)?;
-
     info!("Created playbook: {}", playbook.name_any());
 
     // Patch this playbook as initial Pending status
@@ -111,7 +108,6 @@ pub async fn patch_status(client: &Client, playbook: &Playbook, condition: Condi
         .patch_status(playbook.name_any().as_str(), &PatchParams::default(), &Patch::Merge(&status))
         .await
         .map_err(Error::KubeError)?;
-
     info!("Patched status {:?} with reason {:?} for Actor {}", condition.type_, condition.reason, playbook.name_any());
 
     Ok(())

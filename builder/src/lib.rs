@@ -18,6 +18,9 @@ pub use lifecycle::LifecycleBuilder;
 mod kaniko;
 pub use kaniko::KanikoBuilder;
 
+mod kpack;
+pub use kpack::KpackBuilder;
+
 pub mod errors;
 use errors::Result;
 
@@ -53,24 +56,48 @@ impl BuildDirector {
 
 #[cfg(test)]
 mod tests {
-    use amp_common::resource::{Actor, ActorSpec};
+    use amp_common::{
+        config::Credentials,
+        resource::{Actor, ActorSpec},
+    };
 
     use super::*;
     use std::sync::Arc;
+    use tokio::sync::RwLock;
 
     #[tokio::test]
     async fn test_build_director_lifecycle() {
-        let k8s = Arc::new(kube::Client::try_default().await.unwrap());
-        let actor = Arc::new(Actor::new("test", ActorSpec::default()));
-        let builder = LifecycleBuilder::new(k8s, actor);
-        let _ = BuildDirector::new(Box::new(builder));
+        // only run this test in k8s environment
+        let k8s = kube::Client::try_default().await;
+        if let Ok(k8s) = k8s {
+            let k8s = Arc::new(k8s);
+            let actor = Arc::new(Actor::new("test", ActorSpec::default()));
+            let builder = LifecycleBuilder::new(k8s, actor);
+            let _ = BuildDirector::new(Box::new(builder));
+        }
     }
 
     #[tokio::test]
     async fn test_build_director_kaniko() {
-        let k8s = Arc::new(kube::Client::try_default().await.unwrap());
-        let actor = Arc::new(Actor::new("test", ActorSpec::default()));
-        let builder = KanikoBuilder::new(k8s, actor);
-        let _ = BuildDirector::new(Box::new(builder));
+        // only run this test in k8s environment
+        let k8s = kube::Client::try_default().await;
+        if let Ok(k8s) = k8s {
+            let k8s = Arc::new(k8s);
+            let actor = Arc::new(Actor::new("test", ActorSpec::default()));
+            let builder = KanikoBuilder::new(k8s, actor);
+            let _ = BuildDirector::new(Box::new(builder));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_build_director_kpack() {
+        // only run this test in k8s environment
+        let k8s = kube::Client::try_default().await;
+        if let Ok(k8s) = k8s {
+            let k8s = Arc::new(k8s);
+            let actor = Arc::new(Actor::new("test", ActorSpec::default()));
+            let builder = KpackBuilder::new(k8s, actor, Arc::new(RwLock::new(Credentials::default())));
+            let _ = BuildDirector::new(Box::new(builder));
+        }
     }
 }

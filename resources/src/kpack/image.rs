@@ -22,6 +22,7 @@ use serde_json::{from_value, json};
 use tracing::{debug, info};
 
 use crate::error::{Error, Result};
+use crate::kpack::BuildExt;
 
 pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
     let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
@@ -36,10 +37,7 @@ pub async fn create(client: &Client, actor: &Actor) -> Result<DynamicObject> {
     let api: Api<DynamicObject> = Api::namespaced_with(client.clone(), namespace.as_str(), &api_resource());
 
     let resource = new(actor)?;
-    debug!("The Image resource:\n {:?}\n", resource);
-
     let image = api.create(&PostParams::default(), &resource).await.map_err(Error::KubeError)?;
-
     info!("Created Image: {}", image.name_any());
 
     Ok(image)
@@ -54,15 +52,12 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<DynamicObject> {
     debug!("The Image \"{}\" already exists", name);
 
     let resource = new(actor)?;
-
     if image.data.pointer("/spec") != resource.data.pointer("/spec") {
         debug!("The updating Image resource:\n {:?}\n", resource);
-
         image = api
             .patch(&name, &PatchParams::apply("amp-controllers").force(), &Patch::Apply(&resource))
             .await
             .map_err(Error::KubeError)?;
-
         info!("Updated Image: {}", image.name_any());
     }
 
@@ -76,9 +71,27 @@ fn api_resource() -> ApiResource {
 
 fn new(actor: &Actor) -> Result<DynamicObject> {
     let name = format!("{}-builder", actor.spec.name);
-    let source = actor.spec.source.as_ref().unwrap();
-
     let owner_reference = actor.controller_owner_ref(&()).unwrap();
+
+    // Build the source based on the build strategy
+    let source = if actor.spec.live {
+        let character = &actor.spec.character;
+        json!({
+            "volume": {
+                "persistentVolumeClaimName": character.pvc_name(),
+            },
+        })
+    } else {
+        let source = actor.spec.source.as_ref().unwrap();
+        json!({
+            "git": {
+                "url": source.repo,
+                "revision": source.rev(),
+            },
+            "subPath": source.path.as_deref().unwrap_or_default(),
+        })
+    };
+
     let resource = from_value(json!({
         "apiVersion": "kpack.io/v1alpha2",
         "kind": "Image",
@@ -86,23 +99,17 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
             "name": name.clone(),
             "ownerReferences": vec![owner_reference],
             "labels": {
-                "amphitheatre.app/character": name.clone(),
+                "amphitheatre.app/character": actor.spec.name.clone(),
                 "app.kubernetes.io/managed-by": "Amphitheatre",
             },
         },
         "spec": {
             "tag": actor.spec.image,
             "builder": {
-                "name": "default",
+                "name": actor.spec.character.builder_name(),
                 "kind": "ClusterBuilder",
             },
-            "source": {
-                "git": {
-                    "url": source.repo,
-                    "revision": source.rev(),
-                },
-                "subPath": source.path.as_deref().unwrap_or_default(),
-            }
+            "source": source,
         }
     }))
     .map_err(Error::SerializationError)?;
@@ -119,7 +126,6 @@ pub async fn completed(client: &Client, actor: &Actor) -> Result<bool> {
 
     if let Some(image) = api.get_opt(&name).await.map_err(Error::KubeError)? {
         debug!("Found Image {}", &name);
-        debug!("The Image data is: {:?}", image.data);
 
         if let Some(conditions) = image.data.pointer("/status/conditions") {
             let conditions: Vec<Condition> =

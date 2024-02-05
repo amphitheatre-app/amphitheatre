@@ -14,15 +14,21 @@
 
 use std::path::PathBuf;
 
-use amp_common::resource::Actor;
-use k8s_openapi::api::core::v1::{Container, SecurityContext};
-use kube::ResourceExt;
-
 use super::{workspace_mount, WORKSPACE_DIR};
 use crate::args;
 use crate::error::{Error, Result};
+use amp_common::resource::Actor;
+use k8s_openapi::api::core::v1::{Container, SecurityContext};
+use kube::ResourceExt;
+use lazy_static::lazy_static;
 
-const DEFAULT_SYNCER_IMAGE: &str = "ghcr.io/amphitheatre-app/amp-syncer:latest";
+// if release, use cargo pkg version, else use latest
+lazy_static! {
+    static ref DEFAULT_SYNCER_IMAGE: String = format!(
+        "ghcr.io/amphitheatre-app/amp-syncer:{}",
+        if cfg!(debug_assertions) { "latest" } else { env!("CARGO_PKG_VERSION") }
+    );
+}
 
 /// Build and return the container spec for the syncer.
 pub fn container(actor: &Actor, security_context: &Option<SecurityContext>) -> Result<Container> {
@@ -89,12 +95,12 @@ mod tests {
         let container = container(&actor, &None).unwrap();
 
         assert_eq!(container.name, "syncer");
-        assert_eq!(container.image, Some(DEFAULT_SYNCER_IMAGE.into()));
+        assert_eq!(container.image, Some(DEFAULT_SYNCER_IMAGE.to_string()));
         assert_eq!(
             container.args,
             Some(vec![
                 "--nats-url=nats://amp-nats.amp-system.svc:4222".into(),
-                "--workspace=/workspace/app".into(),
+                "--workspace=/workspace".into(),
                 "--playbook=test".into(),
                 "--actor=test".into(),
                 "--once=false".into()

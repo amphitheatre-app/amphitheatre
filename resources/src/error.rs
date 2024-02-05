@@ -43,6 +43,9 @@ pub enum Error {
     #[error("DockerRegistryExistsFailed: {0}")]
     DockerRegistryExistsFailed(#[source] anyhow::Error),
 
+    #[error("NotFoundRegistries")]
+    NotFoundRegistries,
+
     #[error("MissingSyncer")]
     MissingSyncer,
 

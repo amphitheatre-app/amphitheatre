@@ -24,13 +24,14 @@ pub mod containers;
 pub mod credential;
 pub mod deployment;
 pub mod error;
-pub mod image;
 pub mod job;
+pub mod kpack;
 pub mod namespace;
 pub mod playbook;
 pub mod secret;
 pub mod service;
 pub mod service_account;
+pub mod volume;
 
 const LAST_APPLIED_HASH_KEY: &str = "amphitheatre.app/last-applied-hash";
 

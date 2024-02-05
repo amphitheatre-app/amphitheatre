@@ -18,11 +18,12 @@ use super::DeployingState;
 use crate::errors::{Error, Result};
 use crate::{Context, Intent, State, Task};
 
-use amp_builder::{BuildDirector, KanikoBuilder, LifecycleBuilder};
+use amp_builder::{BuildDirector, KanikoBuilder, KpackBuilder};
 use amp_common::docker::{self, registry, DockerConfig};
 use amp_common::resource::{Actor, ActorState};
 use amp_common::schema::BuildMethod;
 
+use amp_resources::kpack::image;
 use amp_resources::{actor, job};
 use async_trait::async_trait;
 use kube::runtime::controller::Action;
@@ -66,14 +67,29 @@ impl Task<Actor> for BuildTask {
 
     /// Execute the task logic for BuildTask using shared data
     async fn execute(&self, ctx: &Context<Actor>) -> Result<Option<Intent<Actor>>> {
+        let actor = &ctx.object;
+
         // build if actor is live or the image is not built, else skip to next state
-        if ctx.object.spec.live || !self.built(ctx).await? {
+        if actor.spec.live || !self.built(ctx).await? {
             self.build(ctx).await?;
 
-            if !job::completed(&ctx.k8s, &ctx.object).await.map_err(Error::ResourceError)? {
-                info!("Build job is not completed yet, wait for it to finish");
-                return Ok(Some(Intent::Action(Action::requeue(Duration::from_secs(5)))));
-            }
+            let build = actor.spec.character.build.clone().unwrap_or_default();
+            match build.method() {
+                BuildMethod::Dockerfile => {
+                    // [lifecycle] Check if the build job is completed and wait for it to finish.
+                    if !job::completed(&ctx.k8s, &ctx.object).await.map_err(Error::ResourceError)? {
+                        info!("Build job is not completed yet, wait for it to finish");
+                        return Ok(Some(Intent::Action(Action::requeue(Duration::from_secs(5)))));
+                    }
+                }
+                BuildMethod::Buildpacks => {
+                    // [kpack] Check if the image is completed and wait for it to ready.
+                    if !image::completed(&ctx.k8s, &ctx.object).await.map_err(Error::ResourceError)? {
+                        info!("kpack Image is not completed yet, wait for it to finish");
+                        return Ok(Some(Intent::Action(Action::requeue(Duration::from_secs(5)))));
+                    }
+                }
+            };
         }
 
         // patch the status to running
@@ -114,16 +130,6 @@ impl BuildTask {
     /// and the build method can be dockerfile or buildpacks,
     /// and build frequency can be once or live.
     ///
-    /// The build strategy is a matrix of 2x2x2 like below:
-    /// - Case 1: remote source code (git-sync), dockerfile (kaniko), (sync once)
-    /// - Case 2: remote source code (git-sync), dockerfile (kaniko), live (sync & keep watching the changes, unsupported)
-    /// - Case 3: remote source code (git-sync), buildpacks (kpack), (sync once)
-    /// - Case 4: remote source code (git-sync), buildpacks (kpack), live (sync & keep watching the changes, unsupported)
-    /// - Case 5: local source code (amp-syncer), dockerfile (kaniko), (sync once)
-    /// - Case 6: local source code (amp-syncer), dockerfile (kaniko), live (sync & keep watching the changes)
-    /// - Case 7: local source code (amp-syncer), buildpacks (kpack), (sync once)
-    /// - Case 8: local source code (amp-syncer), buildpacks (kpack), live (sync & keep watching the changes)
-    ///
     async fn build(&self, ctx: &Context<Actor>) -> Result<()> {
         let actor = &ctx.object;
         let build = actor.spec.character.build.clone().unwrap_or_default();
@@ -131,12 +137,10 @@ impl BuildTask {
             BuildMethod::Dockerfile => {
                 info!("Found dockerfile, build it with Kaniko");
                 BuildDirector::new(Box::new(KanikoBuilder::new(ctx.k8s.clone(), actor.clone())))
-
-                // self.builder = Some(kaniko::container(&self.actor.spec));
             }
             BuildMethod::Buildpacks => {
-                info!("Build the image with Cloud Native Buildpacks (Lifecycle)");
-                BuildDirector::new(Box::new(LifecycleBuilder::new(ctx.k8s.clone(), actor.clone())))
+                info!("Build the image with Cloud Native Buildpacks (kpack)");
+                BuildDirector::new(Box::new(KpackBuilder::new(ctx.k8s.clone(), actor.clone(), ctx.credentials.clone())))
             }
         };
 

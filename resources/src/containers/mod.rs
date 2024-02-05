@@ -22,7 +22,7 @@ pub mod syncer;
 use k8s_openapi::api::core::v1::{KeyToPath, SecretVolumeSource, Volume, VolumeMount};
 
 // TODO: Using `/workspace` as the workspace directory.
-const WORKSPACE_DIR: &str = "/workspace/app";
+const WORKSPACE_DIR: &str = "/workspace";
 
 /// volume for /workspace based on k8s emptyDir
 #[inline]

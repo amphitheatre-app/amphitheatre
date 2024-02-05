@@ -15,7 +15,7 @@
 use super::{workspace_mount, WORKSPACE_DIR};
 use crate::args;
 use amp_common::resource::Actor;
-use k8s_openapi::api::core::v1::Container;
+use k8s_openapi::api::core::v1::{Container, VolumeMount};
 
 const DEFAULT_GIT_SYNC_IMAGE: &str = "registry.k8s.io/git-sync/git-sync:v4.0.0";
 
@@ -30,8 +30,7 @@ pub fn container(actor: &Actor) -> Container {
         ("one-time", "true"),
         ("ref", &revision),
         ("repo", &source.repo),
-        // TODO: Using another directory for source pull.
-        ("root", "/workspace/src"),
+        ("root", "/src"),
         ("link", WORKSPACE_DIR),
     ];
 
@@ -40,9 +39,15 @@ pub fn container(actor: &Actor) -> Container {
         image: Some(DEFAULT_GIT_SYNC_IMAGE.to_string()),
         image_pull_policy: Some("IfNotPresent".to_string()),
         args: Some(args(&arguments, 2)),
-        volume_mounts: Some(vec![workspace_mount()]),
+        volume_mounts: Some(vec![workspace_mount(), source_mount()]),
         ..Default::default()
     }
+}
+
+/// volume mount for /src
+#[inline]
+pub fn source_mount() -> VolumeMount {
+    VolumeMount { name: "src".to_string(), mount_path: "/src".to_string(), ..Default::default() }
 }
 
 #[cfg(test)]
