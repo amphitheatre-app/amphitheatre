@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashSet;
 use std::convert::Infallible;
 use std::sync::Arc;
 
@@ -23,22 +22,17 @@ use axum::response::sse::{Event, KeepAlive};
 use axum::response::{IntoResponse, Sse};
 use axum::Json;
 
-use futures::{AsyncBufReadExt, Stream, StreamExt, TryStreamExt};
-use k8s_openapi::api::core::v1::{ContainerStatus, Pod};
-use kube::api::LogParams;
-use kube::Api;
-use tokio::sync::mpsc::Sender;
-use tokio::sync::RwLock;
+use futures::{Stream, StreamExt};
 use tokio_stream::wrappers::ReceiverStream;
-use tracing::{debug, info};
-use uuid::Uuid;
 
-use kube::runtime::{watcher, WatchStreamExt};
+use tracing::info;
+use uuid::Uuid;
 
 use super::Result;
 use crate::context::Context;
 use crate::errors::ApiError;
 use crate::services::actor::ActorService;
+use crate::services::logger::Logger;
 
 // The Actors Service Handlers.
 // See [API Documentation: actor](https://docs.amphitheatre.app/api/actor)
@@ -99,90 +93,15 @@ pub async fn logs(
     info!("Start to tail the log stream of actor {} in {}...", name, pid);
     let (sender, receiver) = tokio::sync::mpsc::channel(100);
 
-    // Watch the status of the pod, if the pod is running, then create a stream for it.
+    // Start to watch the status of the pod.
     tokio::spawn(async move {
-        let api: Api<Pod> = Api::namespaced(ctx.k8s.clone(), &format!("amp-{pid}"));
-        let config = watcher::Config::default().labels(&format!("amphitheatre.app/character={name}"));
-        let mut watcher = watcher(api.clone(), config).applied_objects().boxed();
-        let subs = Arc::new(RwLock::new(HashSet::new()));
-
-        while let Some(pod) = watcher.try_next().await.unwrap() {
-            if pod.status.is_none() {
-                continue;
-            }
-
-            let status = pod.status.unwrap();
-            let pod_name = pod.metadata.name.unwrap();
-
-            // check the init container status, if it's not running, then skip it.
-            if let Some(init_containers) = status.init_container_statuses {
-                for status in init_containers {
-                    log(&api, &pod_name, &status, &sender, subs.clone()).await;
-                }
-            }
-
-            // check the container status, if it's not running, then skip it.
-            if let Some(containers) = status.container_statuses {
-                for status in containers {
-                    log(&api, &pod_name, &status, &sender, subs.clone()).await;
-                }
-            }
-        }
+        Logger::new(ctx.k8s.clone(), sender.clone(), pid, name).start().await;
     });
 
     let stream = ReceiverStream::new(receiver);
-    let stream = stream.map(|line| Event::default().data(line)).map(Ok);
+    let stream = stream.map(Ok);
 
     Sse::new(stream).keep_alive(KeepAlive::default())
-}
-
-async fn log(
-    api: &Api<Pod>,
-    pod: &str,
-    status: &ContainerStatus,
-    sender: &Sender<String>,
-    subs: Arc<RwLock<HashSet<String>>>,
-) {
-    let pod = pod.to_string();
-    let name = status.name.clone();
-    let subscription_id: String = format!("{pod}-{name}", pod = pod, name = name);
-
-    debug!("container status: {:?}", status);
-
-    // If the container is not running, skip it.
-    if let Some(state) = &status.state {
-        if state.running.is_none() {
-            debug!("Skip log stream of container {} because it's not running.", name);
-            return;
-        }
-    }
-    // If job handle already exists in subscribe list, skip it.
-    if subs.read().await.contains(&subscription_id) {
-        debug!("Skip log stream of container {} because it's already subscribed.", name);
-        return;
-    }
-
-    let api = api.clone();
-    let sender = sender.clone();
-
-    tokio::spawn(async move {
-        let params = LogParams {
-            container: Some(name.clone()),
-            follow: true,
-            tail_lines: Some(100),
-            timestamps: true,
-            ..Default::default()
-        };
-        let mut stream = api.log_stream(&pod, &params).await.map_err(ApiError::KubernetesError).unwrap().lines();
-
-        info!("Start to receive the log stream of container {} in {}...", name, pod);
-        while let Some(line) = stream.try_next().await.unwrap() {
-            let _ = sender.send(line).await;
-        }
-    });
-
-    // save the job handle to subscribe list.
-    subs.write().await.insert(subscription_id);
 }
 
 /// Returns a actor's info, including environments, volumes...

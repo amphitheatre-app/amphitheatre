@@ -13,6 +13,7 @@
 // limitations under the License.
 
 pub mod actor;
+pub mod logger;
 pub mod playbook;
 
 pub type Result<T, E = crate::errors::ApiError> = std::result::Result<T, E>;
