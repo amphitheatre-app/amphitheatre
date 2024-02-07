@@ -109,6 +109,9 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
                 "name": actor.spec.character.builder_name(),
                 "kind": "ClusterBuilder",
             },
+            "cache": {
+                "volume": {}
+            },
             "source": source,
         }
     }))

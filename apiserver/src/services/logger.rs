@@ -123,7 +123,7 @@ impl Logger {
             container: Some(container.to_string()),
             follow: true,
             tail_lines: Some(100),
-            timestamps: true,
+            timestamps: false,
             ..Default::default()
         };
 

@@ -49,16 +49,16 @@ impl Builder for KpackBuilder {
         self.try_init_store().await.map_err(Error::ResourceError)?;
         self.try_init_builder().await.map_err(Error::ResourceError)?;
 
-        // Build or update the build job
+        // Build or update the Image
         let name = format!("{}-builder", &self.actor.spec.name);
         match image::exists(&self.k8s, &self.actor).await.map_err(Error::ResourceError)? {
             true => {
-                // Build job already exists, update it if there are new changes
-                info!("Try to refresh an existing build Job {}", name);
+                // Image already exists, update it if there are new changes
+                info!("Try to refresh an existing Image {}", name);
                 image::update(&self.k8s, &self.actor).await.map_err(Error::ResourceError)?;
             }
             false => {
-                info!("Create new build Job: {}", name);
+                info!("Create new Image: {}", name);
                 image::create(&self.k8s, &self.actor).await.map_err(Error::ResourceError)?;
             }
         }
