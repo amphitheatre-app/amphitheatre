@@ -22,12 +22,11 @@ use serde_json::{from_value, json};
 use tracing::{debug, info};
 
 use crate::error::{Error, Result};
-use crate::kpack::buildpack_name;
+use crate::kpack::encode_name;
 
 pub async fn exists(client: &Client, image: &str) -> Result<bool> {
-    let name = buildpack_name(image);
     let api: Api<DynamicObject> = Api::all_with(client.clone(), &api_resource());
-    Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
+    Ok(api.get_opt(&encode_name(image)).await.map_err(Error::KubeError)?.is_some())
 }
 
 pub async fn create(client: &Client, image: &str) -> Result<DynamicObject> {
@@ -41,7 +40,7 @@ pub async fn create(client: &Client, image: &str) -> Result<DynamicObject> {
 }
 
 pub async fn update(client: &Client, image: &str) -> Result<DynamicObject> {
-    let name = buildpack_name(image);
+    let name = encode_name(image);
     let api: Api<DynamicObject> = Api::all_with(client.clone(), &api_resource());
 
     let mut buildpack = api.get(&name).await.map_err(Error::KubeError)?;
@@ -66,14 +65,14 @@ fn new(image: &str) -> Result<DynamicObject> {
         "apiVersion": "kpack.io/v1alpha2",
         "kind": "ClusterBuildpack",
         "metadata": {
-            "name": buildpack_name(image),
+            "name": encode_name(image),
             "labels": {
                 "app.kubernetes.io/managed-by": "Amphitheatre",
             },
         },
         "spec": {
             "serviceAccountRef": {
-                "name": "amp-controllers",  // @TODO: Use the specific service account from configuration
+                "name": "amp-controllers", // @TODO: Use the specific service account from configuration
                 "namespace": "amp-system", // @TODO: Use the namespace from configuration
             },
             "image": image.to_string(),
@@ -85,7 +84,7 @@ fn new(image: &str) -> Result<DynamicObject> {
 }
 
 pub async fn ready(client: &Client, image: &str) -> Result<bool> {
-    let name = buildpack_name(image);
+    let name = encode_name(image);
     debug!("Check if the ClusterBuildpack {} is ready", name);
 
     let api: Api<DynamicObject> = Api::all_with(client.clone(), &api_resource());

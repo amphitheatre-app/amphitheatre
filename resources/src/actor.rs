@@ -110,9 +110,7 @@ pub async fn metrics(client: &Client, namespace: &str, name: &str) -> Result<Pod
 
 pub async fn get(client: &Client, namespace: &str, name: &str) -> Result<Actor> {
     let api: Api<Actor> = Api::namespaced(client.clone(), namespace);
-    let actor = api.get(name).await.map_err(Error::KubeError)?;
-
-    Ok(actor)
+    api.get(name).await.map_err(Error::KubeError)
 }
 
 pub async fn list(client: &Client, namespace: &str) -> Result<Vec<Actor>> {

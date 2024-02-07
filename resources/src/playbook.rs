@@ -116,17 +116,13 @@ pub async fn patch_status(client: &Client, playbook: &Playbook, condition: Condi
 /// List all playbooks
 pub async fn list(client: &Client) -> Result<ObjectList<Playbook>> {
     let api: Api<Playbook> = Api::all(client.clone());
-    let resources = api.list(&ListParams::default()).await.map_err(Error::KubeError)?;
-
-    Ok(resources)
+    api.list(&ListParams::default()).await.map_err(Error::KubeError)
 }
 
 /// Get a playbook by name
 pub async fn get(client: &Client, name: &str) -> Result<Playbook> {
     let api: Api<Playbook> = Api::all(client.clone());
-    let resources = api.get(name).await.map_err(Error::KubeError)?;
-
-    Ok(resources)
+    api.get(name).await.map_err(Error::KubeError)
 }
 
 /// Delete a playbook by name

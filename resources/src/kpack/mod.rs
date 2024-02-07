@@ -16,54 +16,59 @@ use crate::error::{Error, Result};
 use amp_common::{
     config::{Credential, Credentials},
     resource::CharacterSpec,
+    schema::BuildpacksConfig,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
 pub mod cluster_builder;
 pub mod cluster_buildpack;
+pub mod cluster_store;
 pub mod image;
 pub mod syncer;
 
 pub trait BuildExt {
     fn builder_name(&self) -> String;
-    fn builder_items(&self) -> Option<Vec<String>>;
+    fn buildpacks(&self) -> Option<&Vec<String>>;
     fn builder_orders(&self) -> serde_json::Value;
     fn builder_tag(&self, credentials: &Credentials) -> Result<String>;
+    fn store_name(&self) -> String;
+    fn store_image(&self) -> String;
     fn pvc_name(&self) -> String;
+
+    fn get_buildpacks_config(&self) -> Option<&BuildpacksConfig>;
 }
 
 impl BuildExt for CharacterSpec {
     /// Returns the name of the ClusterBuilder
     fn builder_name(&self) -> String {
-        self.builder_items()
-            .map(|items| format!("builder-{:x}", Sha256::digest(items.join(","))))
+        self.get_buildpacks_config()
+            .map(|config| match &config.buildpacks {
+                Some(buildpacks) => {
+                    let mut items = vec![];
+                    items.push(config.builder.clone());
+                    items.append(buildpacks.clone().as_mut());
+                    format!("builder-{:x}", Sha256::digest(items.join(",").as_bytes()))
+                }
+                None => encode_name(&config.builder),
+            })
             .unwrap_or_else(|| "default-cluster-builder".to_string())
     }
 
-    /// Returns the items of the builder
-    fn builder_items(&self) -> Option<Vec<String>> {
-        if let Some(config) = self.build.as_ref().and_then(|build| build.buildpacks.as_ref()) {
-            let mut items = vec![];
-
-            items.push(config.builder.clone());
-            if let Some(buildpack) = &config.buildpacks {
-                items.append(buildpack.clone().as_mut());
-            }
-
-            return Some(items);
-        }
-
-        None
+    /// Returns the buildpacks items
+    #[inline]
+    fn buildpacks(&self) -> Option<&Vec<String>> {
+        self.get_buildpacks_config().and_then(|config| config.buildpacks.as_ref())
     }
 
     /// Returns the orders of the builder
     fn builder_orders(&self) -> serde_json::Value {
-        self.builder_items()
+        self.get_buildpacks_config()
+            .and_then(|config| config.buildpacks.as_ref())
             .map(|buildpacks| {
                 buildpacks
                     .iter()
-                    .map(|item| json!({ "group": [{ "name": buildpack_name(item), "kind": "ClusterBuildpack" }] }))
+                    .map(|item| json!({ "group": [{ "name": encode_name(item), "kind": "ClusterBuildpack" }] }))
                     .collect()
             })
             .unwrap_or_default()
@@ -84,16 +89,36 @@ impl BuildExt for CharacterSpec {
         }
     }
 
+    /// Returns the name of the ClusterBuilder
+    fn store_name(&self) -> String {
+        self.get_buildpacks_config()
+            .map(|config| encode_name(&config.builder))
+            .unwrap_or_else(|| "default-cluster-store".to_string())
+    }
+
+    /// Returns the image of the ClusterStore
+    fn store_image(&self) -> String {
+        self.get_buildpacks_config()
+            .map(|config| config.builder.clone())
+            .unwrap_or_else(|| "default-cluster-store".to_string())
+    }
+
     /// Returns the name of the PVC
     fn pvc_name(&self) -> String {
         format!("{}-pvc", self.meta.name)
     }
+
+    /// Returns the buildpacks config
+    #[inline]
+    fn get_buildpacks_config(&self) -> Option<&BuildpacksConfig> {
+        self.build.as_ref().and_then(|build| build.buildpacks.as_ref())
+    }
 }
 
-/// Parse docker image name to k8s metadata name
+/// Encodes the image url to a valid Kubernetes resource name
 /// e.g. "gcr.io/paketo-buildpacks/builder:base" -> "gcr-io-paketo-buildpacks-builder"
 /// e.g. "gcr.io/paketo-buildpacks/java@sha256:fc1c6fba46b582f63b13490b89e50e93c95ce08142a8737f4a6b70c826c995de" -> "gcr-io-paketo-buildpacks-java"
-pub fn buildpack_name(image: &str) -> String {
+pub fn encode_name(image: &str) -> String {
     let image = image.split('@').next().unwrap_or(image);
     let image = image.split(':').next().unwrap_or(image);
 
@@ -102,9 +127,11 @@ pub fn buildpack_name(image: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::buildpack_name;
+    use super::encode_name;
     use super::BuildExt;
 
+    use amp_common::config::Credentials;
+    use amp_common::config::RegistryCredential;
     use amp_common::{
         resource::CharacterSpec,
         schema::{Build, BuildpacksConfig, Metadata},
@@ -113,9 +140,7 @@ mod tests {
 
     #[test]
     fn test_default_builder_name() {
-        let character =
-            CharacterSpec { build: Some(Build { buildpacks: None, ..Default::default() }), ..Default::default() };
-
+        let character = CharacterSpec::default();
         assert_eq!(character.builder_name(), "default-cluster-builder");
     }
 
@@ -123,16 +148,16 @@ mod tests {
     fn test_only_builder_name() {
         let character = CharacterSpec {
             build: Some(Build {
-                buildpacks: Some(BuildpacksConfig { builder: "builder".to_string(), buildpacks: None }),
+                buildpacks: Some(BuildpacksConfig {
+                    builder: "amp-buildpacks/sample-builder:v1".to_string(),
+                    buildpacks: None,
+                }),
                 ..Default::default()
             }),
             ..Default::default()
         };
 
-        assert_eq!(
-            character.builder_name(),
-            "builder-df6b07176a9b17cc4c9afc257bd404732e7d09b76436c7890f7b7be14e579794"
-        );
+        assert_eq!(character.builder_name(), "amp-buildpacks-sample-builder");
     }
 
     #[test]
@@ -141,7 +166,10 @@ mod tests {
             build: Some(Build {
                 buildpacks: Some(BuildpacksConfig {
                     builder: "builder".to_string(),
-                    buildpacks: Some(vec!["buildpack1".to_string(), "buildpack2".to_string()]),
+                    buildpacks: Some(vec![
+                        "amp-buildpacks/buildpack1".to_string(),
+                        "amp-buildpacks/buildpack2".to_string(),
+                    ]),
                 }),
                 ..Default::default()
             }),
@@ -150,24 +178,30 @@ mod tests {
 
         assert_eq!(
             character.builder_name(),
-            "builder-d0ff8f7ef1e3dc23be46a919c8a4e1c660d516b46d72b704719f491a865c14f5"
+            "builder-08190d5ac2f0b4e061adc39255c82f0cef6dbac27ffb0eadb8cc3bb7f8bb6eae"
         );
     }
 
     #[test]
-    fn test_builder_items() {
+    fn test_buildpacks() {
         let character = CharacterSpec {
             build: Some(Build {
                 buildpacks: Some(BuildpacksConfig {
                     builder: "builder".to_string(),
-                    buildpacks: Some(vec!["buildpack1".to_string(), "buildpack2".to_string()]),
+                    buildpacks: Some(vec![
+                        "amp-buildpacks/buildpack1".to_string(),
+                        "amp-buildpacks/buildpack2".to_string(),
+                    ]),
                 }),
                 ..Default::default()
             }),
             ..Default::default()
         };
 
-        assert_eq!(character.builder_items().unwrap(), vec!["builder", "buildpack1", "buildpack2"]);
+        assert_eq!(
+            character.buildpacks(),
+            Some(&vec!["amp-buildpacks/buildpack1".to_string(), "amp-buildpacks/buildpack2".to_string()])
+        );
     }
 
     #[test]
@@ -176,7 +210,10 @@ mod tests {
             build: Some(Build {
                 buildpacks: Some(BuildpacksConfig {
                     builder: "builder".to_string(),
-                    buildpacks: Some(vec!["buildpack1".to_string(), "buildpack2".to_string()]),
+                    buildpacks: Some(vec![
+                        "amp-buildpacks/buildpack1".to_string(),
+                        "amp-buildpacks/buildpack2".to_string(),
+                    ]),
                 }),
                 ..Default::default()
             }),
@@ -186,11 +223,70 @@ mod tests {
         assert_eq!(
             character.builder_orders(),
             json!([
-                { "group": [{ "name": "builder", "kind": "ClusterBuildpack" }] },
-                { "group": [{ "name": "buildpack1", "kind": "ClusterBuildpack" }] },
-                { "group": [{ "name": "buildpack2", "kind": "ClusterBuildpack" }] }
+                { "group": [{ "name": "amp-buildpacks-buildpack1", "kind": "ClusterBuildpack" }] },
+                { "group": [{ "name": "amp-buildpacks-buildpack2", "kind": "ClusterBuildpack" }] }
             ])
         );
+    }
+
+    #[test]
+    fn test_builder_tag() {
+        let character = CharacterSpec {
+            build: Some(Build {
+                buildpacks: Some(BuildpacksConfig {
+                    builder: "amp-buildpacks/sample-builder:v1".to_string(),
+                    buildpacks: None,
+                }),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        let credentials = Credentials {
+            registries: vec![RegistryCredential {
+                name: "docker.io".to_string(),
+                default: true,
+                server: "https://index.docker.io/v1/".to_string(),
+                username: Some("user".to_string()),
+                password: Some("password".to_string()),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+
+        assert_eq!(character.builder_tag(&credentials).unwrap(), "index.docker.io/user/amp-buildpacks-sample-builder");
+    }
+
+    #[test]
+    fn test_store_name() {
+        let character = CharacterSpec {
+            build: Some(Build {
+                buildpacks: Some(BuildpacksConfig {
+                    builder: "amp-buildpacks/sample-builder:v1".to_string(),
+                    buildpacks: None,
+                }),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        assert_eq!(character.store_name(), "amp-buildpacks-sample-builder");
+    }
+
+    #[test]
+    fn test_store_image() {
+        let character = CharacterSpec {
+            build: Some(Build {
+                buildpacks: Some(BuildpacksConfig {
+                    builder: "amp-buildpacks/sample-builder:v1".to_string(),
+                    buildpacks: None,
+                }),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        assert_eq!(character.store_image(), "amp-buildpacks/sample-builder:v1");
     }
 
     #[test]
@@ -204,11 +300,11 @@ mod tests {
     }
 
     #[test]
-    fn test_buildpack_name() {
-        assert_eq!(buildpack_name("gcr.io/paketo-buildpacks/builder:base"), "gcr-io-paketo-buildpacks-builder");
-        assert_eq!(buildpack_name("gcr.io/paketo-buildpacks/builder"), "gcr-io-paketo-buildpacks-builder");
+    fn test_encode_name() {
+        assert_eq!(encode_name("gcr.io/paketo-buildpacks/builder:base"), "gcr-io-paketo-buildpacks-builder");
+        assert_eq!(encode_name("gcr.io/paketo-buildpacks/builder"), "gcr-io-paketo-buildpacks-builder");
         assert_eq!(
-            buildpack_name(
+            encode_name(
                 "gcr.io/paketo-buildpacks/java@sha256:fc1c6fba46b582f63b13490b89e50e93c95ce08142a8737f4a6b70c826c995de"
             ),
             "gcr-io-paketo-buildpacks-java"
