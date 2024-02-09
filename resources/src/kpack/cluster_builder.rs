@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
-
+use super::types::Order;
 use super::BuildExt;
+use crate::error::{Error, Result};
 
-use amp_common::config::Credentials;
 use amp_common::resource::Actor;
 
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
@@ -25,10 +24,7 @@ use kube::core::{DynamicObject, GroupVersionKind};
 use kube::discovery::ApiResource;
 use kube::{Api, Client, ResourceExt};
 use serde_json::{from_value, json};
-use tokio::sync::RwLock;
 use tracing::{debug, info};
-
-use crate::error::{Error, Result};
 
 pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
     let api: Api<DynamicObject> = Api::all_with(client.clone(), &api_resource());
@@ -37,24 +33,24 @@ pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
     Ok(api.get_opt(&name).await.map_err(Error::KubeError)?.is_some())
 }
 
-pub async fn create(client: &Client, actor: &Actor, credentials: Arc<RwLock<Credentials>>) -> Result<DynamicObject> {
+pub async fn create(client: &Client, actor: &Actor, tag: &str, order: Vec<Order>) -> Result<DynamicObject> {
     let api: Api<DynamicObject> = Api::all_with(client.clone(), &api_resource());
 
-    let resource = new(actor, credentials).await?;
+    let resource = new(actor, tag, order).await?;
     let builder = api.create(&PostParams::default(), &resource).await.map_err(Error::KubeError)?;
     info!("Created ClusterBuilder: {}", builder.name_any());
 
     Ok(builder)
 }
 
-pub async fn update(client: &Client, actor: &Actor, credentials: Arc<RwLock<Credentials>>) -> Result<DynamicObject> {
+pub async fn update(client: &Client, actor: &Actor, tag: &str, order: Vec<Order>) -> Result<DynamicObject> {
     let api: Api<DynamicObject> = Api::all_with(client.clone(), &api_resource());
 
     let name = actor.spec.character.builder_name();
     let mut builder = api.get(&name).await.map_err(Error::KubeError)?;
     debug!("The ClusterBuilder \"{}\" already exists", name);
 
-    let resource = new(actor, credentials).await?;
+    let resource = new(actor, tag, order).await?;
     if builder.data.pointer("/spec") != resource.data.pointer("/spec") {
         debug!("The updating ClusterBuilder resource:\n {:?}\n", resource);
         builder = api
@@ -73,10 +69,8 @@ fn api_resource() -> ApiResource {
     ApiResource::from_gvk(&GroupVersionKind::gvk("kpack.io", "v1alpha2", "ClusterBuilder"))
 }
 
-async fn new(actor: &Actor, credentials: Arc<RwLock<Credentials>>) -> Result<DynamicObject> {
+async fn new(actor: &Actor, tag: &str, order: Vec<Order>) -> Result<DynamicObject> {
     let name = actor.spec.character.builder_name();
-    let credentials = credentials.read().await;
-
     let resource = from_value(json!({
         "apiVersion": "kpack.io/v1alpha2",
         "kind": "ClusterBuilder",
@@ -88,7 +82,11 @@ async fn new(actor: &Actor, credentials: Arc<RwLock<Credentials>>) -> Result<Dyn
             },
         },
         "spec": {
-            "tag": actor.spec.character.builder_tag(&credentials)?,
+            "order": order,
+            "serviceAccountRef": {
+                "name": "amp-controllers", // @TODO: Use the specific service account from configuration
+                "namespace": "amp-system", // @TODO: Use the namespace from configuration
+            },
             "stack": {
                 "name": "default-cluster-stack",
                 "kind": "ClusterStack",
@@ -97,14 +95,11 @@ async fn new(actor: &Actor, credentials: Arc<RwLock<Credentials>>) -> Result<Dyn
                 "name": actor.spec.character.store_name(),
                 "kind": "ClusterStore",
             },
-            "serviceAccountRef": {
-                "name": "amp-controllers", // @TODO: Use the specific service account from configuration
-                "namespace": "amp-system", // @TODO: Use the namespace from configuration
-            },
-            "order": actor.spec.character.builder_orders(),
+            "tag": tag,
         }
     }))
     .map_err(Error::SerializationError)?;
+    debug!("The new ClusterBuilder resource:\n {:?}\n", resource);
 
     Ok(resource)
 }

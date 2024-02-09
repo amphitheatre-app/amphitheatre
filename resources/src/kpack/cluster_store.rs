@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use super::BuildExt;
-
+use crate::error::{Error, Result};
 use amp_common::resource::Actor;
 
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
@@ -23,8 +23,6 @@ use kube::discovery::ApiResource;
 use kube::{Api, Client, ResourceExt};
 use serde_json::{from_value, json};
 use tracing::{debug, info};
-
-use crate::error::{Error, Result};
 
 pub async fn exists(client: &Client, actor: &Actor) -> Result<bool> {
     let api: Api<DynamicObject> = Api::all_with(client.clone(), &api_resource());
@@ -103,16 +101,15 @@ async fn new(actor: &Actor) -> Result<DynamicObject> {
 }
 
 pub async fn ready(client: &Client, actor: &Actor) -> Result<bool> {
-    let name = actor.spec.character.builder_name();
+    let name = actor.spec.character.store_name();
     debug!("Check if the ClusterStore {} is ready", name);
 
     let api: Api<DynamicObject> = Api::all_with(client.clone(), &api_resource());
 
-    if let Some(builder) = api.get_opt(&name).await.map_err(Error::KubeError)? {
+    if let Some(store) = api.get_opt(&name).await.map_err(Error::KubeError)? {
         debug!("Found ClusterStore {}", &name);
-        debug!("The ClusterStore data is: {:?}", builder.data);
 
-        if let Some(conditions) = builder.data.pointer("/status/conditions") {
+        if let Some(conditions) = store.data.pointer("/status/conditions") {
             let conditions: Vec<Condition> =
                 serde_json::from_value(json!(conditions)).map_err(Error::SerializationError)?;
             return Ok(conditions.iter().any(|condition| condition.type_ == "Ready" && condition.status == "True"));

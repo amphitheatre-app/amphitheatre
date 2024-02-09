@@ -51,6 +51,9 @@ pub enum Error {
 
     #[error("MissingBuilder")]
     MissingBuilder,
+
+    #[error("ClusterStoreNotReady")]
+    ClusterStoreNotReady,
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

@@ -18,13 +18,17 @@ use crate::{errors::Error, Builder, Result};
 
 use amp_common::{config::Credentials, resource::Actor};
 use amp_resources::{
-    kpack::{cluster_builder, cluster_buildpack, cluster_store, image, syncer, BuildExt},
+    kpack::{
+        cluster_builder, cluster_buildpack, cluster_store, encode_name, image, syncer,
+        types::{find_top_level_buildpacks, Buildpack, Group, Order},
+        BuildExt,
+    },
     volume,
 };
 
 use async_trait::async_trait;
 use tokio::sync::RwLock;
-use tracing::info;
+use tracing::{debug, info};
 
 /// Buildpacks builder implementation using Buildpacks kpack.
 pub struct KpackBuilder {
@@ -46,7 +50,6 @@ impl Builder for KpackBuilder {
         self.try_init_pvc().await.map_err(Error::ResourceError)?;
         self.try_init_syncer().await.map_err(Error::ResourceError)?;
         self.try_init_buildpack().await.map_err(Error::ResourceError)?;
-        self.try_init_store().await.map_err(Error::ResourceError)?;
         self.try_init_builder().await.map_err(Error::ResourceError)?;
 
         // Build or update the Image
@@ -95,16 +98,44 @@ impl KpackBuilder {
         Ok(())
     }
 
-    async fn try_init_store(&self) -> Result<(), amp_resources::error::Error> {
-        if !cluster_store::exists(&self.k8s, &self.actor).await? {
-            cluster_store::create(&self.k8s, &self.actor).await?;
-        }
-
-        Ok(())
-    }
     async fn try_init_builder(&self) -> Result<(), amp_resources::error::Error> {
         if !cluster_builder::exists(&self.k8s, &self.actor).await? {
-            cluster_builder::create(&self.k8s, &self.actor, self.credentials.clone()).await?;
+            if !cluster_store::exists(&self.k8s, &self.actor).await? {
+                cluster_store::create(&self.k8s, &self.actor).await?;
+            }
+
+            if !cluster_store::ready(&self.k8s, &self.actor).await? {
+                return Ok(()); // wait for the ClusterStore to be ready
+            }
+
+            let mut order = Vec::new();
+            let store = cluster_store::get(&self.k8s, &self.actor).await?;
+            if let Some(buildpacks) = store.data.pointer("/status/buildpacks") {
+                let buildpacks: Vec<Buildpack> = serde_json::from_value(buildpacks.clone())
+                    .map_err(amp_resources::error::Error::SerializationError)?;
+                order = find_top_level_buildpacks(&buildpacks);
+            }
+
+            if let Some(buildpacks) = self.actor.spec.character.buildpacks() {
+                order.append(
+                    &mut buildpacks
+                        .iter()
+                        .map(|item| Order {
+                            group: vec![Group {
+                                name: Some(encode_name(item)),
+                                kind: Some("ClusterBuildpack".to_string()),
+                                ..Default::default()
+                            }],
+                        })
+                        .collect(),
+                );
+            }
+
+            debug!("The ClusterBuilder order: {:?}", order);
+
+            let credentials = self.credentials.read().await;
+            let tag = self.actor.spec.character.builder_tag(&credentials)?;
+            cluster_builder::create(&self.k8s, &self.actor, &tag, order).await?;
         }
 
         Ok(())
