@@ -92,19 +92,26 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
         })
     };
 
+    let mut build = json!({});
+
+    // Set environment variables if build.env is not empty
+    if let Some(env) = actor.spec.character.build.as_ref().and_then(|build| build.env.as_ref()) {
+        build["env"] = env.iter().map(|(name, value)| json!({"name": name, "value": value})).collect();
+    }
+
     let resource = from_value(json!({
         "apiVersion": "kpack.io/v1alpha2",
         "kind": "Image",
         "metadata": {
-            "name": name.clone(),
-            "ownerReferences": vec![owner_reference],
             "labels": {
                 "amphitheatre.app/character": actor.spec.name.clone(),
                 "app.kubernetes.io/managed-by": "Amphitheatre",
             },
+            "name": name.clone(),
+            "ownerReferences": vec![owner_reference],
         },
         "spec": {
-            "tag": actor.spec.image,
+            "build": build,
             "builder": {
                 "name": actor.spec.character.builder_name(),
                 "kind": "ClusterBuilder",
@@ -113,6 +120,7 @@ fn new(actor: &Actor) -> Result<DynamicObject> {
                 "volume": {}
             },
             "source": source,
+            "tag": actor.spec.image,
         }
     }))
     .map_err(Error::SerializationError)?;
