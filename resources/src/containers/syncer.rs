@@ -26,7 +26,7 @@ use lazy_static::lazy_static;
 lazy_static! {
     static ref DEFAULT_SYNCER_IMAGE: String = format!(
         "ghcr.io/amphitheatre-app/amp-syncer:{}",
-        if cfg!(debug_assertions) { "latest" } else { env!("CARGO_PKG_VERSION") }
+        if cfg!(debug_assertions) { "latest".into() } else { format!("v{}", env!("CARGO_PKG_VERSION")) }
     );
 }
 
