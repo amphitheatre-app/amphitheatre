@@ -18,5 +18,4 @@ tar = "0.4.40"
 tokio = { workspace = true, optional = false }
 tracing = { workspace = true, optional = false }
 tracing-subscriber = { workspace = true, optional = false }
-serde = { workspace = true, optional = false }
 serde_json = { workspace = true, optional = false }

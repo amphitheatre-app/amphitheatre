@@ -21,21 +21,16 @@ axum = { version = "0.7.3" }
 clap.workspace = true
 dotenv.workspace = true
 futures.workspace = true
-headers = "0.4"
 kube.workspace = true
 k8s-openapi.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-serde_yaml.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tokio-stream = "0.1"
-tower = { version = "0.4.13", features = ["full"] }
 tower-http = { version = "0.5.1", features = ["full"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 utoipa = { version = "4.1.0", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }
 uuid = { version = "1.7.0", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
-url.workspace = true
-chrono = "0.4.34"
