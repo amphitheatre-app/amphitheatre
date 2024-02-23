@@ -9,11 +9,11 @@ description = "Generate CRDs for the Amphitheatre platform"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-amp-common = { workspace = true, optional = false }
-clap = { workspace = true, optional = false }
-kube = { workspace = true, optional = false }
-serde = { workspace = true, optional = false }
-serde_yaml = { workspace = true, optional = false }
+amp-common.workspace = true
+clap.workspace = true
+kube.workspace = true
+serde_yaml.workspace = true
+serde.workspace = true
 
 [dev-dependencies]
 tempfile = "3.10.0"

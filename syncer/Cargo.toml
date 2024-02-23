@@ -9,13 +9,13 @@ description = "Receive file change events and implement changes to the file syst
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-amp-common = { workspace = true, optional = false }
-async-nats = { workspace = true, optional = false }
-clap = { workspace = true, optional = false }
-dotenv = { workspace = true, optional = false }
-futures = { workspace = true, optional = false }
+amp-common.workspace = true
+async-nats.workspace = true
+clap.workspace = true
+dotenv.workspace = true
+futures.workspace = true
+serde_json.workspace = true
 tar = "0.4.40"
-tokio = { workspace = true, optional = false }
-tracing = { workspace = true, optional = false }
-tracing-subscriber = { workspace = true, optional = false }
-serde_json = { workspace = true, optional = false }
+tokio.workspace = true
+tracing-subscriber.workspace = true
+tracing.workspace = true

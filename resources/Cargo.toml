@@ -9,17 +9,17 @@ description = "K8s resources manager for the Amphitheatre platform"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-amp-common = { workspace = true, optional = false }
-anyhow = { workspace = true, optional = false }
-kube = { workspace = true, optional = false }
+amp-common.workspace = true
+anyhow.workspace = true
 k8s-metrics = "0.15.0"
-k8s-openapi = { workspace = true, optional = false }
+k8s-openapi.workspace = true
+kube.workspace = true
 lazy_static.workspace = true
-serde = { workspace = true, optional = false }
-serde_json = { workspace = true, optional = false }
+serde_json.workspace = true
+serde.workspace = true
 sha2 = "0.10.8"
-thiserror = { workspace = true, optional = false }
-tracing = { workspace = true, optional = false }
-tokio = { workspace = true, optional = false }
-toml = { workspace = true, optional = false }
-url = { workspace = true, optional = false }
+thiserror.workspace = true
+tokio.workspace = true
+toml.workspace = true
+tracing.workspace = true
+url.workspace = true

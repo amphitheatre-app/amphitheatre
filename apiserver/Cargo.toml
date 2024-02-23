@@ -15,22 +15,22 @@ path = "src/lib.rs"
 [dependencies]
 amp-common.workspace = true
 amp-resources.workspace = true
-async-nats.workspace = true
 anyhow.workspace = true
+async-nats.workspace = true
 axum = { version = "0.7.3" }
 clap.workspace = true
 dotenv.workspace = true
 futures.workspace = true
-kube.workspace = true
 k8s-openapi.workspace = true
-serde.workspace = true
+kube.workspace = true
 serde_json.workspace = true
+serde.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
 tokio-stream = "0.1"
+tokio.workspace = true
 tower-http = { version = "0.5.1", features = ["full"] }
-tracing.workspace = true
 tracing-subscriber.workspace = true
+tracing.workspace = true
 utoipa = { version = "4.1.0", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }
 uuid = { version = "1.7.0", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
