@@ -41,4 +41,8 @@ pub struct Config {
     /// The NATS URL.
     #[clap(long, env = "AMP_NATS_URL")]
     pub nats_url: String,
+
+    /// The storage class name.
+    #[clap(long, env = "AMP_STORAGE_CLASS_NAME")]
+    pub storage_class_name: String,
 }

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use std::collections::BTreeMap;
+use std::env;
 
 use amp_common::resource::Actor;
 use k8s_openapi::api::core::v1::{PersistentVolumeClaim, PersistentVolumeClaimSpec, ResourceRequirements};
@@ -62,13 +63,13 @@ fn new(actor: &Actor) -> Result<PersistentVolumeClaim> {
             ..Default::default()
         },
         spec: Some(PersistentVolumeClaimSpec {
-            access_modes: Some(vec!["ReadWriteOnce".into()]),
+            access_modes: Some(vec!["ReadWriteMany".into()]),
             resources: Some(ResourceRequirements {
                 requests: Some(BTreeMap::from([("storage".into(), Quantity("1Gi".into()))])),
                 ..Default::default()
             }),
             // @TODO: Make storage class name configurable
-            // storage_class_name: Some("local-path".into()),
+            storage_class_name: env::var("AMP_STORAGE_CLASS_NAME").ok(),
             volume_mode: Some("Filesystem".into()),
             ..Default::default()
         }),
