@@ -35,7 +35,7 @@ async fn main() -> Result<(), async_nats::Error> {
     // Enable tracing.
     tracing_subscriber::registry()
         .with(EnvFilter::builder().with_default_directive(LevelFilter::INFO.into()).from_env_lossy())
-        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_subscriber::fmt::layer().without_time().with_file(false).with_target(false))
         .init();
 
     // This returns an error if the `.env` file doesn't exist, but that's not what we want
@@ -81,7 +81,7 @@ async fn main() -> Result<(), async_nats::Error> {
             // We don't want to crash the application because of a single message.
             // We can always retry later, but the next time retry,
             // the original intent may no longer be valid!!!
-            error!("Failed to handle message: {:?}", err);
+            error!("Failed to handle message: {}", err);
             continue;
         }
         // Acknowledge the message if we handled it successfully.

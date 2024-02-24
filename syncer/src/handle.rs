@@ -15,10 +15,9 @@
 use std::path::Path;
 
 use amp_common::sync::{self, Synchronization};
+use std::io::Result;
 use tar::Archive;
 use tracing::{debug, error, info, warn};
-
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 /// Overwrite workspace's files with payload tarball.
 pub fn overwrite(workspace: &Path, req: &Synchronization) -> Result<()> {
