@@ -55,4 +55,9 @@ impl Builder for KanikoBuilder {
 
         Ok(())
     }
+
+    #[inline]
+    async fn completed(&self) -> Result<bool> {
+        job::completed(&self.k8s, &self.actor).await.map_err(Error::ResourceError)
+    }
 }

@@ -30,6 +30,7 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait Builder: Send + Sync {
     async fn build(&self) -> Result<()>;
+    async fn completed(&self) -> Result<bool>;
 }
 
 /// Build director, it's a strategy pattern implementation
@@ -51,6 +52,11 @@ impl BuildDirector {
     /// Execute the build logic
     pub async fn build(&self) -> Result<()> {
         self.builder.build().await
+    }
+
+    /// Check if the build is completed
+    pub async fn completed(&self) -> Result<bool> {
+        self.builder.completed().await
     }
 }
 

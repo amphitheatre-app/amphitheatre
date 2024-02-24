@@ -68,6 +68,11 @@ impl Builder for KpackBuilder {
 
         Ok(())
     }
+
+    #[inline]
+    async fn completed(&self) -> Result<bool> {
+        image::completed(&self.k8s, &self.actor).await.map_err(Error::ResourceError)
+    }
 }
 
 impl KpackBuilder {
