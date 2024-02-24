@@ -19,6 +19,7 @@ use k8s_openapi::api::core::v1::{PersistentVolumeClaimVolumeSource, Pod, PodSpec
 use kube::api::{Patch, PatchParams, PostParams};
 use kube::core::ObjectMeta;
 use kube::{Api, Client, Resource, ResourceExt};
+use tracing::{debug, info};
 
 use crate::containers::syncer;
 use crate::error::{Error, Result};
@@ -40,7 +41,7 @@ pub async fn create(client: &Client, actor: &Actor) -> Result<Pod> {
 
     let resource = new(actor)?;
     let pod = api.create(&PostParams::default(), &resource).await.map_err(Error::KubeError)?;
-    tracing::info!("Created Pod: {}", pod.name_any());
+    info!("Created Pod: {}", pod.name_any());
 
     Ok(pod)
 }
@@ -51,21 +52,21 @@ pub async fn update(client: &Client, actor: &Actor) -> Result<Pod> {
     let name = format!("{}-syncer", actor.spec.name);
 
     let mut pod = api.get(&name).await.map_err(Error::KubeError)?;
-    tracing::debug!("The Pod {} already exists", &name);
+    debug!("The Pod {} already exists", &name);
 
     let expected_hash = hash(&actor.spec)?;
     let found_hash: String = pod.annotations().get(LAST_APPLIED_HASH_KEY).map_or("".into(), |v| v.into());
 
     if found_hash != expected_hash {
         let resource = new(actor)?;
-        tracing::debug!("The updating syncer pod resource:\n {:?}\n", resource);
+        debug!("The updating syncer pod resource:\n {:?}\n", resource);
 
         pod = api
             .patch(&name, &PatchParams::apply("amp-controllers").force(), &Patch::Apply(&resource))
             .await
             .map_err(Error::KubeError)?;
 
-        tracing::info!("Updated Pod: {}", pod.name_any());
+        info!("Updated Pod: {}", pod.name_any());
     }
 
     Ok(pod)
@@ -104,4 +105,27 @@ fn new(actor: &Actor) -> Result<Pod> {
         }),
         ..Default::default()
     })
+}
+
+pub async fn ready(client: &Client, actor: &Actor) -> Result<bool> {
+    debug!("Check If the syncer Pod is ready");
+
+    let namespace = actor.namespace().ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
+    let api: Api<Pod> = Api::namespaced(client.clone(), namespace.as_str());
+    let name = format!("{}-syncer", actor.spec.name);
+
+    let result = api.get_opt(&name).await.map_err(Error::KubeError)?;
+    if result.is_none() {
+        debug!("Not found Syncer {}", &name);
+        return Ok(false);
+    }
+
+    let pod = result.unwrap();
+    let status = pod.status.as_ref().ok_or_else(|| Error::MissingObjectKey(".status"))?;
+
+    if let Some(conditions) = &status.conditions {
+        return Ok(conditions.iter().any(|c| c.type_ == "Ready" && c.status == "True"));
+    }
+
+    Ok(false)
 }

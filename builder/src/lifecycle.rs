@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use crate::{errors::Error, Builder, Result};
 
@@ -36,6 +36,11 @@ impl LifecycleBuilder {
 
 #[async_trait]
 impl Builder for LifecycleBuilder {
+    // initialize the some resources before building
+    async fn prepare(&self) -> Result<Option<Duration>> {
+        Ok(None) // No need to wait
+    }
+
     async fn build(&self) -> Result<()> {
         let name = format!("{}-builder", &self.actor.spec.name);
         let pod = lifecycle::pod(&self.actor).map_err(Error::ResourceError)?;

@@ -13,6 +13,8 @@
 // limitations under the License.
 
 mod lifecycle;
+use std::time::Duration;
+
 pub use lifecycle::LifecycleBuilder;
 
 mod kaniko;
@@ -29,6 +31,7 @@ use async_trait::async_trait;
 /// Builder trait
 #[async_trait]
 pub trait Builder: Send + Sync {
+    async fn prepare(&self) -> Result<Option<Duration>>;
     async fn build(&self) -> Result<()>;
     async fn completed(&self) -> Result<bool>;
 }
@@ -47,6 +50,11 @@ impl BuildDirector {
     /// Change the builder
     pub fn set_builder(&mut self, builder: Box<dyn Builder>) {
         self.builder = builder;
+    }
+
+    /// Prepare the build
+    pub async fn prepare(&self) -> Result<Option<Duration>> {
+        self.builder.prepare().await
     }
 
     /// Execute the build logic

@@ -80,6 +80,11 @@ impl Task<Actor> for BuildTask {
             }
         };
 
+        // Prepare the build, initialize the some resources before building
+        if let Some(duration) = builder.prepare().await.map_err(Error::BuildError)? {
+            return Ok(Some(Intent::Action(Action::requeue(duration))));
+        }
+
         // Build the image
         builder.build().await.map_err(Error::BuildError)?;
 

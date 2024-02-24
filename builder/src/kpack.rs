@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use crate::{errors::Error, Builder, Result};
 
@@ -45,13 +45,29 @@ impl KpackBuilder {
 
 #[async_trait]
 impl Builder for KpackBuilder {
-    async fn build(&self) -> Result<()> {
-        // initialize the some resources before building
+    // initialize the some resources before building
+    async fn prepare(&self) -> Result<Option<Duration>> {
         self.try_init_pvc().await.map_err(Error::ResourceError)?;
-        self.try_init_syncer().await.map_err(Error::ResourceError)?;
-        self.try_init_buildpack().await.map_err(Error::ResourceError)?;
-        self.try_init_builder().await.map_err(Error::ResourceError)?;
 
+        // Check if the syncer is ready
+        if let Some(duration) = self.try_init_syncer().await.map_err(Error::ResourceError)? {
+            return Ok(Some(duration));
+        }
+
+        // Check if the buildpacks are ready
+        if let Some(duration) = self.try_init_buildpack().await.map_err(Error::ResourceError)? {
+            return Ok(Some(duration));
+        }
+
+        // Check if the builder is ready
+        if let Some(duration) = self.try_init_builder().await.map_err(Error::ResourceError)? {
+            return Ok(Some(duration));
+        }
+
+        Ok(None)
+    }
+
+    async fn build(&self) -> Result<()> {
         // Build or update the Image
         let name = format!("{}-builder", &self.actor.spec.name);
         match image::exists(&self.k8s, &self.actor).await.map_err(Error::ResourceError)? {
@@ -88,29 +104,33 @@ impl KpackBuilder {
         Ok(())
     }
 
-    async fn try_init_buildpack(&self) -> Result<(), amp_resources::error::Error> {
+    async fn try_init_buildpack(&self) -> Result<Option<Duration>, amp_resources::error::Error> {
         let buildpacks = self.actor.spec.character.buildpacks();
         if buildpacks.is_none() {
-            return Ok(());
+            return Ok(None);
         }
 
         for buildpack in buildpacks.unwrap() {
             if !cluster_buildpack::exists(&self.k8s, buildpack).await? {
                 cluster_buildpack::create(&self.k8s, buildpack).await?;
             }
+
+            if !cluster_buildpack::ready(&self.k8s, buildpack).await? {
+                return Ok(Some(Duration::from_secs(5))); // wait for the ClusterBuildpack to be ready
+            }
         }
 
-        Ok(())
+        Ok(None)
     }
 
-    async fn try_init_builder(&self) -> Result<(), amp_resources::error::Error> {
+    async fn try_init_builder(&self) -> Result<Option<Duration>, amp_resources::error::Error> {
         if !cluster_builder::exists(&self.k8s, &self.actor).await? {
             if !cluster_store::exists(&self.k8s, &self.actor).await? {
                 cluster_store::create(&self.k8s, &self.actor).await?;
             }
 
             if !cluster_store::ready(&self.k8s, &self.actor).await? {
-                return Ok(()); // wait for the ClusterStore to be ready
+                return Ok(Some(Duration::from_secs(5))); // wait for the ClusterStore to be ready
             }
 
             let mut order = Vec::new();
@@ -143,14 +163,26 @@ impl KpackBuilder {
             cluster_builder::create(&self.k8s, &self.actor, &tag, order).await?;
         }
 
-        Ok(())
+        if !cluster_builder::ready(&self.k8s, &self.actor).await? {
+            return Ok(Some(Duration::from_secs(5))); // wait for the ClusterBuilder to be ready
+        }
+
+        Ok(None)
     }
 
-    async fn try_init_syncer(&self) -> Result<(), amp_resources::error::Error> {
+    async fn try_init_syncer(&self) -> Result<Option<Duration>, amp_resources::error::Error> {
+        if !self.actor.spec.live {
+            return Ok(None);
+        }
+
         if !syncer::exists(&self.k8s, &self.actor).await? {
             syncer::create(&self.k8s, &self.actor).await?;
         }
 
-        Ok(())
+        if !syncer::ready(&self.k8s, &self.actor).await? {
+            return Ok(Some(Duration::from_secs(5))); // wait for the Syncer to be ready
+        }
+
+        Ok(None)
     }
 }
