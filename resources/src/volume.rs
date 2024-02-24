@@ -63,13 +63,14 @@ fn new(actor: &Actor) -> Result<PersistentVolumeClaim> {
             ..Default::default()
         },
         spec: Some(PersistentVolumeClaimSpec {
-            access_modes: Some(vec!["ReadWriteMany".into()]),
+            // @TODO: Make access modes configurable
+            access_modes: Some(vec![env::var("AMP_PV_ACCESS_MODE").unwrap_or("ReadWriteOnce".into())]),
             resources: Some(ResourceRequirements {
                 requests: Some(BTreeMap::from([("storage".into(), Quantity("1Gi".into()))])),
                 ..Default::default()
             }),
             // @TODO: Make storage class name configurable
-            storage_class_name: env::var("AMP_STORAGE_CLASS_NAME").ok(),
+            storage_class_name: env::var("AMP_PV_STORAGE_CLASS_NAME").ok(),
             volume_mode: Some("Filesystem".into()),
             ..Default::default()
         }),

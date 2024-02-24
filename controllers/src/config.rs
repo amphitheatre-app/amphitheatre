@@ -42,7 +42,11 @@ pub struct Config {
     #[clap(long, env = "AMP_NATS_URL")]
     pub nats_url: String,
 
-    /// The storage class name.
-    #[clap(long, env = "AMP_STORAGE_CLASS_NAME", default_value = "standard")]
-    pub storage_class_name: String,
+    /// Persistent Volume storage class name, the default is `standard`.
+    #[clap(long, env = "AMP_PV_STORAGE_CLASS_NAME", default_value = "standard")]
+    pub pv_storage_class_name: String,
+
+    /// Persistent Volume access mode, the default is `ReadWriteOnce`.
+    #[clap(long, env = "AMP_PV_ACCESS_MODE", default_value = "ReadWriteOnce")]
+    pub pv_access_mode: String,
 }

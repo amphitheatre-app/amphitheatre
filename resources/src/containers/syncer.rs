@@ -52,7 +52,6 @@ pub fn container(actor: &Actor, security_context: &Option<SecurityContext>) -> R
         ("once", once.as_str()),
     ];
 
-    // FIXME: get the syncer image from the config of context.
     Ok(Container {
         name: "syncer".to_string(),
         image: Some(DEFAULT_SYNCER_IMAGE.to_string()),
