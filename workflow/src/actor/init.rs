@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::time::Duration;
+
+use crate::actor::{BuildingState, DeployingState};
 use crate::errors::{Error, Result};
 use crate::{Context, Intent, State, Task};
 
@@ -20,10 +23,9 @@ use amp_common::resource::{Actor, ActorState};
 
 use amp_resources::actor;
 use async_trait::async_trait;
+use kube::runtime::controller::Action;
 use kube::ResourceExt;
 use tracing::{error, info, trace};
-
-use super::{BuildingState, DeployingState};
 
 pub struct InitialState;
 
@@ -35,16 +37,25 @@ impl State<Actor> for InitialState {
 
         // Check if InitTask should be executed
         let task = InitTask::new();
-        if !task.matches(ctx) {
-            return None;
+        if task.matches(ctx) {
+            match task.execute(ctx).await {
+                Ok(Some(intent)) => return Some(intent),
+                Err(err) => error!("Error during DeployTask execution: {}", err),
+                Ok(None) => {}
+            }
         }
 
-        let result = task.execute(ctx).await;
-        if let Err(err) = &result {
-            error!("Error during InitTask execution: {}", err);
+        // Transition to the building state if status of actor is building
+        if ctx.object.status.as_ref().is_some_and(|status| status.building()) {
+            return Some(Intent::State(Box::new(BuildingState)));
         }
 
-        result.ok().and_then(|intent| intent)
+        // Transition to the deploying state if status of actor is running
+        if ctx.object.status.as_ref().is_some_and(|status| status.running()) {
+            return Some(Intent::State(Box::new(DeployingState)));
+        }
+
+        None
     }
 }
 
@@ -68,13 +79,14 @@ impl Task<Actor> for InitTask {
         if actor.spec.live || !self.built(ctx).await? {
             let condition = ActorState::building();
             actor::patch_status(&ctx.k8s, &ctx.object, condition).await.map_err(Error::ResourceError)?;
-            Ok(Some(Intent::State(Box::new(BuildingState))))
         } else {
             // patch the status to running
             let condition = ActorState::running(true, "AutoRun", None);
             actor::patch_status(&ctx.k8s, &ctx.object, condition).await.map_err(Error::ResourceError)?;
-            Ok(Some(Intent::State(Box::new(DeployingState))))
         }
+
+        // Requeue immediately
+        Ok(Some(Intent::Action(Action::requeue(Duration::ZERO))))
     }
 }
 

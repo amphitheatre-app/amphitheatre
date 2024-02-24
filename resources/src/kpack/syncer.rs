@@ -123,8 +123,13 @@ pub async fn ready(client: &Client, actor: &Actor) -> Result<bool> {
     let pod = result.unwrap();
     let status = pod.status.as_ref().ok_or_else(|| Error::MissingObjectKey(".status"))?;
 
+    // Check if the Pod phase is Succeeded
+    if let Some(phase) = &status.phase {
+        return Ok(phase == "Succeeded");
+    }
+
     if let Some(conditions) = &status.conditions {
-        return Ok(conditions.iter().any(|c| c.type_ == "Ready" && c.status == "True"));
+        return Ok(conditions.iter().any(|c| c.type_ == "Running" && c.status == "True"));
     }
 
     Ok(false)
