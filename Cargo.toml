@@ -38,7 +38,7 @@ lazy_static = "1.4.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.116"
 serde_yaml = "0.9.34+deprecated"
-thiserror = "1.0.58"
+thiserror = "1.0.59"
 tokio = { version = "1.37.0", features = ["full"] }
 toml = "0.8.12"
 tracing = "0.1.40"
