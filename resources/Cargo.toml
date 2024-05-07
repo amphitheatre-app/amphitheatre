@@ -11,7 +11,7 @@ description = "K8s resources manager for the Amphitheatre platform"
 [dependencies]
 amp-common.workspace = true
 anyhow.workspace = true
-k8s-metrics = "0.15.0"
+k8s-metrics = { git = "https://github.com/amphitheatre-app/k8s-metrics-rs" }
 k8s-openapi.workspace = true
 kube.workspace = true
 lazy_static.workspace = true

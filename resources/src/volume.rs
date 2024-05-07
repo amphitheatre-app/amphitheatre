@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 use std::env;
 
 use amp_common::resource::Actor;
-use k8s_openapi::api::core::v1::{PersistentVolumeClaim, PersistentVolumeClaimSpec, ResourceRequirements};
+use k8s_openapi::api::core::v1::{PersistentVolumeClaim, PersistentVolumeClaimSpec, VolumeResourceRequirements};
 use k8s_openapi::apimachinery::pkg::api::resource::Quantity;
 use kube::api::PostParams;
 use kube::core::ObjectMeta;
@@ -65,7 +65,7 @@ fn new(actor: &Actor) -> Result<PersistentVolumeClaim> {
         spec: Some(PersistentVolumeClaimSpec {
             // @TODO: Make access modes configurable
             access_modes: Some(vec![env::var("AMP_PV_ACCESS_MODE").unwrap_or("ReadWriteOnce".into())]),
-            resources: Some(ResourceRequirements {
+            resources: Some(VolumeResourceRequirements {
                 requests: Some(BTreeMap::from([("storage".into(), Quantity("1Gi".into()))])),
                 ..Default::default()
             }),
