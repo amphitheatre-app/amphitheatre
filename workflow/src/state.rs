@@ -24,6 +24,7 @@ pub trait State<T>: Send + Sync {
 }
 
 #[cfg(test)]
+
 mod tests {
     use crate::Intent;
 
@@ -32,10 +33,11 @@ mod tests {
     use async_trait::async_trait;
     use kube::runtime::controller::Action;
 
+    #[allow(dead_code)]
+    struct TestState;
+
     #[test]
     fn test_impl_state_trait() {
-        struct TestState {}
-
         #[async_trait]
         impl State<()> for TestState {
             async fn handle(&self, _ctx: &Context<()>) -> Option<Intent<()>> {
