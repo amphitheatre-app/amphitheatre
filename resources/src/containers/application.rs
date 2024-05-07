@@ -22,7 +22,7 @@ pub fn container(spec: &ActorSpec) -> Container {
 
     // extract the env and ports from the deploy spec
     if let Some(deploy) = &spec.character.deploy {
-        environments = deploy.env().clone();
+        environments.clone_from(&deploy.env());
         container_ports = deploy.container_ports();
     }
 
