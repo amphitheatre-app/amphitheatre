@@ -87,7 +87,7 @@ pub async fn add(client: &Client, playbook: &Playbook, character: CharacterSpec)
 
     let mut characters: Vec<CharacterSpec> = vec![];
     if let Some(items) = &playbook.spec.characters {
-        characters = items.clone();
+        characters.clone_from(items);
     }
     characters.push(character);
 
