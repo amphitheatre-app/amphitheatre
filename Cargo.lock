@@ -103,8 +103,8 @@ dependencies = [
 
 [[package]]
 name = "amp-common"
-version = "0.8.1"
-source = "git+https://github.com/amphitheatre-app/common?tag=v0.8.1#d375db6b4e5a9e48bd4b561aa8b927d38e4ca3ea"
+version = "0.8.2"
+source = "git+https://github.com/amphitheatre-app/common?tag=v0.8.2#b560f0e938729a4cffb3ff9bdb9a7cb3ef8ed717"
 dependencies = [
  "anyhow",
  "chrono",
