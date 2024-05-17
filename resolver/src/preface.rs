@@ -22,10 +22,11 @@ use kube::Client as KubeClient;
 /// Load manifest from different sources and return the actor spec.
 pub async fn load(client: &KubeClient, credentials: &Credentials, preface: &Preface) -> Result<CharacterSpec> {
     if let Some(p) = &preface.registry {
+        let name = preface.name.as_ref().ok_or(ResolveError::NameNotSet)?;
         let registry = p.registry.clone().unwrap_or_else(|| "catalog".to_string());
         return match registry.as_str() {
-            "catalog" => load_from_catalog(credentials, &preface.name, &p.version),
-            "hub" => load_from_cluster(client, &preface.name).await,
+            "catalog" => load_from_catalog(credentials, name, &p.version),
+            "hub" => load_from_cluster(client, name).await,
             x => Err(ResolveError::UnknownCharacterRegistry(x.to_string())),
         };
     }

@@ -58,6 +58,9 @@ pub enum ResolveError {
 
     #[error("SourceNotSet")]
     SourceNotSet,
+
+    #[error("NameNotSet")]
+    NameNotSet,
 }
 
 pub type Result<T, E = ResolveError> = std::result::Result<T, E>;
