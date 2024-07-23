@@ -40,7 +40,7 @@ serde_json = "1.0.120"
 serde_yaml = "0.9.34+deprecated"
 thiserror = "1.0.62"
 tokio = { version = "1.38.0", features = ["full"] }
-toml = "0.8.14"
+toml = "0.8.15"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = "2.5.2"
