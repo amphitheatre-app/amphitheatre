@@ -29,7 +29,7 @@ amp-workflow = { path = "workflow" }
 anyhow = "1.0.86"
 async-nats = "0.35.1"
 async-trait = "0.1.81"
-clap = { version = "4.5.11", features = ["derive", "env"] }
+clap = { version = "4.5.13", features = ["derive", "env"] }
 dotenv = "0.15.0"
 futures = "0.3.30"
 k8s-openapi = { version = "0.22.0", default-features = false, features = ["schemars", "v1_30"] }
