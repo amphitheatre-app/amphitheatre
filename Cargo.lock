@@ -1527,9 +1527,9 @@ dependencies = [
 
 [[package]]
 name = "k8s-metrics"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed075040b76b2c7be32e40d347eed2ba3f5ca1ba88b01db8671076c7d8f55aee"
+checksum = "b2d48584b6a436445fa9dadc06beecd2ccc52c57606249d5f21f183e65af7598"
 dependencies = [
  "go-parse-duration",
  "k8s-openapi",
