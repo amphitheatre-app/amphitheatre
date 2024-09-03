@@ -17,7 +17,7 @@ use std::sync::Arc;
 use amp_common::resource::Playbook;
 use amp_resources::playbook::delete;
 use chrono::{DateTime, Duration, TimeDelta, Utc};
-use futures::{StreamExt, TryStreamExt};
+use futures::{future, StreamExt};
 use kube::Client;
 use kube::{
     runtime::{reflector, watcher, WatchStreamExt},
@@ -53,7 +53,7 @@ pub async fn new(ctx: &Arc<Context>) {
     let api = Api::<Playbook>::all(client.clone());
     let config = watcher::Config::default();
     let (reader, writer) = reflector::store();
-    let mut obs = watcher(api, config).reflect(writer).applied_objects().boxed();
+    let rf = reflector(writer, watcher(api, config));
 
     tokio::spawn(async move {
         if let Err(e) = reader.wait_until_ready().await {
@@ -70,16 +70,11 @@ pub async fn new(ctx: &Arc<Context>) {
             tokio::time::sleep(std::time::Duration::from_secs(5 * 60)).await;
         }
     });
-        loop {
-            match obs.try_next().await {
-                Ok(Some(s)) => info!("The {} playbook has been changed.", s.spec.title),
-                Ok(None) => continue,
-                Err(e) => {
-                    error!("Resolve namespace stream failed: {}", e.to_string());
-                    continue;
-                }
-            }
-        }
+
+    rf.applied_objects()
+        .for_each(|_| future::ready(()))
+        .await;
+    
 }
 
 async fn handle(playbook: &Playbook, client: &Client) -> anyhow::Result<()> {
