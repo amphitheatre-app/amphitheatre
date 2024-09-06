@@ -33,7 +33,7 @@ enum Strategy {
     Expired,
 
     /// Handling the retention of the playbook.
-    Remain(TimeDelta)
+    Remain(TimeDelta),
 }
 
 // Implement the From trait for Strategy.
@@ -71,10 +71,7 @@ pub async fn new(ctx: &Arc<Context>) {
         }
     });
 
-    rf.applied_objects()
-        .for_each(|_| future::ready(()))
-        .await;
-    
+    rf.applied_objects().for_each(|_| future::ready(())).await;
 }
 
 async fn handle(playbook: &Playbook, client: &Client) -> anyhow::Result<()> {
@@ -93,12 +90,12 @@ async fn handle(playbook: &Playbook, client: &Client) -> anyhow::Result<()> {
                     if let Some(name) = &playbook.metadata.name {
                         delete(client, name).await?;
                     }
-                },
+                }
                 Strategy::Remain(time) => {
-                    if time == Duration::days(3)  {
+                    if time == Duration::days(3) {
                         send_message().await;
                     }
-                },
+                }
             }
         }
     }
