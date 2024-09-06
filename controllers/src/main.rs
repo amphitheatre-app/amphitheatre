@@ -58,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
         _ = actor_controller::new(&ctx) => tracing::warn!("actor controller exited"),
         _ = credentials_watcher::new(&ctx) => tracing::warn!("credentials watcher exited"),
         _ = namespace_watcher::new(&ctx) => tracing::warn!("namespace watcher exited"),
-        _ = timeout_controller::new(&ctx) => tracing::warn!("timeout_controller exited")
+        _ = timeout_controller::new(&ctx) => tracing::warn!("timeout controller exited")
     }
 
     Ok(())

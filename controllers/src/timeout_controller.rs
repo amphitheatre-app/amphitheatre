@@ -60,7 +60,7 @@ pub async fn new(ctx: &Arc<Context>) {
             error!("Failed to wait until ready: {:?}", e);
             return;
         }
-        info!("Timeout_controller is running...");
+        info!("Timeout controller is running...");
         loop {
             for p in reader.state() {
                 if let Err(err) = handle(p.as_ref(), &client).await {
@@ -95,7 +95,7 @@ async fn handle(playbook: &Playbook, client: &Client) -> anyhow::Result<()> {
                     }
                 },
                 Strategy::Remain(time) => {
-                    if time <= Duration::days(3)  {
+                    if time == Duration::days(3)  {
                         send_message().await;
                     }
                 },
