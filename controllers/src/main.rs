@@ -32,6 +32,7 @@ mod actor_controller;
 mod credentials_watcher;
 mod namespace_watcher;
 mod playbook_controller;
+mod timeout_controller;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -57,6 +58,7 @@ async fn main() -> anyhow::Result<()> {
         _ = actor_controller::new(&ctx) => tracing::warn!("actor controller exited"),
         _ = credentials_watcher::new(&ctx) => tracing::warn!("credentials watcher exited"),
         _ = namespace_watcher::new(&ctx) => tracing::warn!("namespace watcher exited"),
+        _ = timeout_controller::new(&ctx) => tracing::warn!("timeout controller exited")
     }
 
     Ok(())
