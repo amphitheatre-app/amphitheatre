@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.9.0"
+version = "0.9.1"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/amphitheatre-app/amphitheatre"
@@ -22,18 +22,18 @@ members = [
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
 [workspace.dependencies]
 amp-builder = { path = "builder" }
-amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.9.0" }
+amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.9.1" }
 amp-resolver = { path = "resolver" }
 amp-resources = { path = "resources" }
 amp-workflow = { path = "workflow" }
 anyhow = "1.0.86"
-async-nats = "0.35.1"
+async-nats = "0.36.0"
 async-trait = "0.1.82"
 clap = { version = "4.5.16", features = ["derive", "env"] }
 dotenv = "0.15.0"
 futures = "0.3.30"
-k8s-openapi = { version = "0.22.0", default-features = false, features = ["schemars", "v1_30"] }
-kube = { version = "0.91.0", default-features = false, features = ["runtime", "derive", "rustls-tls"] }
+k8s-openapi = { version = "0.22.0", default-features = false, features = ["schemars", "latest"] }
+kube = { version = "0.93.1", default-features = false, features = ["runtime", "derive", "rustls-tls"] }
 lazy_static = "1.5.0"
 serde = { version = "1.0.209", features = ["derive"] }
 serde_json = "1.0.127"
