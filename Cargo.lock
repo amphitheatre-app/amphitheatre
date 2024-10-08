@@ -72,7 +72,7 @@ dependencies = [
  "clap",
  "dotenv",
  "futures",
- "k8s-openapi",
+ "k8s-openapi 0.22.0",
  "kube",
  "serde",
  "serde_json",
@@ -113,7 +113,7 @@ dependencies = [
  "data-encoding",
  "dirs",
  "json_comments",
- "k8s-openapi",
+ "k8s-openapi 0.22.0",
  "kube",
  "notify",
  "oci-distribution",
@@ -142,7 +142,7 @@ dependencies = [
  "clap",
  "dotenv",
  "futures",
- "k8s-openapi",
+ "k8s-openapi 0.22.0",
  "kube",
  "thiserror",
  "tokio",
@@ -183,7 +183,7 @@ dependencies = [
  "amp-common",
  "anyhow",
  "k8s-metrics",
- "k8s-openapi",
+ "k8s-openapi 0.22.0",
  "kube",
  "lazy_static",
  "serde",
@@ -223,7 +223,7 @@ dependencies = [
  "anyhow",
  "async-nats",
  "async-trait",
- "k8s-openapi",
+ "k8s-openapi 0.22.0",
  "kube",
  "thiserror",
  "tokio",
@@ -1594,12 +1594,12 @@ dependencies = [
 
 [[package]]
 name = "k8s-metrics"
-version = "0.18.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2d48584b6a436445fa9dadc06beecd2ccc52c57606249d5f21f183e65af7598"
+checksum = "12edd69831a2b5ad5b6185359fde01286bb3e0ed999b337a47b08912f99f9973"
 dependencies = [
  "go-parse-duration",
- "k8s-openapi",
+ "k8s-openapi 0.23.0",
  "serde",
  "thiserror",
 ]
@@ -1613,6 +1613,19 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "schemars",
+ "serde",
+ "serde-value",
+ "serde_json",
+]
+
+[[package]]
+name = "k8s-openapi"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c8847402328d8301354c94d605481f25a6bdc1ed65471fd96af8eca71141b13"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
  "serde",
  "serde-value",
  "serde_json",
@@ -1644,7 +1657,7 @@ version = "0.93.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0365920075af1a2d23619c1ca801c492f2400157de42627f041a061716e76416"
 dependencies = [
- "k8s-openapi",
+ "k8s-openapi 0.22.0",
  "kube-client",
  "kube-core",
  "kube-derive",
@@ -1672,7 +1685,7 @@ dependencies = [
  "hyper-timeout",
  "hyper-util",
  "jsonpath-rust",
- "k8s-openapi",
+ "k8s-openapi 0.22.0",
  "kube-core",
  "pem",
  "rustls 0.23.5",
@@ -1699,7 +1712,7 @@ dependencies = [
  "form_urlencoded",
  "http",
  "json-patch",
- "k8s-openapi",
+ "k8s-openapi 0.22.0",
  "schemars",
  "serde",
  "serde_json",
@@ -1735,7 +1748,7 @@ dependencies = [
  "hashbrown",
  "json-patch",
  "jsonptr",
- "k8s-openapi",
+ "k8s-openapi 0.22.0",
  "kube-client",
  "parking_lot",
  "pin-project",
