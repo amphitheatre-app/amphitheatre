@@ -28,6 +28,8 @@ use kube::Api;
 use tokio_stream::StreamExt as _;
 use uuid::Uuid;
 
+use amp_common::resource::PlaybookSpec;
+
 use super::Result;
 use crate::context::Context;
 use crate::requests::playbook::{CreatePlaybookRequest, UpdatePlaybookRequest};
