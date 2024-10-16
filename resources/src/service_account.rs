@@ -38,7 +38,7 @@ pub async fn patch(
 
     let mut image_pull_secrets = account.image_pull_secrets.map_or(vec![], |v| v);
     let image_pull_secret_names: HashSet<String> =
-        HashSet::from_iter(image_pull_secrets.iter().map(|s| s.name.clone().unwrap()));
+        HashSet::from_iter(image_pull_secrets.iter().map(|s| s.name.clone()));
 
     for secret in new_secrets {
         let secret_name = secret.name_any();
@@ -50,7 +50,7 @@ pub async fn patch(
 
         // Append to original image pull secrets.
         if append_to_image_pull_secret && !image_pull_secret_names.contains(&secret_name) {
-            image_pull_secrets.push(LocalObjectReference { name: Some(secret_name.clone()) });
+            image_pull_secrets.push(LocalObjectReference { name: secret_name.clone() });
         }
     }
 

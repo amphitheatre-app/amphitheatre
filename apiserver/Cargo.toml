@@ -17,7 +17,7 @@ amp-common.workspace = true
 amp-resources.workspace = true
 anyhow.workspace = true
 async-nats.workspace = true
-axum = { version = "0.7.7" }
+axum.workspace = true
 clap.workspace = true
 dotenv.workspace = true
 futures.workspace = true
@@ -26,11 +26,11 @@ kube.workspace = true
 serde_json.workspace = true
 serde.workspace = true
 thiserror.workspace = true
-tokio-stream = "0.1"
+tokio-stream.workspace = true
 tokio.workspace = true
-tower-http = { version = "0.6.1", features = ["full"] }
+tower-http.workspace = true
 tracing-subscriber.workspace = true
 tracing.workspace = true
-utoipa = { version = "4.1.0", features = ["axum_extras", "uuid", "chrono"] }
-utoipa-swagger-ui = { version = "7.1.0", features = ["axum", "reqwest"] }
-uuid = { version = "1.10.0", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
+utoipa-swagger-ui.workspace = true
+utoipa.workspace = true
+uuid.workspace = true
