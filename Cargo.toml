@@ -52,6 +52,6 @@ tower-http = { version = "0.6.1", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = "2.5.2"
-utoipa = { version = "5.0.0", features = ["axum_extras", "uuid", "chrono", "macros"] }
+utoipa = { version = "5.1.1", features = ["axum_extras", "uuid", "chrono", "macros"] }
 utoipa-swagger-ui = { version = "8.0.0", features = ["axum", "reqwest"] }
 uuid = { version = "1.11.0", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
