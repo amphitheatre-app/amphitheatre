@@ -54,4 +54,4 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = "2.5.2"
 utoipa = { version = "5.0.0", features = ["axum_extras", "uuid", "chrono", "macros"] }
 utoipa-swagger-ui = { version = "8.0.0", features = ["axum", "reqwest"] }
-uuid = { version = "1.10.0", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
+uuid = { version = "1.11.0", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
