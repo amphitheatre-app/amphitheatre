@@ -44,7 +44,7 @@ serde_yaml = "0.9.34+deprecated"
 sha2 = "0.10.8"
 tar = "0.4.42"
 tempfile = "3.13.0"
-thiserror = "1.0.64"
+thiserror = "1.0.65"
 tokio = { version = "1.40.0", features = ["full"] }
 tokio-stream = "0.1"
 toml = "0.8.15"
