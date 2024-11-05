@@ -42,7 +42,7 @@ serde = { version = "1.0.214", features = ["derive"] }
 serde_json = "1.0.132"
 serde_yaml = "0.9.34+deprecated"
 sha2 = "0.10.8"
-tar = "0.4.42"
+tar = "0.4.43"
 tempfile = "3.13.0"
 thiserror = "1.0.67"
 tokio = { version = "1.41.0", features = ["full"] }
