@@ -26,7 +26,7 @@ amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.9.4
 amp-resolver = { path = "resolver" }
 amp-resources = { path = "resources" }
 amp-workflow = { path = "workflow" }
-anyhow = "1.0.92"
+anyhow = "1.0.93"
 async-nats = "0.37.0"
 async-trait = "0.1.83"
 axum = { version = "0.7.7" }
