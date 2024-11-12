@@ -43,7 +43,7 @@ serde_json = "1.0.132"
 serde_yaml = "0.9.34+deprecated"
 sha2 = "0.10.8"
 tar = "0.4.43"
-tempfile = "3.13.0"
+tempfile = "3.14.0"
 thiserror = "1.0.69"
 tokio = { version = "1.41.0", features = ["full"] }
 tokio-stream = "0.1"
