@@ -29,7 +29,7 @@ amp-workflow = { path = "workflow" }
 anyhow = "1.0.93"
 async-nats = "0.37.0"
 async-trait = "0.1.83"
-axum = { version = "0.7.7" }
+axum = { version = "0.7.9" }
 chrono = "0.4.38"
 clap = { version = "4.5.19", features = ["derive", "env"] }
 dotenv = "0.15.0"
