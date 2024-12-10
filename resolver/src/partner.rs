@@ -32,11 +32,11 @@ pub async fn load(
     match partner {
         Partner::Registry(p) => {
             let registry = p.registry.clone().unwrap_or_else(|| "catalog".to_string());
-            return match registry.as_str() {
+            match registry.as_str() {
                 "catalog" => load_from_catalog(credentials, name, &p.version),
                 "hub" => load_from_cluster(client, name).await,
                 x => Err(ResolveError::UnknownCharacterRegistry(x.to_string())),
-            };
+            }
         }
 
         Partner::Repository(reference) => load_from_source(credentials, reference),

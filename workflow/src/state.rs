@@ -36,13 +36,10 @@ mod tests {
     #[allow(dead_code)]
     struct TestState;
 
-    #[test]
-    fn test_impl_state_trait() {
-        #[async_trait]
-        impl State<()> for TestState {
-            async fn handle(&self, _ctx: &Context<()>) -> Option<Intent<()>> {
-                Some(Intent::Action(Action::await_change()))
-            }
+    #[async_trait]
+    impl State<()> for TestState {
+        async fn handle(&self, _ctx: &Context<()>) -> Option<Intent<()>> {
+            Some(Intent::Action(Action::await_change()))
         }
     }
 }
