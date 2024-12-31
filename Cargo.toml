@@ -22,7 +22,7 @@ members = [
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
 [workspace.dependencies]
 amp-builder = { path = "builder" }
-amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.9.4" }
+amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.9.5" }
 amp-resolver = { path = "resolver" }
 amp-resources = { path = "resources" }
 amp-workflow = { path = "workflow" }
