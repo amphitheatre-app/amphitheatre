@@ -50,7 +50,7 @@ tokio-stream = "0.1"
 toml = "0.8.15"
 tower-http = { version = "0.6.2", features = ["full"] }
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 url = "2.5.4"
 utoipa = { version = "5.3.0", features = ["axum_extras", "uuid", "chrono", "macros"] }
 utoipa-swagger-ui = { version = "8.1.0", features = ["axum", "reqwest"] }
