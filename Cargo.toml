@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.9.3"
+version = "0.9.4"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/amphitheatre-app/amphitheatre"
@@ -22,14 +22,14 @@ members = [
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
 [workspace.dependencies]
 amp-builder = { path = "builder" }
-amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.9.5" }
+amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.9.6" }
 amp-resolver = { path = "resolver" }
 amp-resources = { path = "resources" }
 amp-workflow = { path = "workflow" }
 anyhow = "1.0.95"
 async-nats = "0.38.0"
 async-trait = "0.1.85"
-axum = { version = "0.7.9" }
+axum = { version = "0.8.1" }
 chrono = "0.4.39"
 clap = { version = "4.5.26", features = ["derive", "env"] }
 dotenv = "0.15.0"
@@ -53,5 +53,5 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 url = "2.5.4"
 utoipa = { version = "5.3.1", features = ["axum_extras", "uuid", "chrono", "macros"] }
-utoipa-swagger-ui = { version = "8.1.0", features = ["axum", "reqwest"] }
+utoipa-swagger-ui = { version = "9.0.0", features = ["axum", "reqwest"] }
 uuid = { version = "1.11.1", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
