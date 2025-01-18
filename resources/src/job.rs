@@ -108,7 +108,7 @@ pub async fn completed(client: &Client, actor: &Actor) -> Result<bool> {
 
     if let Ok(Some(job)) = api.get_opt(&name).await {
         tracing::debug!("Found Job {}", &name);
-        Ok(job.status.map_or(false, |s| s.succeeded >= Some(1)))
+        Ok(job.status.is_some_and(|s| s.succeeded >= Some(1)))
     } else {
         tracing::debug!("Not found Job {}", &name);
         Ok(false)
