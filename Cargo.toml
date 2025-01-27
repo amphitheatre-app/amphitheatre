@@ -31,7 +31,7 @@ async-nats = "0.38.0"
 async-trait = "0.1.85"
 axum = { version = "0.8.1" }
 chrono = "0.4.39"
-clap = { version = "4.5.26", features = ["derive", "env"] }
+clap = { version = "4.5.27", features = ["derive", "env"] }
 dotenv = "0.15.0"
 futures = "0.3.31"
 k8s-metrics = "0.20.0"
