@@ -78,14 +78,14 @@ impl RunTask {
                     // Actor already exists, update it if there are new changes
                     info!("Try to refresh an existing Actor {}", name);
 
-                    let spec = to_actor(character, &credentials).map_err(Error::ResolveError)?;
+                    let spec = to_actor(character, &credentials).await.map_err(Error::ResolveError)?;
                     actor::update(&ctx.k8s, playbook, &spec).await.map_err(Error::ResourceError)?;
                 }
                 false => {
                     // Create a new actor
                     info!("Create new Actor: {}", name);
 
-                    let spec = to_actor(character, &credentials).map_err(Error::ResolveError)?;
+                    let spec = to_actor(character, &credentials).await.map_err(Error::ResolveError)?;
                     actor::create(&ctx.k8s, playbook, &spec).await.map_err(Error::ResourceError)?;
                 }
             }

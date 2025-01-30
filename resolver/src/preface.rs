@@ -25,14 +25,14 @@ pub async fn load(client: &KubeClient, credentials: &Credentials, preface: &Pref
         let name = preface.name.as_ref().ok_or(ResolveError::NameNotSet)?;
         let registry = p.registry.clone().unwrap_or_else(|| "catalog".to_string());
         return match registry.as_str() {
-            "catalog" => load_from_catalog(credentials, name, &p.version),
+            "catalog" => load_from_catalog(credentials, name, &p.version).await,
             "hub" => load_from_cluster(client, name).await,
             x => Err(ResolveError::UnknownCharacterRegistry(x.to_string())),
         };
     }
 
     if let Some(reference) = &preface.repository {
-        return load_from_source(credentials, reference);
+        return load_from_source(credentials, reference).await;
     }
 
     if let Some(manifest) = &preface.manifest {

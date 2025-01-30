@@ -22,7 +22,7 @@ use amp_common::{
 };
 use kube::Client as KubeClient;
 
-/// Load mainfest from different sources and return the actor spec.
+/// Load manifest from different sources and return the actor spec.
 pub async fn load(
     client: &KubeClient,
     credentials: &Credentials,
@@ -33,13 +33,13 @@ pub async fn load(
         Partner::Registry(p) => {
             let registry = p.registry.clone().unwrap_or_else(|| "catalog".to_string());
             match registry.as_str() {
-                "catalog" => load_from_catalog(credentials, name, &p.version),
+                "catalog" => load_from_catalog(credentials, name, &p.version).await,
                 "hub" => load_from_cluster(client, name).await,
                 x => Err(ResolveError::UnknownCharacterRegistry(x.to_string())),
             }
         }
 
-        Partner::Repository(reference) => load_from_source(credentials, reference),
+        Partner::Repository(reference) => load_from_source(credentials, reference).await,
         _ => Err(ResolveError::UnsupportedPartner),
     }
 }

@@ -21,7 +21,7 @@ use tracing::debug;
 use crate::errors::{ResolveError, Result};
 use crate::utils;
 
-pub fn source(client: &Client, source: &GitReference) -> Result<GitReference> {
+pub async fn source(client: &Client, source: &GitReference) -> Result<GitReference> {
     let mut actual = source.clone();
 
     // Return it if revision was provided.
@@ -42,7 +42,8 @@ pub fn source(client: &Client, source: &GitReference) -> Result<GitReference> {
     } else if let Some(branch) = &actual.branch {
         reference = branch.to_string();
     } else {
-        let repository = client.repositories().find(&repo).map_err(|e| ResolveError::FetchingError(e.to_string()))?;
+        let repository =
+            client.repositories().find(&repo).await.map_err(|e| ResolveError::FetchingError(e.to_string()))?;
         reference = repository.unwrap().branch;
 
         // Save it for other purposes,
@@ -51,7 +52,7 @@ pub fn source(client: &Client, source: &GitReference) -> Result<GitReference> {
     }
 
     // Get its real latest revision according to the reference
-    let commit = client.git().find_commit(&repo, &reference).unwrap();
+    let commit = client.git().find_commit(&repo, &reference).await.unwrap();
     actual.rev = Some(commit.unwrap().sha);
 
     Ok(actual)

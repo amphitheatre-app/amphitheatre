@@ -30,27 +30,28 @@ pub mod utils;
 const CATALOG_REPO_URL: &str = "https://github.com/amphitheatre-app/catalog.git";
 
 /// Load manifest from catalog and return the actor spec.
-pub fn load_from_catalog(credentials: &Credentials, name: &str, version: &str) -> Result<CharacterSpec> {
+pub async fn load_from_catalog(credentials: &Credentials, name: &str, version: &str) -> Result<CharacterSpec> {
     let reference = GitReference {
         repo: CATALOG_REPO_URL.to_string(),
         path: Some(format!("characters/{}/{}/amp.toml", name, version)),
         ..GitReference::default()
     };
     debug!("Loading character from catalog: {:?}", reference);
-    load_from_source(credentials, &reference)
+    load_from_source(credentials, &reference).await
 }
 
 /// Load manifest from remote VCS (like github) and return the actor spec.
-pub fn load_from_source(credentials: &Credentials, reference: &GitReference) -> Result<CharacterSpec> {
+pub async fn load_from_source(credentials: &Credentials, reference: &GitReference) -> Result<CharacterSpec> {
     let client = ScmClient::init(credentials, &reference.repo).map_err(ResolveError::SCMError)?;
 
-    let reference = patches::source(&client, reference)?;
+    let reference = patches::source(&client, reference).await?;
     let path = reference.path.clone().unwrap_or(".amp.toml".into());
     let repo = utils::repo(&reference.repo)?;
 
     let content = client
         .contents()
         .find(&repo, &path, &reference.rev())
+        .await
         .map_err(|e| ResolveError::FetchingError(e.to_string()))?;
     let data = std::str::from_utf8(&content.data).map_err(ResolveError::ConvertBytesError)?;
     debug!("The `.amp.toml` content of {} is:\n{:?}", repo, data);
@@ -66,7 +67,7 @@ pub async fn load_from_cluster(client: &KubeClient, name: &str) -> Result<Charac
 }
 
 /// Read Character manifest and return the actor spec.
-pub fn to_actor(character: &CharacterSpec, credentials: &Credentials) -> Result<ActorSpec> {
+pub async fn to_actor(character: &CharacterSpec, credentials: &Credentials) -> Result<ActorSpec> {
     let repo = &character.meta.repository;
     let client = ScmClient::init(credentials, repo).map_err(ResolveError::SCMError)?;
 
@@ -82,7 +83,7 @@ pub fn to_actor(character: &CharacterSpec, credentials: &Credentials) -> Result<
     if !actor.live {
         let source = actor.source.as_ref().ok_or(ResolveError::SourceNotSet)?;
         actor.image = patches::image(credentials, &actor, &source.rev())?;
-        actor.source = Some(patches::source(&client, source)?);
+        actor.source = Some(patches::source(&client, source).await?);
     } else {
         // Set the tag to `live` if the actor is live.
         actor.image = patches::image(credentials, &actor, "live")?;
