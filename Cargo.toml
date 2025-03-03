@@ -30,7 +30,7 @@ anyhow = "1.0.96"
 async-nats = "0.38.0"
 async-trait = "0.1.86"
 axum = { version = "0.8.1" }
-chrono = "0.4.39"
+chrono = "0.4.40"
 clap = { version = "4.5.31", features = ["derive", "env"] }
 dotenv = "0.15.0"
 futures = "0.3.31"
