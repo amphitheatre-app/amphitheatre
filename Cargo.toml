@@ -28,7 +28,7 @@ amp-resources = { path = "resources" }
 amp-workflow = { path = "workflow" }
 anyhow = "1.0.97"
 async-nats = "0.38.0"
-async-trait = "0.1.86"
+async-trait = "0.1.87"
 axum = { version = "0.8.1" }
 chrono = "0.4.40"
 clap = { version = "4.5.31", features = ["derive", "env"] }
