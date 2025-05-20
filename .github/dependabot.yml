@@ -11,7 +11,12 @@ updates:
       interval: "weekly"
     labels:
       - "dependencies"
-  
+    groups:
+      kube:
+        patterns:
+          - kube
+          - k8s-openapi
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

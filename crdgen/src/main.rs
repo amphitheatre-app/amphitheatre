@@ -89,7 +89,7 @@ fn generate<T>(dir: Option<&Path>, filename: &str, data: &T)
 where
     T: ?Sized + Serialize,
 {
-    let definition = serde_yaml::to_string(data).unwrap();
+    let definition = serde_yml::to_string(data).unwrap();
 
     if let Some(dir) = dir {
         write(&dir.join(filename), definition);

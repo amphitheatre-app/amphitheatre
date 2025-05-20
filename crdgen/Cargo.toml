@@ -12,7 +12,7 @@ description = "Generate CRDs for the Amphitheatre platform"
 amp-common.workspace = true
 clap.workspace = true
 kube.workspace = true
-serde_yaml.workspace = true
+serde_yml.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
