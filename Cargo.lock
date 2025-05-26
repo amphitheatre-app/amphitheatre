@@ -62,7 +62,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "amp-apiserver"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -89,7 +89,7 @@ dependencies = [
 
 [[package]]
 name = "amp-builder"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -133,7 +133,7 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -155,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "amp-crdgen"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "amp-common",
  "clap",
@@ -167,7 +167,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -180,7 +180,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "amp-common",
  "anyhow",
@@ -200,7 +200,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "amp-common",
  "async-nats",
@@ -216,7 +216,7 @@ dependencies = [
 
 [[package]]
 name = "amp-workflow"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "amp-builder",
  "amp-common",
@@ -1749,7 +1749,7 @@ dependencies = [
 [[package]]
 name = "k8s-metrics"
 version = "0.20.0"
-source = "git+https://github.com/amphitheatre-app/k8s-metrics-rs#8db4d8d5a05a3f135de0cff86099c8da2e3a4665"
+source = "git+https://github.com/amphitheatre-app/k8s-metrics-rs#40d47984f1dfb11f7861e5dec323cc6800f921bd"
 dependencies = [
  "go-parse-duration",
  "k8s-openapi",
