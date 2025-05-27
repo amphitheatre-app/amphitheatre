@@ -1750,7 +1750,7 @@ dependencies = [
 [[package]]
 name = "k8s-metrics"
 version = "0.20.0"
-source = "git+https://github.com/amphitheatre-app/k8s-metrics-rs#8db4d8d5a05a3f135de0cff86099c8da2e3a4665"
+source = "git+https://github.com/amphitheatre-app/k8s-metrics-rs#40d47984f1dfb11f7861e5dec323cc6800f921bd"
 dependencies = [
  "go-parse-duration",
  "k8s-openapi",
