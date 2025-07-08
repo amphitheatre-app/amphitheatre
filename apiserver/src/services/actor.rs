@@ -30,13 +30,13 @@ pub struct ActorService;
 
 impl ActorService {
     pub async fn get(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<ActorSpec> {
-        let actor = actor::get(&ctx.k8s, &format!("amp-{}", pid), &name).await.map_err(ApiError::ResourceError)?;
+        let actor = actor::get(&ctx.k8s, &format!("amp-{pid}"), &name).await.map_err(ApiError::ResourceError)?;
 
         Ok(actor.spec)
     }
 
     pub async fn list(ctx: Arc<Context>, pid: Uuid) -> Result<Vec<ActorSpec>> {
-        let actors = actor::list(&ctx.k8s, &format!("amp-{}", pid)).await.map_err(ApiError::ResourceError)?;
+        let actors = actor::list(&ctx.k8s, &format!("amp-{pid}")).await.map_err(ApiError::ResourceError)?;
         Ok(actors.iter().map(|actor| actor.spec.clone()).collect())
     }
 
@@ -60,7 +60,7 @@ impl ActorService {
             .await?;
 
         // Publish a message to the stream
-        let subject = format!("{}.{}", pid, name);
+        let subject = format!("{pid}.{name}");
         let payload = serde_json::to_vec(&req)?;
         jetstream.publish(subject, payload.into()).await?.await?;
 
@@ -68,8 +68,7 @@ impl ActorService {
     }
 
     pub async fn stats(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<HashMap<String, String>> {
-        let metrics =
-            actor::metrics(&ctx.k8s, &format!("amp-{}", pid), &name).await.map_err(ApiError::ResourceError)?;
+        let metrics = actor::metrics(&ctx.k8s, &format!("amp-{pid}"), &name).await.map_err(ApiError::ResourceError)?;
 
         // Just return the metrics for name
         let container = metrics.containers.iter().find(|c| c.name == name).ok_or_else(|| {
@@ -85,7 +84,7 @@ impl ActorService {
     }
 
     pub async fn info(ctx: Arc<Context>, pid: Uuid, name: String) -> Result<HashMap<String, HashMap<String, String>>> {
-        let actor = actor::get(&ctx.k8s, &format!("amp-{}", pid), &name).await.map_err(ApiError::ResourceError)?;
+        let actor = actor::get(&ctx.k8s, &format!("amp-{pid}"), &name).await.map_err(ApiError::ResourceError)?;
 
         let mut info = HashMap::new();
         if let Some(deploy) = actor.spec.character.deploy {

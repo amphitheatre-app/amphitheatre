@@ -24,7 +24,6 @@ pub trait State<T>: Send + Sync {
 }
 
 #[cfg(test)]
-
 mod tests {
     use crate::Intent;
 

@@ -52,7 +52,7 @@ fn main() {
     // Print the names of the custom resource definition sorted by name.
     if args.list {
         for name in all_names {
-            println!("{}", name);
+            println!("{name}");
         }
         return;
     }
@@ -63,7 +63,7 @@ fn main() {
     // Check the names are valid.
     for name in &names {
         if !mappings.contains_key(name) {
-            eprintln!("The given name is not valid: {}", name);
+            eprintln!("The given name is not valid: {name}");
             std::process::exit(1);
         }
     }
@@ -94,7 +94,7 @@ where
     if let Some(dir) = dir {
         write(&dir.join(filename), definition);
     } else {
-        println!("{}\n---\n", definition);
+        println!("{definition}\n---\n");
     }
 }
 
@@ -105,8 +105,8 @@ fn write(path: &Path, data: String) {
     }
 
     let mut file = OpenOptions::new().create_new(true).write(true).open(path).unwrap();
-    if let Err(e) = write!(file, "{}", data) {
-        eprintln!("Couldn't write to file: {}", e);
+    if let Err(e) = write!(file, "{data}") {
+        eprintln!("Couldn't write to file: {e}");
     }
 }
 

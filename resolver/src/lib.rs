@@ -33,7 +33,7 @@ const CATALOG_REPO_URL: &str = "https://github.com/amphitheatre-app/catalog.git"
 pub async fn load_from_catalog(credentials: &Credentials, name: &str, version: &str) -> Result<CharacterSpec> {
     let reference = GitReference {
         repo: CATALOG_REPO_URL.to_string(),
-        path: Some(format!("characters/{}/{}/amp.toml", name, version)),
+        path: Some(format!("characters/{name}/{version}/amp.toml")),
         ..GitReference::default()
     };
     debug!("Loading character from catalog: {:?}", reference);

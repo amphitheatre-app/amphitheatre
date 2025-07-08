@@ -42,13 +42,13 @@ where
     let data = to_string(resource).map_err(Error::SerializationError)?;
     let hash = Sha256::digest(data);
 
-    Ok(format!("{:x}", hash))
+    Ok(format!("{hash:x}"))
 }
 
 /// Returns a list of arguments in one-dash or two-dash style.
 #[inline]
 pub fn args(args: &[(&str, &str)], dash: i8) -> Vec<String> {
     args.iter()
-        .map(|(key, value)| if dash == 1 { format!("-{}={}", key, value) } else { format!("--{}={}", key, value) })
+        .map(|(key, value)| if dash == 1 { format!("-{key}={value}") } else { format!("--{key}={value}") })
         .collect()
 }

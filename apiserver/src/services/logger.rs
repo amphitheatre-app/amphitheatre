@@ -103,7 +103,7 @@ impl Logger {
 
     /// Subscribes the log stream of the container.
     async fn subscribe(&mut self, pod: &str, container: &str) {
-        let key = format!("{}-{}", pod, container);
+        let key = format!("{pod}-{container}");
 
         let api = self.api.clone();
         let sender = self.sender.clone();
@@ -137,7 +137,7 @@ impl Logger {
             }
             Err(err) => {
                 let message =
-                    format!("Some error occurred while log stream for container {} in {}: {}.", container, pod, err);
+                    format!("Some error occurred while log stream for container {container} in {pod}: {err}.");
                 error!("{}", message);
                 _ = sender.send(Event::default().data(message)).await;
             }
@@ -156,7 +156,7 @@ impl Logger {
 
     /// Unsubscribes the log stream of the container.
     fn unsubscribe(&mut self, pod: &str, container: &str) {
-        let key = &format!("{}-{}", pod, container);
+        let key = &format!("{pod}-{container}");
         if let Some(task) = self.watches.remove(key) {
             info!("Unsubscribe the log stream of container {} in {}.", container, pod);
             task.abort();
