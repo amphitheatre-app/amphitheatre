@@ -148,7 +148,7 @@ dependencies = [
  "kube",
  "thiserror 2.0.12",
  "tokio",
- "toml 0.8.23",
+ "toml 0.9.2",
  "tracing",
  "tracing-subscriber",
 ]
@@ -173,7 +173,7 @@ dependencies = [
  "amp-resources",
  "kube",
  "thiserror 2.0.12",
- "toml 0.8.23",
+ "toml 0.9.2",
  "tracing",
  "url",
 ]
@@ -193,7 +193,7 @@ dependencies = [
  "sha2",
  "thiserror 2.0.12",
  "tokio",
- "toml 0.8.23",
+ "toml 0.9.2",
  "tracing",
  "url",
 ]
