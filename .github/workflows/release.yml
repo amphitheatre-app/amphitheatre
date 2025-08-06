@@ -42,19 +42,19 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             platform: windows-amd64
-#         - os: windows-latest
-#           target: aarch64-pc-windows-msvc
-#           platform: windows-arm64
+    #         - os: windows-latest
+    #           target: aarch64-pc-windows-msvc
+    #           platform: windows-arm64
     steps:
-    - uses: actions/checkout@v4
-    - name: Install cross-compilation tools
-      uses: taiki-e/setup-cross-toolchain-action@v1
-      with:
-        target: ${{ matrix.target }}
-    - uses: taiki-e/upload-rust-binary-action@v1
-      with:
-        bin: amp-apiserver,amp-controllers,amp-crdgen,amp-syncer
-        archive: amphitheatre-${{ matrix.platform }}
-        target: ${{ matrix.target }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        include: LICENSE,README.md
+      - uses: actions/checkout@v4
+      - name: Install cross-compilation tools
+        uses: taiki-e/setup-cross-toolchain-action@v1
+        with:
+          target: ${{ matrix.target }}
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: amp-apiserver,amp-controllers,amp-crdgen,amp-syncer
+          archive: amphitheatre-${{ matrix.platform }}
+          target: ${{ matrix.target }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          include: LICENSE,README.md

@@ -13,13 +13,16 @@ permissions:
 jobs:
   build:
     name: Build Image
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        platform: [linux/amd64,linux/arm64]
+        platform: [linux/amd64, linux/arm64]
         bin: [amp-apiserver, amp-controllers, amp-syncer]
         include:
+          - platform: linux/amd64
+            os: ubuntu-latest
+          - platform: linux/arm64
+            os: ubuntu-22.04-arm
           - bin: amp-apiserver
             dockerfile: ./apiserver/Dockerfile
           - bin: amp-controllers
@@ -27,55 +30,55 @@ jobs:
           - bin: amp-syncer
             dockerfile: ./syncer/Dockerfile
     steps:
-    - name: Set environment variable
-      run: echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.bin }}" >> $GITHUB_ENV
+      - name: Set environment variable
+        run: echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.bin }}" >> $GITHUB_ENV
 
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.IMAGE_NAME }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
 
-    - name: Build and push image by digest
-      id: build
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        file: ${{ matrix.dockerfile }}
-        platforms: ${{ matrix.platform }}
-        labels: ${{ steps.meta.outputs.labels }}
-        outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
-        provenance: false
-        cache-from: type=gha
-        cache-to: type=gha
+      - name: Build and push image by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha
 
-    - name: Export digest
-      run: |
-        mkdir -p "/tmp/digests/${{ matrix.bin }}"
-        digest="${{ steps.build.outputs.digest }}"
-        touch "/tmp/digests/${{ matrix.bin }}/${digest#sha256:}"
-        echo "DIGEST=${digest#sha256:}" >> $GITHUB_ENV
+      - name: Export digest
+        run: |
+          mkdir -p "/tmp/digests/${{ matrix.bin }}"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${{ matrix.bin }}/${digest#sha256:}"
+          echo "DIGEST=${digest#sha256:}" >> $GITHUB_ENV
 
-    - name: Upload digests
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.bin }}-digests-${{ env.DIGEST }}
-        path: /tmp/digests/${{ matrix.bin }}/*
-        if-no-files-found: error
-        retention-days: 1
+      - name: Upload digests
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.bin }}-digests-${{ env.DIGEST }}
+          path: /tmp/digests/${{ matrix.bin }}/*
+          if-no-files-found: error
+          retention-days: 1
 
   merge:
     name: Merge digests
@@ -86,38 +89,38 @@ jobs:
       matrix:
         bin: [amp-apiserver, amp-controllers, amp-syncer]
     steps:
-    - name: Set environment variable
-      run: echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.bin }}" >> $GITHUB_ENV
+      - name: Set environment variable
+        run: echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.bin }}" >> $GITHUB_ENV
 
-    - name: Download digests
-      uses: actions/download-artifact@v4
-      with:
-        path: /tmp/digests/${{ matrix.bin }}
-        pattern: ${{ matrix.bin }}-digests-*
-        merge-multiple: true
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests/${{ matrix.bin }}
+          pattern: ${{ matrix.bin }}-digests-*
+          merge-multiple: true
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.IMAGE_NAME }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
 
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Create manifest list and push
-      working-directory: /tmp/digests/${{ matrix.bin }}
-      run: |
-        docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-          $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *)
+      - name: Create manifest list and push
+        working-directory: /tmp/digests/${{ matrix.bin }}
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *)
 
-    - name: Inspect image
-      run: |
-        docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
