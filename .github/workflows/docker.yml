@@ -34,7 +34,7 @@ jobs:
         run: echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.bin }}" >> $GITHUB_ENV
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
