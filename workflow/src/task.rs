@@ -39,6 +39,7 @@ mod tests {
 
     #[test]
     fn test_impl_task_trait() {
+        #[allow(dead_code)]
         struct TestTask {}
 
         #[async_trait]
