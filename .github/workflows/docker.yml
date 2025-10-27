@@ -93,7 +93,7 @@ jobs:
         run: echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ matrix.bin }}" >> $GITHUB_ENV
 
       - name: Download digests
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: /tmp/digests/${{ matrix.bin }}
           pattern: ${{ matrix.bin }}-digests-*
