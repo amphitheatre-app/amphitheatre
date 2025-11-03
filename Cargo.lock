@@ -63,8 +63,8 @@ dependencies = [
  "clap",
  "dotenv",
  "futures",
- "k8s-openapi 0.25.0",
- "kube 1.1.0",
+ "k8s-openapi 0.26.0",
+ "kube 2.0.1",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -85,7 +85,7 @@ dependencies = [
  "amp-common",
  "amp-resources",
  "async-trait",
- "kube 1.1.0",
+ "kube 2.0.1",
  "serde_json",
  "thiserror 2.0.17",
  "tokio",
@@ -94,8 +94,8 @@ dependencies = [
 
 [[package]]
 name = "amp-common"
-version = "0.10.6"
-source = "git+https://github.com/amphitheatre-app/common?tag=v0.10.6#f762d3f15da60f166e5e302047673de5f55b3494"
+version = "0.10.5"
+source = "git+https://github.com/amphitheatre-app/common?tag=v0.10.5#c64ef5f3fd6951df43d65aa06f7fd18b084e6686"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -105,12 +105,12 @@ dependencies = [
  "data-encoding",
  "dirs",
  "json_comments",
- "k8s-openapi 0.26.0",
- "kube 2.0.1",
+ "k8s-openapi 0.25.0",
+ "kube 1.1.0",
  "notify",
  "oci-distribution",
  "reqwest",
- "schemars 1.0.5",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
  "thiserror 2.0.17",
@@ -135,8 +135,8 @@ dependencies = [
  "clap",
  "dotenv",
  "futures",
- "k8s-openapi 0.25.0",
- "kube 1.1.0",
+ "k8s-openapi 0.26.0",
+ "kube 2.0.1",
  "thiserror 2.0.17",
  "tokio",
  "toml 0.9.8",
@@ -150,7 +150,7 @@ version = "0.11.6"
 dependencies = [
  "amp-common",
  "clap",
- "kube 1.1.0",
+ "kube 2.0.1",
  "serde",
  "serde_yml",
  "tempfile",
@@ -162,7 +162,7 @@ version = "0.11.6"
 dependencies = [
  "amp-common",
  "amp-resources",
- "kube 1.1.0",
+ "kube 2.0.1",
  "thiserror 2.0.17",
  "toml 0.9.8",
  "tracing",
@@ -176,8 +176,8 @@ dependencies = [
  "amp-common",
  "anyhow",
  "k8s-metrics",
- "k8s-openapi 0.25.0",
- "kube 1.1.0",
+ "k8s-openapi 0.26.0",
+ "kube 2.0.1",
  "lazy_static",
  "serde",
  "serde_json",
@@ -216,8 +216,8 @@ dependencies = [
  "anyhow",
  "async-nats",
  "async-trait",
- "k8s-openapi 0.25.0",
- "kube 1.1.0",
+ "k8s-openapi 0.26.0",
+ "kube 2.0.1",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -2584,7 +2584,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
