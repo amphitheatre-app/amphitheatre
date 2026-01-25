@@ -8,7 +8,7 @@ the workflow of building, pushing, and deploying applications. It also provides
 building blocks and describes customization of CI/CD pipelines. It is written in
 Rust, with the Axum framework.
 
-[![License](https://img.shields.io/github/license/amphitheatre-app/amphitheatre)](https://github.com/amphitheatre-app/amphitheatre/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/amphitheatre-app/amphitheatre)](https://github.com/amphitheatre-app/amphitheatre/blob/main/LICENSE)
 [![GitHub
 contributors](https://img.shields.io/github/contributors/amphitheatre-app/amphitheatre)](https://github.com/amphitheatre-app/amphitheatre/graphs/contributors)
 [![GitHub
