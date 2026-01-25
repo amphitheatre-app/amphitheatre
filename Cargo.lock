@@ -63,8 +63,8 @@ dependencies = [
  "clap",
  "dotenv",
  "futures",
- "k8s-openapi 0.26.1",
- "kube 2.0.1",
+ "k8s-openapi 0.27.0",
+ "kube 3.0.0",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -85,7 +85,7 @@ dependencies = [
  "amp-common",
  "amp-resources",
  "async-trait",
- "kube 2.0.1",
+ "kube 3.0.0",
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
@@ -94,8 +94,8 @@ dependencies = [
 
 [[package]]
 name = "amp-common"
-version = "0.11.0"
-source = "git+https://github.com/amphitheatre-app/common?tag=v0.11.0#b9ad78c293c3bca938ade38d3bf8c9d257912afa"
+version = "0.10.7"
+source = "git+https://github.com/amphitheatre-app/common?tag=v0.10.7#6f02ab794be9f5bcab29d3473cce7e0744aead15"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -104,13 +104,12 @@ dependencies = [
  "convert_case",
  "data-encoding",
  "dirs",
- "jiff",
  "json_comments",
- "k8s-openapi 0.27.0",
- "kube 3.0.0",
+ "k8s-openapi 0.26.1",
+ "kube 2.0.1",
  "notify",
  "oci-distribution",
- "reqwest 0.13.1",
+ "reqwest",
  "schemars",
  "serde",
  "serde_json",
@@ -136,8 +135,8 @@ dependencies = [
  "clap",
  "dotenv",
  "futures",
- "k8s-openapi 0.26.1",
- "kube 2.0.1",
+ "k8s-openapi 0.27.0",
+ "kube 3.0.0",
  "thiserror 2.0.18",
  "tokio",
  "toml",
@@ -151,7 +150,7 @@ version = "0.11.12"
 dependencies = [
  "amp-common",
  "clap",
- "kube 2.0.1",
+ "kube 3.0.0",
  "serde",
  "serde_yml",
  "tempfile",
@@ -163,7 +162,7 @@ version = "0.11.12"
 dependencies = [
  "amp-common",
  "amp-resources",
- "kube 2.0.1",
+ "kube 3.0.0",
  "thiserror 2.0.18",
  "toml",
  "tracing",
@@ -177,8 +176,8 @@ dependencies = [
  "amp-common",
  "anyhow",
  "k8s-metrics",
- "k8s-openapi 0.26.1",
- "kube 2.0.1",
+ "k8s-openapi 0.27.0",
+ "kube 3.0.0",
  "lazy_static",
  "serde",
  "serde_json",
@@ -217,8 +216,8 @@ dependencies = [
  "anyhow",
  "async-nats",
  "async-trait",
- "k8s-openapi 0.26.1",
- "kube 2.0.1",
+ "k8s-openapi 0.27.0",
+ "kube 3.0.0",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -677,9 +676,9 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "convert_case"
-version = "0.10.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
+checksum = "db05ffb6856bf0ecdf6367558a76a0e8a77b1713044eb92845c692100ed50190"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -1711,12 +1710,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e67e8da4c49d6d9909fe03361f9b620f58898859f5c7aded68351e85e71ecf50"
 dependencies = [
  "jiff-static",
- "jiff-tzdb-platform",
  "log",
  "portable-atomic",
  "portable-atomic-util",
  "serde_core",
- "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1728,21 +1725,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "jiff-tzdb"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68971ebff725b9e2ca27a601c5eb38a4c5d64422c4cbab0c535f248087eda5c2"
-
-[[package]]
-name = "jiff-tzdb-platform"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "875a5a69ac2bab1a891711cf5eccbec1ce0341ea805560dcd90b7a2e925132e8"
-dependencies = [
- "jiff-tzdb",
 ]
 
 [[package]]
@@ -2329,7 +2311,7 @@ dependencies = [
  "lazy_static",
  "olpc-cjson",
  "regex",
- "reqwest 0.12.28",
+ "reqwest",
  "serde",
  "serde_json",
  "sha2",
@@ -2845,41 +2827,6 @@ dependencies = [
  "wasm-streams",
  "web-sys",
  "webpki-roots 1.0.4",
-]
-
-[[package]]
-name = "reqwest"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04e9018c9d814e5f30cc16a0f03271aeab3571e609612d9fe78c1aa8d11c2f62"
-dependencies = [
- "base64 0.22.1",
- "bytes",
- "futures-core",
- "futures-util",
- "http",
- "http-body",
- "http-body-util",
- "hyper",
- "hyper-util",
- "js-sys",
- "log",
- "percent-encoding",
- "pin-project-lite",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "sync_wrapper",
- "tokio",
- "tokio-util",
- "tower",
- "tower-http",
- "tower-service",
- "url",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-streams",
- "web-sys",
 ]
 
 [[package]]
@@ -3938,7 +3885,7 @@ dependencies = [
  "base64 0.22.1",
  "mime_guess",
  "regex",
- "reqwest 0.12.28",
+ "reqwest",
  "rust-embed",
  "serde",
  "serde_json",
