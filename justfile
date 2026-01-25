@@ -12,7 +12,7 @@ clean:
 
 # Linting
 clippy:
-   cargo clippy --workspace --all-features --all-targets -- -D warnings
+    cargo clippy --workspace --all-features --all-targets -- -D warnings
 
 # Check formatting
 check-fmt:

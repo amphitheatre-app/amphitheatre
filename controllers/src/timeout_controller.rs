@@ -16,8 +16,8 @@ use std::sync::Arc;
 
 use amp_common::resource::Playbook;
 use amp_resources::playbook::delete;
-use chrono::{DateTime, Duration, TimeDelta, Utc};
 use futures::{future, StreamExt};
+use jiff::{Span, Timestamp, ToSpan};
 use kube::Client;
 use kube::{
     runtime::{reflector, watcher, WatchStreamExt},
@@ -33,13 +33,13 @@ enum Strategy {
     Expired,
 
     /// Handling the retention of the playbook.
-    Remain(TimeDelta),
+    Remain(Span),
 }
 
 // Implement the From trait for Strategy.
-impl From<DateTime<Utc>> for Strategy {
-    fn from(value: DateTime<Utc>) -> Self {
-        let now = Utc::now();
+impl From<Timestamp> for Strategy {
+    fn from(value: Timestamp) -> Self {
+        let now = Timestamp::now();
         if value < now {
             Self::Expired
         } else {
@@ -83,7 +83,7 @@ async fn handle(playbook: &Playbook, client: &Client) -> anyhow::Result<()> {
         .and_then(|ttl_str| ttl_str.parse::<i64>().ok())
     {
         if let Some(timestamp) = playbook.metadata.creation_timestamp.as_ref() {
-            let expiration_time = timestamp.0 + Duration::seconds(ttl);
+            let expiration_time = timestamp.0 + ttl.seconds();
             let stratege = Strategy::from(expiration_time);
             match stratege {
                 Strategy::Expired => {
@@ -92,7 +92,7 @@ async fn handle(playbook: &Playbook, client: &Client) -> anyhow::Result<()> {
                     }
                 }
                 Strategy::Remain(time) => {
-                    if time == Duration::days(3) {
+                    if time.fieldwise() == 3.days().fieldwise() {
                         send_message().await;
                     }
                 }
