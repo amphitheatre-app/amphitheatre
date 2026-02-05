@@ -53,7 +53,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "amp-apiserver"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -80,7 +80,7 @@ dependencies = [
 
 [[package]]
 name = "amp-builder"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -125,7 +125,7 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -147,7 +147,7 @@ dependencies = [
 
 [[package]]
 name = "amp-crdgen"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "amp-common",
  "clap",
@@ -159,7 +159,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "amp-common",
  "anyhow",
@@ -192,7 +192,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "amp-common",
  "async-nats",
@@ -208,7 +208,7 @@ dependencies = [
 
 [[package]]
 name = "amp-workflow"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "amp-builder",
  "amp-common",
