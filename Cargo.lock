@@ -53,7 +53,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "amp-apiserver"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -80,7 +80,7 @@ dependencies = [
 
 [[package]]
 name = "amp-builder"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -94,8 +94,8 @@ dependencies = [
 
 [[package]]
 name = "amp-common"
-version = "0.11.1"
-source = "git+https://github.com/amphitheatre-app/common?tag=v0.11.1#0a74d1d34f24b4c4af531f805e3346e912c2b3e3"
+version = "0.11.0"
+source = "git+https://github.com/amphitheatre-app/common?tag=v0.11.0#b9ad78c293c3bca938ade38d3bf8c9d257912afa"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -116,7 +116,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
- "toml 1.0.3+spec-1.1.0",
+ "toml 0.9.12+spec-1.1.0",
  "tracing",
  "url",
  "utoipa",
@@ -125,7 +125,7 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -147,7 +147,7 @@ dependencies = [
 
 [[package]]
 name = "amp-crdgen"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "amp-common",
  "clap",
@@ -159,7 +159,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "amp-common",
  "anyhow",
@@ -192,7 +192,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "amp-common",
  "async-nats",
@@ -208,7 +208,7 @@ dependencies = [
 
 [[package]]
 name = "amp-workflow"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "amp-builder",
  "amp-common",
@@ -682,9 +682,9 @@ checksum = "136d3e02915a2cea4d74caa8681e2d44b1c3254bdbf17d11d41d587ff858832c"
 
 [[package]]
 name = "convert_case"
-version = "0.11.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "affbf0190ed2caf063e3def54ff444b449371d55c58e513a95ab98eca50adb49"
+checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
 dependencies = [
  "unicode-segmentation",
 ]
