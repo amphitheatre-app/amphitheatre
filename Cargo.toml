@@ -32,7 +32,7 @@ async-nats = "0.46"
 async-trait = "0.1"
 axum = { version = "0.8" }
 chrono = "0.4"
-clap = { version = "4.5", features = ["derive", "env"] }
+clap = { version = "4.6", features = ["derive", "env"] }
 dotenv = "0.15"
 futures = "0.3"
 jiff = "0.2"
