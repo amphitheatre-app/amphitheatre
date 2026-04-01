@@ -11,6 +11,7 @@ description = "K8s resources manager for the Amphitheatre platform"
 [dependencies]
 amp-common.workspace = true
 anyhow.workspace = true
+base16ct.workspace = true
 k8s-metrics.workspace = true
 k8s-openapi.workspace = true
 kube.workspace = true

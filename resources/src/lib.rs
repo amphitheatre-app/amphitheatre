@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use base16ct::lower::encode_string;
 use serde::Serialize;
 use serde_json::to_string;
 use sha2::{Digest, Sha256};
@@ -42,7 +43,7 @@ where
     let data = to_string(resource).map_err(Error::SerializationError)?;
     let hash = Sha256::digest(data);
 
-    Ok(format!("{hash:x}"))
+    Ok(encode_string(&hash))
 }
 
 /// Returns a list of arguments in one-dash or two-dash style.

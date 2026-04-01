@@ -18,6 +18,7 @@ use amp_common::{
     resource::CharacterSpec,
     schema::BuildpacksConfig,
 };
+use base16ct::lower::encode_string;
 use sha2::{Digest, Sha256};
 
 use super::encode_name;
@@ -43,7 +44,8 @@ impl BuildExt for CharacterSpec {
                     let mut items = vec![];
                     items.push(config.builder.clone());
                     items.append(buildpacks.clone().as_mut());
-                    format!("builder-{:x}", Sha256::digest(items.join(",").as_bytes()))
+                    let hash = Sha256::digest(items.join(",").as_bytes());
+                    format!("builder-{}", encode_string(&hash))
                 }
                 None => encode_name(&config.builder),
             })
