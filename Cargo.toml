@@ -28,7 +28,7 @@ amp-resolver = { path = "resolver" }
 amp-resources = { path = "resources" }
 amp-workflow = { path = "workflow" }
 anyhow = "1"
-async-nats = "0.48"
+async-nats = "0.49"
 base16ct = { version = "1", features = ["alloc"] }
 async-trait = "0.1"
 axum = { version = "0.8" }
