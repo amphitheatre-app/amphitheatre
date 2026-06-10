@@ -43,7 +43,7 @@ kube = { version = "3.1.0", default-features = false, features = ["runtime", "de
 lazy_static = "1.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yml = "0.0.12"
+serde_yml = "0.0.13"
 sha2 = "0.11"
 tar = "0.4"
 tempfile = "3"
