@@ -87,7 +87,7 @@ fn main() {
 /// Generate custom resource definitions with the given output path and filename.
 fn generate<T>(dir: Option<&Path>, filename: &str, data: &T)
 where
-    T: ?Sized + Serialize,
+    T: Serialize,
 {
     let definition = serde_yml::to_string(data).unwrap();
 
