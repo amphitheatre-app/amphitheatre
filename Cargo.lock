@@ -53,7 +53,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "amp-apiserver"
-version = "0.12.13"
+version = "0.12.14"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -80,7 +80,7 @@ dependencies = [
 
 [[package]]
 name = "amp-builder"
-version = "0.12.13"
+version = "0.12.14"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -94,8 +94,8 @@ dependencies = [
 
 [[package]]
 name = "amp-common"
-version = "0.12.0"
-source = "git+https://github.com/amphitheatre-app/common?tag=v0.12.0#ff1e1ff92e752bd5cf1a496d02aad5c24fd621b9"
+version = "0.11.2"
+source = "git+https://github.com/amphitheatre-app/common?tag=v0.11.2#f81ead74fa52680b4673c0b929021ebafd04c031"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -125,7 +125,7 @@ dependencies = [
 
 [[package]]
 name = "amp-controllers"
-version = "0.12.13"
+version = "0.12.14"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -147,7 +147,7 @@ dependencies = [
 
 [[package]]
 name = "amp-crdgen"
-version = "0.12.13"
+version = "0.12.14"
 dependencies = [
  "amp-common",
  "clap",
@@ -159,7 +159,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resolver"
-version = "0.12.13"
+version = "0.12.14"
 dependencies = [
  "amp-common",
  "amp-resources",
@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "amp-resources"
-version = "0.12.13"
+version = "0.12.14"
 dependencies = [
  "amp-common",
  "anyhow",
@@ -193,7 +193,7 @@ dependencies = [
 
 [[package]]
 name = "amp-syncer"
-version = "0.12.13"
+version = "0.12.14"
 dependencies = [
  "amp-common",
  "async-nats",
@@ -209,7 +209,7 @@ dependencies = [
 
 [[package]]
 name = "amp-workflow"
-version = "0.12.13"
+version = "0.12.14"
 dependencies = [
  "amp-builder",
  "amp-common",
