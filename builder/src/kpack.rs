@@ -69,7 +69,7 @@ impl Builder for KpackBuilder {
 
     async fn build(&self) -> Result<()> {
         // Build or update the Image
-        let name = format!("{}-builder", &self.actor.spec.name);
+        let name = format!("{}-builder", self.actor.spec.name);
         match image::exists(&self.k8s, &self.actor).await.map_err(Error::ResourceError)? {
             true => {
                 // Image already exists, update it if there are new changes

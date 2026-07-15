@@ -45,7 +45,7 @@ impl Context {
         // Connect to NATS and create a JetStream instance.
         let client = async_nats::connect(&config.nats_url)
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to connect to NATS: {}, {}", &config.nats_url, e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to connect to NATS: {}, {}", config.nats_url, e))?;
         let jetstream = jetstream::new(client);
 
         Ok(Context {
