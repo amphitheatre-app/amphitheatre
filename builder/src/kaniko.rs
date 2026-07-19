@@ -42,7 +42,7 @@ impl Builder for KanikoBuilder {
     }
 
     async fn build(&self) -> Result<()> {
-        let name = format!("{}-builder", &self.actor.spec.name);
+        let name = format!("{}-builder", self.actor.spec.name);
         let pod = kaniko::pod(&self.actor).map_err(Error::ResourceError)?;
 
         // Build or update the build job
