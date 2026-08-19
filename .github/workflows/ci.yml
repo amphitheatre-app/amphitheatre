@@ -3,9 +3,15 @@ name: Continuous Integration
 on:
   pull_request:
   push:
+    branches:
+      - main
     paths-ignore:
       - .github/**
       - README.md
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
