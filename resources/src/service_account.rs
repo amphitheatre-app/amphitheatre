@@ -33,10 +33,10 @@ pub async fn patch(
     let mut account = api.get(name).await.map_err(Error::KubeError)?;
 
     // Fetch original secrets and image pull secrets.
-    let mut secrets = account.secrets.map_or(vec![], |v| v);
+    let mut secrets = account.secrets.unwrap_or(vec![]);
     let secret_names: HashSet<String> = HashSet::from_iter(secrets.iter().map(|s| s.name.clone().unwrap()));
 
-    let mut image_pull_secrets = account.image_pull_secrets.map_or(vec![], |v| v);
+    let mut image_pull_secrets = account.image_pull_secrets.unwrap_or(vec![]);
     let image_pull_secret_names: HashSet<String> =
         HashSet::from_iter(image_pull_secrets.iter().map(|s| s.name.clone()));
 
