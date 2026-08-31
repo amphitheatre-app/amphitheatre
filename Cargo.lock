@@ -94,8 +94,8 @@ dependencies = [
 
 [[package]]
 name = "amp-common"
-version = "0.12.1"
-source = "git+https://github.com/amphitheatre-app/common?tag=v0.12.1#5d08840d74a317e3c2d2dc07936cd09fc158e660"
+version = "0.11.2"
+source = "git+https://github.com/amphitheatre-app/common?tag=v0.11.2#f81ead74fa52680b4673c0b929021ebafd04c031"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3579,7 +3579,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.2",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
@@ -4123,9 +4123,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.25.0"
+version = "1.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f053576934f05a761a402421fbbe3d425d9366f75f978806a037b3ca481abecc"
+checksum = "b5772d71c9be8a8a6ac2117d949c5b224c1b72241bb611d9a3012edcf8af7812"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",
@@ -4136,11 +4136,12 @@ dependencies = [
 
 [[package]]
 name = "validator"
-version = "0.21.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3d68c6633c483df6780cc5277a417c7c2d1bceee2649d06c8ab6b0fd2dd3c81"
+checksum = "43fb22e1a008ece370ce08a3e9e4447a910e92621bb49b85d6e48a45397e7cfa"
 dependencies = [
  "idna",
+ "once_cell",
  "regex",
  "serde",
  "serde_derive",
