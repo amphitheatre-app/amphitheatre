@@ -23,7 +23,7 @@ members = [
 # https://doc.rust-lang.org/cargo/reference/workspaces.html#the-workspacedependencies-table
 [workspace.dependencies]
 amp-builder = { path = "builder" }
-amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.11.2" }
+amp-common = { git = "https://github.com/amphitheatre-app/common", tag = "v0.12.3" }
 amp-resolver = { path = "resolver" }
 amp-resources = { path = "resources" }
 amp-workflow = { path = "workflow" }
@@ -55,6 +55,6 @@ tower-http = { version = "0.7", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2"
-utoipa = { version = "5", features = ["axum_extras", "uuid", "chrono", "macros"] }
-utoipa-swagger-ui = { version = "9", features = ["axum", "reqwest"] }
+utoipa = { version = "6", features = ["axum_extras", "uuid", "chrono", "macros"] }
+utoipa-swagger-ui = { version = "10", features = ["axum", "reqwest"] }
 uuid = { version = "1", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
